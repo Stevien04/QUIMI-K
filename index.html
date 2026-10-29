@@ -1,0 +1,1914 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QUIMI-K | Laboratorio Virtual de Química</title>
+  <link rel="stylesheet" href="style.css?v=2.3">
+</head>
+<body>
+
+  <!-- ================= PANTALLA COMPLETA DE LOGIN (FULLSCREEN) ================= -->
+  <div class="fullscreen-login-view" id="fullscreenLoginView">
+    <div class="login-container-card">
+      
+      <!-- Lateral Izquierdo: Presentación Institucional -->
+      <div class="login-hero-side">
+        <div>
+          <div class="hero-brand">
+            <div class="hero-icon">⚗️</div>
+            <div class="hero-title">
+              <h1>QUIMI-K <span>v1.0</span></h1>
+              <p>Simulador de Laboratorio Virtual de Química</p>
+            </div>
+          </div>
+
+          <div class="hero-features">
+            <div class="hero-feat-item">
+              <div class="hero-feat-icon">🔬</div>
+              <div class="hero-feat-text">
+                <strong>Experimentación Molecular Segura</strong>
+                <span>Simula enlaces iónicos y covalentes calculando electronegatividad sin riesgos físicos ni reactivos tóxicos.</span>
+              </div>
+            </div>
+            <div class="hero-feat-item">
+              <div class="hero-feat-icon">🤖</div>
+              <div class="hero-feat-text">
+                <strong>Tutor Virtual "Quimi"</strong>
+                <span>Guía en tiempo real con respuestas contextuales adaptadas al programa curricular de ciencias.</span>
+              </div>
+            </div>
+            <div class="hero-feat-item">
+              <div class="hero-feat-icon">📊</div>
+              <div class="hero-feat-text">
+                <strong>Evaluación & Reportes Oficiales</strong>
+                <span>Quizzes interactivos calificados con emisión automática de reportes de laboratorio en PDF.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="hero-footer-note">
+          Institución Educativa Alexander Fleming • Tacna, Perú (2026)<br>
+          Desarrollado bajo Arquitectura Hexagonal y Consumo Científico PubChem
+        </div>
+      </div>
+
+      <!-- Lateral Derecho: Formulario de Autenticación / Registro -->
+      <div class="login-form-side">
+        <div class="login-card-header">
+          <h2>Bienvenido al Laboratorio</h2>
+          <p>Ingrese sus credenciales institucionales para acceder a su entorno de trabajo.</p>
+        </div>
+
+        <!-- Pestañas de Acceso -->
+        <div class="auth-tabs-bar" style="border-radius: 8px; margin-bottom: 1.5rem;">
+          <button class="auth-tab-btn active" id="tabBtnLogin" onclick="App.switchAuthTab('login')">
+            🔑 Iniciar Sesión
+          </button>
+          <button class="auth-tab-btn" id="tabBtnRegister" onclick="App.switchAuthTab('register')">
+            📝 Registrarse
+          </button>
+        </div>
+
+        <!-- VISTA 1: INICIAR SESIÓN -->
+        <div id="authPaneLogin">
+          <form onsubmit="App.handleLoginForm(event)">
+            <div class="form-group">
+              <label>Correo Institucional o Gmail:</label>
+              <input type="email" id="loginEmail" class="form-input" placeholder="ejemplo@fleming.edu.pe o @gmail.com" required value="estudiante@fleming.edu.pe">
+            </div>
+            <div class="form-group">
+              <label>Contraseña:</label>
+              <input type="password" id="loginPassword" class="form-input" placeholder="••••••••" required value="123456">
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; font-size: 0.8rem;">
+              <label style="display: flex; align-items: center; gap: 0.35rem; color: #475569; cursor: pointer;">
+                <input type="checkbox" checked> Recordar credenciales
+              </label>
+              <a href="javascript:void(0)" onclick="App.openPasswordRecoveryModal()" style="color: var(--primary); text-decoration: none; font-weight: 600; cursor: pointer;">¿Olvidaste tu contraseña?</a>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 0.75rem; font-size: 0.95rem;">
+              🚀 Ingresar al Laboratorio
+            </button>
+          </form>
+
+          <!-- Acceso Rápido Demo por Rol -->
+          <div class="quick-roles-title">⚡ Acceso Rápido por Perfil (Demo)</div>
+          <div class="quick-roles-grid">
+            <button class="quick-role-btn" onclick="App.quickLogin('student')">
+              👨‍🎓<br><strong>Estudiante</strong><br><span style="font-size: 0.68rem; color: #64748b;">Juan Pérez</span>
+            </button>
+            <button class="quick-role-btn" onclick="App.quickLogin('teacher')">
+              👩‍🏫<br><strong>Docente</strong><br><span style="font-size: 0.68rem; color: #64748b;">Prof. Castillo</span>
+            </button>
+            <button class="quick-role-btn" onclick="App.quickLogin('admin')">
+              🛡️<br><strong>Admin</strong><br><span style="font-size: 0.68rem; color: #64748b;">TI Fleming</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- VISTA 2: REGISTRO -->
+        <div id="authPaneRegister" style="display: none;">
+          <form onsubmit="App.handleRegisterForm(event)">
+            <div class="form-group">
+              <label>Nombres y Apellidos:</label>
+              <input type="text" id="regFullName" class="form-input" placeholder="Juan Carlos Pérez" required>
+            </div>
+            <div class="form-group">
+              <label>Correo Institucional o Gmail:</label>
+              <input type="email" id="regEmail" class="form-input" placeholder="usuario@fleming.edu.pe o @gmail.com" required>
+            </div>
+            <div class="form-group">
+              <label>Rol en la Institución:</label>
+              <select id="regRole" class="form-input" required onchange="App.onRegisterRoleChange()">
+                <option value="student">👨‍🎓 Estudiante de Secundaria</option>
+                <option value="teacher">👩‍🏫 Docente de Ciencias (Envía Solicitud al Admin)</option>
+              </select>
+              <div id="teacherRequestNotice" style="display: none; font-size: 0.74rem; color: #b45309; background: #fef3c7; border: 1px solid #fde047; padding: 0.45rem 0.65rem; border-radius: 6px; margin-top: 0.4rem; line-height: 1.35;">
+                ℹ️ <strong>Validación Requerida:</strong> Al registrarte como Docente, tu cuenta se creará en modo de espera. El <strong>Administrador</strong> revisará tu solicitud para asignarte formalmente el rol de Docente y tus salones de clase.
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Contraseña:</label>
+              <input type="password" id="regPassword" class="form-input" placeholder="Mínimo 6 caracteres" minlength="6" required>
+            </div>
+
+            <button type="submit" class="btn btn-success" style="width: 100%; justify-content: center; padding: 0.75rem; margin-top: 0.5rem; font-size: 0.95rem;">
+              ✅ Completar Registro e Ingresar
+            </button>
+          </form>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ================= ENVOLTORIO PRINCIPAL DEL LABORATORIO CON BARRA LATERAL IZQUIERDA ================= -->
+  <div id="appMainWrapper" class="dashboard-layout" style="display: none;">
+
+    <!-- BARRA DE NAVEGACIÓN VERTICAL LATERAL (SIDEBAR IZQUIERDO) -->
+    <aside class="sidebar-left">
+      <div>
+        <!-- Cabecera de la Marca Institucional -->
+        <div class="sidebar-brand">
+          <div class="brand-logo-icon">⚗️</div>
+          <div class="brand-text">
+            <h1>QUIMI-K</h1>
+            <div class="brand-subtitle">I.E. Alexander Fleming • Tacna</div>
+          </div>
+        </div>
+
+        <!-- Título de Sección -->
+        <div class="sidebar-nav-title">Módulos del Sistema</div>
+
+        <!-- Lista Vertical de Pestañas / Módulos -->
+        <nav class="sidebar-nav-list" id="sidebarNavList">
+          <button class="sidebar-nav-item nav-tab" data-tab="tab-teacher" id="navSidebarTeacher" style="display: none;">
+            <span class="nav-icon" id="navTeacherIcon">🛡️</span>
+            <div class="nav-text-block">
+              <span class="nav-label" id="navTeacherLabel">Panel de Administración</span>
+              <span class="nav-hint" id="navTeacherHint">Usuarios, Notas & Salones</span>
+            </div>
+          </button>
+
+          <!-- MÓDULO 1 ESTUDIANTE: SALÓN -->
+          <button class="sidebar-nav-item nav-tab active" data-tab="tab-student-salon" id="navSidebarStudentSalon">
+            <span class="nav-icon">🏫</span>
+            <div class="nav-text-block">
+              <span class="nav-label">Salón</span>
+              <span class="nav-hint" id="navStudentSalonHint">Aula Autorizada</span>
+            </div>
+          </button>
+
+          <!-- SUB-MÓDULO: MESA DE LABORATORIO (DEBAJO DE SALÓN) -->
+          <button class="sidebar-nav-item nav-tab sidebar-nav-subitem" data-tab="tab-simulator" id="navSidebarSimulator">
+            <span class="nav-icon" style="font-size: 1.05rem;">🔬</span>
+            <div class="nav-text-block">
+              <span class="nav-label">Mesa de Laboratorio</span>
+              <span class="nav-hint">Simulación Molecular</span>
+            </div>
+          </button>
+
+          <button class="sidebar-nav-item nav-tab" data-tab="tab-assistant">
+            <span class="nav-icon">🤖</span>
+            <div class="nav-text-block">
+              <span class="nav-label">Asistente Virtual</span>
+              <span class="nav-hint">IA "Quimi" & Reglas</span>
+            </div>
+          </button>
+
+          <button class="sidebar-nav-item nav-tab" data-tab="tab-guide">
+            <span class="nav-icon">📖</span>
+            <div class="nav-text-block">
+              <span class="nav-label">Libro Guía Digital</span>
+              <span class="nav-hint">Enciclopedia & Glosario</span>
+            </div>
+          </button>
+
+          <button class="sidebar-nav-item nav-tab" data-tab="tab-quiz">
+            <span class="nav-icon">📝</span>
+            <div class="nav-text-block">
+              <span class="nav-label">Evaluación & Test</span>
+              <span class="nav-hint">Reporte Ficha PDF</span>
+            </div>
+          </button>
+
+          <button class="sidebar-nav-item nav-tab" data-tab="tab-infra">
+            <span class="nav-icon">🏗️</span>
+            <div class="nav-text-block">
+              <span class="nav-label">Infraestructura TI</span>
+              <span class="nav-hint">Arquitectura Hexagonal</span>
+            </div>
+          </button>
+        </nav>
+      </div>
+
+      <!-- Pie de Barra Lateral: Perfil de Usuario y Cierre de Sesión -->
+      <div class="sidebar-user-footer">
+        <div class="user-profile-chip" id="userProfileChip" style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15); margin-bottom: 0.75rem; border-radius: 10px; padding: 0.45rem 0.65rem;">
+          <div class="user-profile-avatar" id="userAvatar">JP</div>
+          <div style="overflow: hidden;">
+            <strong id="userFullName" style="display: block; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; font-size: 0.82rem; color: #f8fafc;">Juan Pérez</strong>
+            <span class="user-role-pill" id="userRoleBadge" style="font-size: 0.65rem;">Estudiante</span>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 0.4rem;">
+          <button class="btn btn-secondary" style="flex: 1; font-size: 0.75rem; padding: 0.4rem 0.5rem; justify-content: center;" onclick="App.openAuthModal('login')">
+            🔑 Cambiar
+          </button>
+          <button class="btn btn-outline" style="flex: 1; font-size: 0.75rem; padding: 0.4rem 0.5rem; justify-content: center; color: #f87171; border-color: rgba(248, 113, 113, 0.3);" onclick="App.logout()">
+            🚪 Salir
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- CUERPO PRINCIPAL DEL DASHBOARD (A LA DERECHA) -->
+    <div class="main-dashboard-body">
+
+      <!-- Barra de Contexto Superior -->
+      <header class="top-context-bar">
+        <div class="context-title" id="contextTitleDisplay">
+          🔬 Mesa de Laboratorio & Simulador
+        </div>
+      </header>
+
+      <!-- Contenedor Principal de la Aplicación -->
+      <main class="main-content">
+
+    <!-- ================= PESTAÑA: SALÓN DEL ESTUDIANTE ================= -->
+    <section id="tab-student-salon" class="tab-pane active" style="width: 100%;">
+      <div id="studentSalonContainer" style="width: 100%;">
+        <!-- Renderizado dinámico desde App.renderStudentSalonView() -->
+      </div>
+    </section>
+
+    <!-- ================= PESTAÑA 1: LABORATORIO & SIMULADOR ================= -->
+    <section id="tab-simulator" class="tab-pane">
+      <div class="section-banner">
+        <strong>Entorno de Experimentación Segura:</strong>
+        Realice la práctica guiada utilizando instrumentos virtuales, observe las reacciones a nivel molecular en la cámara de reacción y analice el tipo de enlace químico formado.
+      </div>
+
+      <div class="lab-grid">
+        <!-- Columna Izquierda: Práctica y Herramientas -->
+        <div class="steps-column">
+          <div class="card">
+            <div class="card-title">
+              <span>📋 Guía de Práctica</span>
+            </div>
+
+            <!-- Selector de Práctica Curada -->
+            <div style="margin-bottom: 0.85rem;">
+              <label style="font-size: 0.78rem; font-weight: 700; color: #475569;">Seleccionar Práctica:</label>
+              <select id="practiceSelect" style="width: 100%; padding: 0.4rem; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 0.82rem;" onchange="App.selectPractice(this.value)">
+                <option value="0">Práctica 1: Síntesis de Enlace Iónico (Na + Cl → NaCl)</option>
+                <option value="1">Práctica 2: Formación de Molécula Polar (H₂ + O → H₂O)</option>
+                <option value="2">Práctica 3: Neutralización Ácido-Base (HCl + NaOH)</option>
+              </select>
+            </div>
+
+            <!-- Pasos Guiados -->
+            <div class="steps-container" id="stepsList">
+              <!-- Renderizado dinámico desde JS -->
+            </div>
+
+            <!-- Herramientas Virtuales de Laboratorio (RF008 & RF009) -->
+            <div style="margin-top: 1.25rem;">
+              <div class="card-title" style="margin-bottom: 0.25rem; display: flex; justify-content: space-between; align-items: center;">
+                <span>🧪 Instrumentos de Mesa</span>
+                <span style="font-size: 0.7rem; color: #2563eb; font-weight: 700;">Uso Guiado</span>
+              </div>
+              <p style="font-size: 0.75rem; color: #64748b; margin-bottom: 0.5rem;">Haga clic en una herramienta para ver su guía de uso e interactuar:</p>
+              
+              <div class="tools-rack">
+                <button class="tool-btn" onclick="App.openToolGuide('pipeta')" title="Medición y dosificación volumétrica">
+                  <span class="icon">💧</span>
+                  <span>Pipeta Graduada</span>
+                </button>
+                <button class="tool-btn" onclick="App.openToolGuide('matraz')" title="Mezcla y agitación orbital">
+                  <span class="icon">🧪</span>
+                  <span>Matraz Erlenmeyer</span>
+                </button>
+                <button class="tool-btn" onclick="App.openToolGuide('tubo')" title="Pruebas a microescala">
+                  <span class="icon">🧪</span>
+                  <span>Tubo de Ensayo</span>
+                </button>
+                <button class="tool-btn" onclick="App.openToolGuide('mechero')" title="Suministro térmico y control de llama">
+                  <span class="icon">🔥</span>
+                  <span>Mechero Bunsen</span>
+                </button>
+                <button class="tool-btn" onclick="App.openToolGuide('balanza')" title="Pesaje analítico de reactivos sólidos">
+                  <span class="icon">⚖️</span>
+                  <span>Balanza Digital</span>
+                </button>
+                <button class="tool-btn" onclick="App.openToolGuide('termometro')" title="Monitoreo térmico en tiempo real">
+                  <span class="icon">🌡️</span>
+                  <span>Termómetro</span>
+                </button>
+                <button class="tool-btn" onclick="App.openToolGuide('phmetro')" title="Medición de acidez y neutralización">
+                  <span class="icon">📊</span>
+                  <span>Sensor de pH</span>
+                </button>
+                <button class="tool-btn" onclick="App.openToolGuide('espatula')" title="Manipulación de cristales y polvos">
+                  <span class="icon">🥄</span>
+                  <span>Espátula & Reloj</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Columna Central: Mesa de Laboratorio y Canvas Molecular -->
+        <div class="workbench-area">
+          <div class="card" style="padding: 0; overflow: hidden;">
+            <div class="lab-table-isometric">
+              <!-- Overlay Superior de la Mesa -->
+              <div class="lab-status-overlay">
+                <div>
+                  <span style="color: #38bdf8; font-weight: 700;">Cámara de Reacción Molecular</span>
+                  <span id="chamberSubtext" style="color: #94a3b8; font-size: 0.75rem; margin-left: 0.5rem;">• Esperando reactivos</span>
+                </div>
+                <div id="particleCounter" style="font-family: monospace; color: #a5f3fc;">
+                  Partículas activas: 0
+                </div>
+              </div>
+
+              <!-- Canvas Molecular Interactivo -->
+              <div class="canvas-container">
+                <canvas id="molecularCanvas"></canvas>
+              </div>
+
+              <!-- Barra de Controles Inferiores -->
+              <div class="workbench-controls">
+                <div style="display: flex; gap: 0.5rem;">
+                  <button class="btn btn-primary" id="btnNextStep" onclick="App.executeCurrentStep()">
+                    ▶️ Ejecutar Siguiente Paso
+                  </button>
+                  <button class="btn btn-secondary" onclick="App.triggerHeat()">
+                    🔥 Activar Calor
+                  </button>
+                </div>
+                <div>
+                  <button class="btn btn-outline" onclick="App.resetSimulation()">
+                    🔄 Reiniciar Mesa
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bitácora del Procedimiento en Vivo -->
+          <div class="card" style="padding: 0.85rem 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 0.85rem; font-weight: 700; color: #1e293b;">🔬 Bitácora Experimental de Laboratorio (Observaciones en vivo):</span>
+              <span id="experimentStatusBadge" class="status-tag status-pending">En Preparación</span>
+            </div>
+            <div id="labLogText" style="font-size: 0.82rem; color: #475569; margin-top: 0.4rem; line-height: 1.45;">
+              Seleccione una práctica o presione "Ejecutar Siguiente Paso" para comenzar a agregar reactivos al matraz y observar la reacción a nivel molecular.
+            </div>
+          </div>
+        </div>
+
+        <!-- Columna Derecha: ReactionEngine y PubChem -->
+        <div class="analysis-column">
+          <div class="card">
+            <div class="card-title">
+              <span>⚡ Motor de Reacciones</span>
+            </div>
+            <p style="font-size: 0.78rem; color: #64748b;">Cálculo de electronegatividad (Escala de Linus Pauling):</p>
+            
+            <div class="reaction-math" id="formulaDisplay">
+              ΔEN = |EN₁ - EN₂| = ?
+            </div>
+
+            <div class="reaction-result-box" id="reactionAnalysisBox">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                <span style="font-size: 0.82rem; font-weight: 700;">Tipo de Enlace:</span>
+                <span id="bondBadge" class="bond-tag bond-covalent-nonpolar">Pendiente</span>
+              </div>
+              <p id="bondAnalysisText" style="font-size: 0.78rem; color: #475569; line-height: 1.35;">
+                Inicie la reacción para calcular la naturaleza del enlace interatómico según la regla de Linus Pauling.
+              </p>
+            </div>
+
+            <!-- Tarjeta de Monitoreo de PubChem API Caché -->
+            <div class="pubchem-card">
+              <div style="display: flex; justify-content: space-between; font-weight: 700;">
+                <span>🌐 Datos Científicos PubChem</span>
+                <span style="color: #0284c7;">Caché Local</span>
+              </div>
+              <div class="pubchem-metric">
+                <span>Elementos consultados:</span>
+                <strong id="pubchemElem">Na / Cl</strong>
+              </div>
+              <div class="pubchem-metric">
+                <span>Tiempo de respuesta:</span>
+                <span id="pubchemLatency" class="fast">12 ms</span>
+              </div>
+              <div class="pubchem-metric">
+                <span>Origen de datos:</span>
+                <span id="pubchemSource">Memoria Caché Local</span>
+              </div>
+            </div>
+
+            <!-- Accesos rápidos al Asistente y Quiz -->
+            <div style="margin-top: 1rem; display: flex; flex-direction: column; gap: 0.5rem;">
+              <button class="btn btn-secondary" style="width: 100%; justify-content: center;" onclick="App.askQuimiAboutCurrentStep()">
+                💬 Preguntar a Quimi sobre este paso
+              </button>
+              <button class="btn btn-success" style="width: 100%; justify-content: center;" onclick="App.goToQuiz()">
+                📝 Ir a la Evaluación →
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= PESTAÑA 2: ASISTENTE VIRTUAL "QUIMI" ================= -->
+    <section id="tab-assistant" class="tab-pane">
+      <div class="section-banner">
+        <strong>Tutor Virtual de Laboratorio:</strong>
+        Orientación guiada en tiempo real para resolver dudas sobre los experimentos, uso de instrumentos y conceptos científicos sin riesgos.
+      </div>
+
+      <div style="max-width: 800px; margin: 0 auto;">
+        <div class="card quimi-assistant-card">
+          <div class="quimi-header">
+            <div class="quimi-avatar">🤖</div>
+            <div>
+              <h3 style="font-size: 1.1rem; color: #0f172a; font-weight: 700;">Quimi - Tutor Virtual de Laboratorio</h3>
+              <p style="font-size: 0.8rem; color: #64748b;">Orientador en tiempo real para el Colegio Alexander Fleming</p>
+            </div>
+          </div>
+
+          <!-- Historial de Conversación -->
+          <div class="quimi-chat-box" id="quimiChatHistory">
+            <div class="chat-bubble bot">
+              ¡Hola! Soy <strong>Quimi</strong>, tu asistente de ciencias. Estoy aquí para guiarte en el uso seguro de los instrumentos y explicarte las reacciones químicas según tu práctica asignada. Selecciona una de las consultas disponibles abajo:
+            </div>
+          </div>
+
+          <!-- Selector de Preguntas Predefinidas -->
+          <div style="margin-top: 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+              <span style="font-size: 0.8rem; font-weight: 700; color: #334155;">Selecciona una consulta sobre la práctica:</span>
+            </div>
+            <div class="quimi-select-group">
+              <button class="quimi-opt-btn" onclick="App.askQuimiPreset('¿Por qué reacciona el Sodio con el Cloro en la Práctica 1?')">
+                ❓ ¿Por qué reacciona el Sodio con el Cloro en la Práctica 1?
+              </button>
+              <button class="quimi-opt-btn" onclick="App.askQuimiPreset('¿Cómo se interpreta la diferencia de electronegatividad (ΔEN)?')">
+                ❓ ¿Cómo se interpreta la diferencia de electronegatividad (ΔEN)?
+              </button>
+              <button class="quimi-opt-btn" onclick="App.askQuimiPreset('¿Cuál es la función del Mechero Bunsen en la reacción?')">
+                ❓ ¿Cuál es la función del Mechero Bunsen en la reacción?
+              </button>
+              <button class="quimi-opt-btn" onclick="App.askQuimiPreset('¿Qué medidas de seguridad y cuidado exige esta práctica?')">
+                ❓ ¿Qué medidas de seguridad y cuidado exige esta práctica?
+              </button>
+              <button class="quimi-opt-btn" onclick="App.askQuimiPreset('¿Cómo funciona la regla del octeto de Lewis en esta formación?')">
+                ❓ ¿Cómo funciona la regla del octeto de Lewis en esta formación?
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= PESTAÑA 3: LIBRO GUÍA DIGITAL ================= -->
+    <section id="tab-guide" class="tab-pane">
+      <div class="section-banner">
+        <strong>Manual y Enciclopedia Digital de Química:</strong>
+        Consulte explicaciones pedagógicas simples, fórmulas científicas fundamentales y procedimientos de laboratorio paso a paso. Utilice la barra de búsqueda para localizar rápidamente cualquier término, reactivo o fórmula.
+      </div>
+
+      <div class="card">
+        <!-- Barra de Búsqueda Interactiva -->
+        <div class="guide-search-box" style="position: relative;">
+          <input type="text" id="guideSearchInput" class="search-input" placeholder="🔍 Buscar por término, fórmula o procedimiento (ej. Pauling, Lewis, Mol, Átomo, Redox, pH, Hidrocarburos)..." oninput="App.filterGuideEntries(this.value)">
+          <button id="guideSearchClearBtn" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; font-size: 1rem; color: #94a3b8; cursor: pointer; display: none;" onclick="App.clearGuideSearch()">✕</button>
+        </div>
+
+        <!-- Filtros por Unidades Temáticas del Currículo -->
+        <div class="guide-category-filters" id="guideCategoryFilters">
+          <button class="guide-cat-btn active" data-cat="all" onclick="App.filterGuideCategory('all')">
+            📚 Todos los Temas (<span id="guideCountAll">0</span>)
+          </button>
+          <button class="guide-cat-btn" data-cat="materia" onclick="App.filterGuideCategory('materia')">
+            🧪 Materia y Medición
+          </button>
+          <button class="guide-cat-btn" data-cat="atomo" onclick="App.filterGuideCategory('atomo')">
+            ⚛️ Estructura Atómica y Tabla
+          </button>
+          <button class="guide-cat-btn" data-cat="enlaces" onclick="App.filterGuideCategory('enlaces')">
+            🤝 Enlaces y Nomenclatura
+          </button>
+          <button class="guide-cat-btn" data-cat="reacciones" onclick="App.filterGuideCategory('reacciones')">
+            ⚗️ Reacciones y Estequiometría
+          </button>
+          <button class="guide-cat-btn" data-cat="organica" onclick="App.filterGuideCategory('organica')">
+            🛢️ Química Orgánica
+          </button>
+          <button class="guide-cat-btn" data-cat="laboratorio" onclick="App.filterGuideCategory('laboratorio')">
+            🔬 Procedimientos de Lab
+          </button>
+        </div>
+
+        <!-- Contador de Resultados -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; font-size: 0.8rem; color: #64748b;">
+          <div>Resultados: <strong id="guideResultsCount" style="color: #2563eb;">0</strong> temas encontrados</div>
+          <div>Colegio Alexander Fleming • Tacna</div>
+        </div>
+
+        <!-- Grilla de Temas del Libro Guía -->
+        <div class="guide-entries" id="guideEntriesContainer">
+          <!-- Renderizado dinámico desde JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= PESTAÑA 4: EVALUACIÓN Y REPORTE ================= -->
+    <section id="tab-quiz" class="tab-pane">
+      <div class="section-banner">
+        <strong>Evaluación de Aprendizaje & Emisión de Reporte:</strong>
+        Responda el cuestionario sobre la práctica realizada para obtener su calificación inmediata y generar el informe individual de resultados.
+      </div>
+
+      <div class="quiz-grid">
+        <!-- Formulario de Evaluación -->
+        <div class="card">
+          <div class="card-title">
+            <span>📝 Cuestionario de Evaluación</span>
+          </div>
+
+          <!-- Selector de Cuestionario: Práctica del Laboratorio vs Cuestionarios Asignados por el Docente -->
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.75rem; margin-bottom: 1rem;">
+            <label style="font-size: 0.78rem; font-weight: 700; color: #475569; display: block; margin-bottom: 0.35rem;">
+              Seleccionar Evaluación a Resolver:
+            </label>
+            <select id="activeQuizSelector" class="form-input" style="padding: 0.45rem; font-size: 0.85rem;" onchange="App.handleQuizSelectorChange(this.value)">
+              <!-- Opciones dinámicas generadas en JS -->
+            </select>
+          </div>
+
+          <p style="font-size: 0.8rem; color: #64748b; margin-bottom: 1.25rem;" id="quizInstructionText">
+            Responda las preguntas para validar los conceptos observados en la simulación. Puntaje mínimo aprobatorio: <strong>14 / 20</strong>.
+          </p>
+
+          <form id="quizForm" onsubmit="App.submitQuiz(event)">
+            <div id="quizQuestionsContainer">
+              <!-- Renderizado de preguntas por JS -->
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="margin-top: 1rem;">
+              ✅ Enviar Evaluación y Calificar
+            </button>
+          </form>
+        </div>
+
+        <!-- Resultados y Reporte -->
+        <div class="card">
+          <div class="card-title">
+            <span>📊 Resultados Obtenidos</span>
+          </div>
+
+          <div id="quizResultPlaceholder" style="text-align: center; padding: 2rem 1rem; color: #64748b;">
+            <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">📄</div>
+            <p style="font-size: 0.85rem;">Complete el cuestionario y presione "Enviar Evaluación" para ver la retroalimentación y generar su reporte.</p>
+          </div>
+
+          <div id="quizResultDisplay" style="display: none;">
+            <div style="text-align: center; margin: 1rem 0;">
+              <div style="font-size: 2.5rem; font-weight: 800;" id="scoreNumber">18/20</div>
+              <div id="scoreBadge" class="status-tag status-passed" style="font-size: 0.85rem; padding: 0.25rem 0.75rem;">
+                ¡APROBADO!
+              </div>
+            </div>
+
+            <div style="background: #f8fafc; border-radius: 8px; padding: 0.75rem; border: 1px solid #e2e8f0; font-size: 0.82rem; margin-bottom: 1rem;" id="quizFeedbackText">
+              Excelente comprensión de la escala de Pauling y transferencia electrónica en enlaces iónicos.
+            </div>
+
+            <button class="btn btn-success" style="width: 100%; justify-content: center;" onclick="App.generatePdfReport()">
+              📥 Generar e Imprimir Reporte en PDF
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= PESTAÑA 5: PANEL DOCENTE ================= -->
+    <section id="tab-teacher" class="tab-pane">
+      <!-- Vista restringida para estudiantes -->
+      <div id="teacherContentRestricted" class="access-denied-card" style="display: none;">
+        <div class="access-denied-icon">🔒</div>
+        <h3 style="color: #991b1b; font-size: 1.2rem; margin-bottom: 0.5rem;">Acceso Restringido - Control de Roles</h3>
+        <p style="color: #64748b; font-size: 0.85rem; max-width: 500px; margin: 0 auto 1.25rem auto;">
+          Tu cuenta actual tiene el rol de <strong>Estudiante</strong>. Según las políticas de acceso del Colegio Alexander Fleming, el Panel de Gestión y Calificaciones está reservado exclusivamente para docentes y administradores.
+        </p>
+        <button class="btn btn-primary" onclick="App.quickLogin('teacher')">
+          👩‍🏫 Iniciar Sesión como Docente (Prof. Midori Judith Castillo Peralta)
+        </button>
+      </div>
+
+      <!-- Vista autorizada para docentes y administradores -->
+      <div id="teacherContentAuthorized">
+
+        <!-- Sub-Navegación del Panel Docente: Salones vs Evaluaciones vs Admin -->
+        <div class="teacher-subnav">
+          <button id="btnSubnavAdmin" class="teacher-subnav-btn" onclick="App.switchTeacherSubtab('admin')" style="display: none;">
+            🛡️ Auditoría Global de Usuarios & Notas
+          </button>
+          <button id="btnSubnavSalones" class="teacher-subnav-btn active" onclick="App.switchTeacherSubtab('salones')">
+            🏫 Salones
+          </button>
+          <button id="btnSubnavEvals" class="teacher-subnav-btn" onclick="App.switchTeacherSubtab('evaluations')">
+            📝 Gestión de Evaluaciones & Cuestionarios
+          </button>
+        </div>
+
+        <!-- ================= SUB-PANEL 1: MIS SALONES & CALIFICACIONES ================= -->
+        <div id="teacherPaneSalones">
+
+          <!-- NIVEL 1: MIS SALONES ASIGNADOS (OVERVIEW) -->
+          <div id="teacherSalonesOverview">
+            <div class="section-banner" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+              <div>
+                <strong>Salones Asignados a Prof. Midori Judith Castillo Peralta:</strong>
+                Seleccione un salón de clases para ingresar a revisar el avance, intentos y calificaciones de sus estudiantes.
+              </div>
+              <button class="btn btn-success" style="font-size: 0.82rem; padding: 0.4rem 0.85rem;" onclick="App.openCreateClassroomModal()">
+                ➕ Crear Salón
+              </button>
+            </div>
+
+            <!-- RULETA / CARRUSEL HORIZONTAL DE TARJETAS DE SALONES -->
+            <div class="classroom-carousel-wrapper">
+              <button class="carousel-control-btn prev" onclick="App.scrollClassroomsCarousel(-1)" title="Salón Anterior">
+                ‹
+              </button>
+              
+              <div class="classroom-carousel-track" id="classroomsCardsContainer">
+                <!-- Renderizado dinámico desde JS con los salones + tarjeta Crear Salón -->
+              </div>
+
+              <button class="carousel-control-btn next" onclick="App.scrollClassroomsCarousel(1)" title="Siguiente Salón">
+                ›
+              </button>
+            </div>
+
+            <div class="carousel-hint-bar">
+              <span>🎡 Desliza horizontalmente o usa las flechas laterales para recorrer los salones</span>
+              <span id="classroomsCarouselCounter" style="font-weight: 700; color: #0284c7;">3 Salones Activos</span>
+            </div>
+          </div>
+
+          <!-- NIVEL 2: DENTRO DEL SALÓN SELECCIONADO (ALUMNOS DEL AULA) -->
+          <div id="teacherSaloneDetail" style="display: none;">
+            <div class="classroom-header-bar">
+              <div class="classroom-title-area">
+                <button class="back-salones-btn" onclick="App.backToSalonesOverview()">
+                  ← Volver a Mis Salones
+                </button>
+                <div>
+                  <h3 style="font-size: 1.15rem; font-weight: 800; color: #0f172a;" id="activeClassroomTitle">4to Año "A" - Secundaria</h3>
+                  <span style="font-size: 0.78rem; color: #64748b;" id="activeClassroomSub">Práctica Activa: Síntesis de NaCl • Turno Mañana</span>
+                </div>
+              </div>
+
+              <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                <button class="btn btn-secondary" style="font-size: 0.78rem;" onclick="App.openStudentSelectionModalForExistingSalon()">
+                  👥 Invitar / Agregar Alumnos
+                </button>
+                <button class="btn btn-secondary" style="font-size: 0.78rem;" onclick="App.assignPracticeToClassroom()">
+                  ➕ Asignar Práctica
+                </button>
+                <button class="btn btn-primary" style="font-size: 0.78rem;" onclick="App.exportTeacherReport()">
+                  📑 Exportar Acta de este Salón
+                </button>
+              </div>
+            </div>
+
+            <!-- Métricas Específicas del Salón -->
+            <div class="stats-row">
+              <div class="stat-box">
+                <div class="stat-val" id="salonMetricStudents">15</div>
+                <div class="stat-lbl">Alumnos Matriculados</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-val" id="salonMetricPassing">100%</div>
+                <div class="stat-lbl">Tasa de Aprobación</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-val" id="salonMetricAverage">17.6</div>
+                <div class="stat-lbl">Promedio del Salón</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-val" id="salonMetricCompleted">100%</div>
+                <div class="stat-lbl">Prácticas Entregadas</div>
+              </div>
+            </div>
+
+            <!-- Tabla con los Alumnos Exclusivos de este Salón -->
+            <div class="card">
+              <div class="card-title">
+                <span id="salonTableTitle">👥 Lista de Alumnos del Salón</span>
+                <span style="font-size: 0.78rem; color: #64748b; font-weight: normal;">Colegio Alexander Fleming</span>
+              </div>
+
+              <div class="table-responsive">
+                <table class="custom-table">
+                  <thead>
+                    <tr>
+                      <th>Estudiante</th>
+                      <th>Práctica en Curso</th>
+                      <th>Intentos</th>
+                      <th>Calificación</th>
+                      <th>Estado</th>
+                      <th>Fecha y Hora</th>
+                      <th>Acción</th>
+                    </tr>
+                  </thead>
+                  <tbody id="teacherTableBody">
+                    <!-- Renderizado dinámico de alumnos del salón activo -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+        </div> <!-- Fin de #teacherPaneSalones -->
+
+        <!-- ================= SUB-PANEL 2: GESTIÓN DE EVALUACIONES & CUESTIONARIOS ================= -->
+        <div id="teacherPaneEvaluations" style="display: none;">
+          <div class="section-banner" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+            <div>
+              <strong>Diseño y Asignación de Evaluaciones por Salón:</strong>
+              Cree cuestionarios y elija a qué salón o salones asignarlos. Mientras la evaluación esté en modo <strong>Borrador</strong>, podrá modificar las preguntas y salones cuantas veces requiera. Una vez <strong>Enviada al Salón</strong>, quedará protegida contra modificaciones para preservar la transparencia académica.
+            </div>
+            <button class="btn btn-primary" onclick="App.openEvaluationEditor()" style="white-space: nowrap; font-size: 0.85rem;">
+              ➕ Crear Nueva Evaluación
+            </button>
+          </div>
+
+          <!-- Filtros de Estado y Contador -->
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
+            <div style="display: flex; gap: 0.5rem;">
+              <button class="btn btn-secondary" style="font-size: 0.78rem; padding: 0.35rem 0.75rem;" onclick="App.filterEvaluations('all')">
+                Todos (<span id="countEvalAll">2</span>)
+              </button>
+              <button class="btn btn-outline" style="font-size: 0.78rem; padding: 0.35rem 0.75rem;" onclick="App.filterEvaluations('draft')">
+                📝 Borradores (<span id="countEvalDraft">1</span>)
+              </button>
+              <button class="btn btn-outline" style="font-size: 0.78rem; padding: 0.35rem 0.75rem;" onclick="App.filterEvaluations('published')">
+                🚀 Enviados a Salón (<span id="countEvalPublished">1</span>)
+              </button>
+            </div>
+            <span style="font-size: 0.78rem; color: #64748b;">
+              🔒 <em>Las evaluaciones enviadas a salón no pueden modificarse.</em>
+            </span>
+          </div>
+
+          <!-- Grilla de Tarjetas de Evaluaciones -->
+          <div class="evaluations-grid" id="evaluationsGridContainer">
+            <!-- Renderizado dinámico desde JS -->
+          </div>
+        </div> <!-- Fin de #teacherPaneEvaluations -->
+
+        <!-- ================= SUB-PANEL 3: AUDITORÍA GLOBAL DE USUARIOS & NOTAS (ADMIN) ================= -->
+        <div id="teacherPaneAdmin" style="display: none;">
+          <div class="section-banner" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+            <div>
+              <strong>Panel de Auditoría & Administración Institucional:</strong>
+              Supervisión integral de todos los usuarios registrados (Estudiantes, Docentes y Personal Administrativo), seguimiento de avance curricular, intentos en laboratorio y registro oficial de calificaciones de la I.E. Alexander Fleming (Tacna).
+            </div>
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+              <button class="btn btn-secondary" onclick="App.openAdminCreateUserModal()" style="font-size: 0.82rem;">
+                ➕ Registrar Usuario
+              </button>
+              <button class="btn btn-primary" onclick="App.exportAdminUsersReport()" style="font-size: 0.82rem;">
+                📑 Exportar Padrón y Acta de Notas
+              </button>
+            </div>
+          </div>
+
+          <!-- Métricas Generales Institucionales del Administrador -->
+          <div class="stats-row" style="margin-top: 1rem;">
+            <div class="stat-box">
+              <div class="stat-val" id="adminMetricTotalUsers">18</div>
+              <div class="stat-lbl">Usuarios Registrados</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-val" id="adminMetricTotalStudents">14</div>
+              <div class="stat-lbl">Alumnos Matriculados</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-val" id="adminMetricAvgScore">17.4</div>
+              <div class="stat-lbl">Promedio General (0-20)</div>
+            </div>
+            <div class="stat-box" style="border-left: 3px solid #f59e0b;">
+              <div class="stat-val" id="adminMetricPendingTeacherRequests" style="color: #b45309;">1</div>
+              <div class="stat-lbl">Solicitudes Docente</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-val" id="adminMetricPassingRate">92.9%</div>
+              <div class="stat-lbl">Tasa de Aprobación</div>
+            </div>
+          </div>
+
+          <!-- BANDEJA DE SOLICITUDES DE ROL DOCENTE PENDIENTES -->
+          <div class="card" id="adminTeacherRequestsCard" style="margin-top: 1rem; border-left: 4px solid #f59e0b;">
+            <div class="card-title" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+              <span>📬 Solicitudes de Registro para Rol Docente (Pendientes de Aprobación)</span>
+              <span class="badge-role badge-role-pending" id="adminPendingRequestsCount">
+                ⏳ 1 Solicitud Pendiente
+              </span>
+            </div>
+            <div id="adminTeacherRequestsList" style="margin-top: 0.5rem;">
+              <!-- Renderizado dinámico de solicitudes con botones de Aprobar y Denegar -->
+            </div>
+          </div>
+
+          <!-- Barra de Búsqueda y Filtros de Usuarios -->
+          <div class="admin-filters-card">
+            <div class="admin-filters-grid">
+              <!-- Búsqueda en vivo -->
+              <div style="flex: 1; min-width: 240px;">
+                <label style="font-size: 0.75rem; font-weight: 700; color: #475569; display: block; margin-bottom: 0.25rem;">
+                  🔍 Búsqueda Rápida de Usuario:
+                </label>
+                <input type="text" id="adminSearchInput" class="form-input" placeholder="Buscar por nombre, apellido o correo institucional..." oninput="App.filterAdminUsers()">
+              </div>
+
+              <!-- Filtro de Rol -->
+              <div style="min-width: 180px;">
+                <label style="font-size: 0.75rem; font-weight: 700; color: #475569; display: block; margin-bottom: 0.25rem;">
+                  👤 Filtrar por Perfil / Rol:
+                </label>
+                <select id="adminRoleFilter" class="form-input" onchange="App.filterAdminUsers()">
+                  <option value="all">Todos los Roles</option>
+                  <option value="student">👨‍🎓 Estudiantes</option>
+                  <option value="teacher">👩‍🏫 Docentes</option>
+                  <option value="admin">🛡️ Administradores</option>
+                </select>
+              </div>
+
+              <!-- Filtro de Salón -->
+              <div style="min-width: 180px;">
+                <label style="font-size: 0.75rem; font-weight: 700; color: #475569; display: block; margin-bottom: 0.25rem;">
+                  🏫 Filtrar por Salón / Sección:
+                </label>
+                <select id="adminSalonFilter" class="form-input" onchange="App.filterAdminUsers()">
+                  <option value="all">Todas las Secciones</option>
+                  <option value="4A">4to Año "A"</option>
+                  <option value="4B">4to Año "B"</option>
+                  <option value="5A">5to Año "A"</option>
+                  <option value="staff">Plana Docente / TI</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tabla con Todos los Usuarios, Datos y Notas -->
+          <div class="card" style="margin-top: 1rem;">
+            <div class="card-title" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+              <span>📋 Padrón Oficial de Usuarios, Historial de Prácticas y Calificaciones</span>
+              <span id="adminTableCountLabel" style="font-size: 0.78rem; color: #64748b; font-weight: normal;">Mostrando 17 usuarios</span>
+            </div>
+
+            <div class="table-responsive">
+              <table class="custom-table" id="adminUsersTable">
+                <thead>
+                  <tr>
+                    <th>Usuario / Nombres</th>
+                    <th>Correo Institucional</th>
+                    <th>Rol</th>
+                    <th>Salón / Sección</th>
+                    <th>Práctica en Curso</th>
+                    <th>Intentos</th>
+                    <th>Calificación</th>
+                    <th>Estado</th>
+                    <th>Fecha / Hora</th>
+                    <th>Acción</th>
+                  </tr>
+                </thead>
+                <tbody id="adminUsersTableBody">
+                  <!-- Renderizado dinámico desde JS con todos los usuarios -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div> <!-- Fin de #teacherPaneAdmin -->
+
+      </div>
+    </section>
+
+    <!-- ================= PESTAÑA 6: INFRAESTRUCTURA DE SOFTWARE ================= -->
+    <section id="tab-infra" class="tab-pane">
+      <div class="section-banner">
+        <strong>Infraestructura Tecnológica y Arquitectura de Software:</strong>
+        Organización del sistema según el modelo multicapa cliente-servidor web, Arquitectura Hexagonal (Ports & Adapters) y servicios en la nube.
+      </div>
+
+      <div class="infra-grid">
+        <!-- Capa 1: Frontend Cliente -->
+        <div class="infra-tier-card tier-frontend">
+          <div class="tier-header">
+            <div class="tier-icon">💻</div>
+            <div>
+              <div class="tier-title">Capa Cliente (Frontend SPA)</div>
+              <div class="tier-subtitle">Navegador Web en Equipos del Colegio</div>
+            </div>
+          </div>
+          <div class="tech-item">
+            <strong>Interfaz Web Isométrica 2D</strong>
+            <span>HTML5, CSS3 moderno y JavaScript (React App SPA). Sin instalaciones locales pesadas.</span>
+          </div>
+          <div class="tech-item">
+            <strong>Motor Gráfico Canvas Molecular</strong>
+            <span>Renderizado dinámico de partículas atómicas a 60 FPS con detección de colisiones físicas.</span>
+          </div>
+          <div class="tech-item">
+            <strong>Dispositivos Compatibles</strong>
+            <span>Equipos del aula de cómputo del Colegio Alexander Fleming con 4 GB de RAM y GPU estándar.</span>
+          </div>
+        </div>
+
+        <!-- Capa 2: Backend Servidor -->
+        <div class="infra-tier-card tier-backend">
+          <div class="tier-header">
+            <div class="tier-icon">⚙️</div>
+            <div>
+              <div class="tier-title">Capa Servidor (Backend Cloud)</div>
+              <div class="tier-subtitle">Servidor de Aplicaciones Java Spring Boot</div>
+            </div>
+          </div>
+          <div class="tech-item">
+            <strong>Arquitectura Hexagonal (Ports & Adapters)</strong>
+            <span>Desacoplamiento total entre la lógica del dominio químico y los controladores web externos.</span>
+          </div>
+          <div class="tech-item">
+            <strong>Núcleo ReactionEngine</strong>
+            <span>Motor de dominio que calcula la diferencia de electronegatividad (ΔEN de Pauling) y clasifica enlaces.</span>
+          </div>
+          <div class="tech-item">
+            <strong>Servicio de Caché en Memoria</strong>
+            <span>Almacena respuestas de PubChem API resolviendo consultas frecuentes en menos de 50 ms.</span>
+          </div>
+          <div class="tech-item">
+            <strong>Generador Asíncrono de Reportes</strong>
+            <span>Compilación automática de informes en formato PDF sin bloquear los procesos del servidor.</span>
+          </div>
+        </div>
+
+        <!-- Capa 3: Base de Datos & Servicios Externos -->
+        <div class="infra-tier-card tier-database">
+          <div class="tier-header">
+            <div class="tier-icon">🗄️</div>
+            <div>
+              <div class="tier-title">Persistencia & Servicios Cloud</div>
+              <div class="tier-subtitle">Base de Datos PostgreSQL y Servicios Externos</div>
+            </div>
+          </div>
+          <div class="tech-item">
+            <strong>PostgreSQL Relacional</strong>
+            <span>Gestión estructurada de usuarios (Estudiante, Docente, Admin), grupos, historial de intentos y notas.</span>
+          </div>
+          <div class="tech-item">
+            <strong>PubChem PUG-REST API (NCBI)</strong>
+            <span>Fuente oficial para consulta de pesos moleculares, radios atómicos y configuraciones electrónicas.</span>
+          </div>
+          <div class="tech-item">
+            <strong>Seguridad & Comunicaciones HTTPS</strong>
+            <span>Cifrado TLS, certificados digitales SSL y cumplimiento de la Ley de Protección de Datos (Ley 29733).</span>
+          </div>
+          <div class="tech-item">
+            <strong>Hosting en la Nube (VPS)</strong>
+            <span>Instancia en Render / Railway configurada para 30 estudiantes concurrentes (1 vCPU, 2 GB RAM).</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Resumen de Componentes Clave -->
+      <div class="card">
+        <div class="card-title">
+          <span>📐 Flujo de Comunicación entre Capas</span>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; font-size: 0.83rem; color: #334155;">
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.85rem;">
+            <strong style="color: #0284c7;">1. Solicitud de Práctica</strong>
+            <p style="margin-top: 0.25rem; font-size: 0.78rem; color: #64748b;">El estudiante inicia sesión y selecciona una práctica curada desde el navegador del aula.</p>
+          </div>
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.85rem;">
+            <strong style="color: #16a34a;">2. Procesamiento Científico</strong>
+            <p style="margin-top: 0.25rem; font-size: 0.78rem; color: #64748b;">El ReactionEngine evalúa las colisiones e interactúa con el adaptador de PubChem para cargar radios y cargas.</p>
+          </div>
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.85rem;">
+            <strong style="color: #8b5cf6;">3. Evaluación y Almacenamiento</strong>
+            <p style="margin-top: 0.25rem; font-size: 0.78rem; color: #64748b;">Al terminar el quiz, el servidor registra la nota en PostgreSQL y genera el reporte PDF para el docente.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ================= ELEMENTO OCULTO PARA IMPRESIÓN / REPORTE PDF ================= -->
+  <div id="printableReport" style="display: none; padding: 30px; font-family: Arial, sans-serif; color: #111;">
+    <div style="border-bottom: 2px solid #2563eb; padding-bottom: 15px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+      <div>
+        <h2 style="color: #1e3a8a; margin: 0; font-size: 20px;">COLEGIO ALEXANDER FLEMING • TACNA</h2>
+        <div style="font-size: 13px; color: #555; margin-top: 4px;">Sistema QUIMI-K • Informe Individual de Práctica de Laboratorio</div>
+      </div>
+      <div style="text-align: right; font-size: 12px; color: #555;">
+        <div>Fecha: <strong id="pdfDate">28/10/2026</strong></div>
+        <div>Código: <strong>FL-QUIM-2026-042</strong></div>
+      </div>
+    </div>
+
+    <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 13px;">
+      <tr>
+        <td style="padding: 6px; border: 1px solid #ddd; background: #f8fafc; width: 25%;"><strong>Estudiante:</strong></td>
+        <td style="padding: 6px; border: 1px solid #ddd;" id="pdfStudentName">Juan Pérez (4to Secundaria)</td>
+        <td style="padding: 6px; border: 1px solid #ddd; background: #f8fafc; width: 20%;"><strong>Docente:</strong></td>
+        <td style="padding: 6px; border: 1px solid #ddd;">Prof. Midori Judith Castillo Peralta</td>
+      </tr>
+      <tr>
+        <td style="padding: 6px; border: 1px solid #ddd; background: #f8fafc;"><strong>Práctica:</strong></td>
+        <td style="padding: 6px; border: 1px solid #ddd;" id="pdfPracticeName">Síntesis de Enlace Iónico (NaCl)</td>
+        <td style="padding: 6px; border: 1px solid #ddd; background: #f8fafc;"><strong>Calificación:</strong></td>
+        <td style="padding: 6px; border: 1px solid #ddd; font-weight: bold; color: #16a34a;" id="pdfGrade">18 / 20 (Aprobado)</td>
+      </tr>
+    </table>
+
+    <div style="margin-bottom: 20px;">
+      <h4 style="margin: 0 0 8px 0; color: #1e293b;">Resumen de la Reacción y Resultados Científicos:</h4>
+      <div style="background: #f1f5f9; padding: 12px; border-radius: 6px; font-size: 13px; line-height: 1.5;" id="pdfSummary">
+        Reacción completada exitosamente: Se mezcló Sodio metálico y Cloro gaseoso bajo calor de Mechero Bunsen. Se calculó una diferencia de electronegatividad ΔEN = 2.23 (Escala de Pauling), clasificando la reacción como Enlace Iónico con formación de cristales de Cloruro de Sodio (NaCl).
+      </div>
+    </div>
+
+    <div style="margin-top: 40px; display: flex; justify-content: space-around; text-align: center; font-size: 12px;">
+      <div style="border-top: 1px solid #333; width: 200px; padding-top: 6px;">
+        Firma del Estudiante
+      </div>
+      <div style="border-top: 1px solid #333; width: 200px; padding-top: 6px;">
+        V°B° Prof. Midori Judith Castillo Peralta<br>Docente de Ciencias
+      </div>
+    </div>
+  </div>
+
+    </div> <!-- Fin de .main-dashboard-body -->
+  </div> <!-- Fin de #appMainWrapper -->
+
+  <!-- ================= MODAL EDITOR DE EVALUACIONES (CREAR / MODIFICAR) ================= -->
+  <div class="eval-modal-backdrop" id="modalEvaluationEditor" style="display: none;">
+    <div class="eval-modal-card">
+      <div class="eval-modal-header">
+        <div>
+          <h3 style="font-size: 1.15rem; font-weight: 800; color: #0f172a; margin: 0;" id="evalModalTitle">Crear Nueva Evaluación</h3>
+          <span style="font-size: 0.78rem; color: #64748b;" id="evalModalSubtitle">Configure el título, los salones y las preguntas del cuestionario</span>
+        </div>
+        <button class="btn btn-outline" style="padding: 0.25rem 0.55rem; font-size: 0.85rem;" onclick="App.closeEvaluationEditor()">✕</button>
+      </div>
+
+      <div class="eval-modal-body">
+        <form id="evaluationForm" onsubmit="event.preventDefault();">
+          <input type="hidden" id="editorEvalId" value="">
+
+          <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label>Título del Cuestionario / Evaluación:</label>
+              <input type="text" id="editorEvalTitle" class="form-input" placeholder="Ej. Control 2: Enlaces Químicos y Electronegatividad" required>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label>Tema o Práctica Asociada:</label>
+              <select id="editorEvalTopic" class="form-input">
+                <option value="Síntesis de NaCl">Síntesis de NaCl (Enlace Iónico)</option>
+                <option value="Formación de Molécula de Agua (H₂O)">Formación de Agua (Covalente Polar)</option>
+                <option value="Neutralización Ácido-Base">Neutralización Ácido-Base</option>
+                <option value="Fundamentos y Escala de Pauling">Fundamentos y Escala de Pauling</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Selección de Salón o Múltiples Salones -->
+          <div class="form-group" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.85rem; margin-bottom: 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+              <label style="margin: 0; font-weight: 700; color: #334155;">Asignar a Salón(es) de Clase:</label>
+              <button type="button" class="btn btn-outline" style="font-size: 0.72rem; padding: 0.2rem 0.5rem;" onclick="App.toggleSelectAllSalones()">
+                ☑️ Marcar / Desmarcar Todos
+              </button>
+            </div>
+            <div style="display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: center; margin-top: 0.5rem;">
+              <label class="salon-checkbox-label">
+                <input type="checkbox" value="4A" class="salon-target-check"> <span>4to Año "A"</span>
+              </label>
+              <label class="salon-checkbox-label">
+                <input type="checkbox" value="4B" class="salon-target-check"> <span>4to Año "B"</span>
+              </label>
+              <label class="salon-checkbox-label">
+                <input type="checkbox" value="5A" class="salon-target-check"> <span>5to Año "A"</span>
+              </label>
+            </div>
+            <p style="font-size: 0.72rem; color: #64748b; margin-top: 0.4rem; margin-bottom: 0;">
+              Puede asignar este cuestionario a un solo salón o a múltiples secciones en simultáneo.
+            </p>
+          </div>
+
+          <!-- Bloque Dinámico de Preguntas -->
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+              <h4 style="margin: 0; font-size: 0.95rem; color: #1e293b;">
+                Preguntas del Cuestionario (<span id="editorQuestionsCount">1</span>)
+              </h4>
+              <button type="button" class="btn btn-secondary" style="font-size: 0.75rem; padding: 0.35rem 0.7rem;" onclick="App.addQuestionToEditor()">
+                ➕ Agregar Otra Pregunta
+              </button>
+            </div>
+
+            <div id="editorQuestionsList">
+              <!-- Renderizado de las preguntas por JS -->
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <div class="eval-modal-footer">
+        <button type="button" class="btn btn-outline" onclick="App.closeEvaluationEditor()">
+          Cancelar
+        </button>
+
+        <div style="display: flex; gap: 0.6rem; flex-wrap: wrap;">
+          <button type="button" class="btn btn-secondary" style="background: #fef3c7; color: #92400e; border-color: #fde68a;" onclick="App.saveEvaluation(false)">
+            💾 Guardar Borrador (Permite seguir modificando)
+          </button>
+          <button type="button" class="btn btn-success" onclick="App.saveEvaluation(true)">
+            🚀 Enviar al Salón (Protege y Bloquea)
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL VISUALIZADOR DE CUESTIONARIO (SOLO LECTURA) ================= -->
+  <div class="eval-modal-backdrop" id="modalEvaluationViewer" style="display: none;">
+    <div class="eval-modal-card">
+      <div class="eval-modal-header">
+        <div>
+          <h3 style="font-size: 1.15rem; font-weight: 800; color: #0f172a; margin: 0;" id="viewerModalTitle">Detalle de la Evaluación</h3>
+          <span style="font-size: 0.78rem; color: #64748b;" id="viewerModalSubtitle">Vista de solo lectura del cuestionario</span>
+        </div>
+        <button class="btn btn-outline" style="padding: 0.25rem 0.55rem; font-size: 0.85rem;" onclick="App.closeEvaluationViewer()">✕</button>
+      </div>
+      <div class="eval-modal-body" id="viewerModalBody">
+        <!-- Renderizado de las preguntas en modo lectura -->
+      </div>
+      <div class="eval-modal-footer">
+        <div id="viewerModalLockNotice" style="font-size: 0.78rem; color: #15803d; font-weight: 600;">
+          🔒 Evaluación enviada a salón. Protegida contra modificaciones.
+        </div>
+        <button type="button" class="btn btn-primary" onclick="App.closeEvaluationViewer()">
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL LECTOR CAPÍTULO LIBRO GUÍA ================= -->
+  <div class="eval-modal-backdrop" id="modalGuideChapter" style="display: none;">
+    <div class="eval-modal-card">
+      <div class="eval-modal-header">
+        <div>
+          <span class="category-pill" id="guideModalCategory" style="margin-bottom: 0.35rem; display: inline-block;">Materia y Medición</span>
+          <h3 style="font-size: 1.2rem; font-weight: 800; color: #0f172a; margin: 0;" id="guideModalTitle">Título del Tema</h3>
+        </div>
+        <button class="btn btn-outline" style="padding: 0.25rem 0.55rem; font-size: 0.85rem;" onclick="App.closeGuideModal()">✕</button>
+      </div>
+      <div class="eval-modal-body guide-modal-content" id="guideModalBody">
+        <!-- Contenido detallado del capítulo generado por JS -->
+      </div>
+      <div class="eval-modal-footer">
+        <div style="font-size: 0.78rem; color: #64748b;">
+          📖 Libro Guía Digital • QUIMI-K I.E. Alexander Fleming (Tacna 2026)
+        </div>
+        <button type="button" class="btn btn-primary" onclick="App.closeGuideModal()">
+          Cerrar Lectura
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL DE USO GUIADO E INTERACCIÓN DE HERRAMIENTAS VIRTUALES (RF008 & RF009) ================= -->
+  <div class="eval-modal-backdrop" id="modalToolGuide" style="display: none;">
+    <div class="eval-modal-card" style="max-width: 650px;">
+      <div class="eval-modal-header">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <div style="font-size: 2rem; background: #e0f2fe; width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center;" id="toolModalIcon">💧</div>
+          <div>
+            <span class="category-pill" id="toolModalType">Instrumento Volumétrico</span>
+            <h3 style="font-size: 1.15rem; font-weight: 800; color: #0f172a; margin: 0.2rem 0 0 0;" id="toolModalTitle">Pipeta Graduada</h3>
+          </div>
+        </div>
+        <button class="btn btn-outline" style="padding: 0.25rem 0.55rem; font-size: 0.85rem;" onclick="App.closeToolGuide()">✕</button>
+      </div>
+
+      <div class="eval-modal-body" style="padding: 1.25rem;">
+        <!-- MODELO 2D DEL INSTRUMENTO CIENTÍFICO (RF008) -->
+        <div class="tool-2d-showcase">
+          <div style="font-size: 0.72rem; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.35rem;">
+            <span>🎨 Modelo Gráfico 2D</span> • <span>Diagrama Anatómico y Funcionamiento</span>
+          </div>
+          <div class="tool-2d-svg-wrapper" id="toolModal2DModel">
+            <!-- Renderizado dinámico del SVG 2D -->
+          </div>
+          <div class="tool-2d-parts-list" id="toolModalPartsList">
+            <!-- Etiquetas de las partes anatómicas del instrumento -->
+          </div>
+        </div>
+
+        <!-- Descripción y Función -->
+        <div style="margin-bottom: 1rem;">
+          <h4 style="font-size: 0.88rem; color: #1e293b; margin: 0 0 0.35rem 0;">📌 Función Principal:</h4>
+          <p style="font-size: 0.82rem; color: #475569; line-height: 1.4; margin: 0;" id="toolModalDesc">Cargando...</p>
+        </div>
+
+        <!-- Instrucciones de Uso Correcto (Paso a Paso) -->
+        <div style="margin-bottom: 1rem;">
+          <h4 style="font-size: 0.88rem; color: #1e293b; margin: 0 0 0.5rem 0;">📋 Instrucciones de Uso Correcto Paso a Paso:</h4>
+          <div id="toolModalSteps">
+            <!-- Renderizado dinámico de pasos -->
+          </div>
+        </div>
+
+        <!-- Advertencia de Bioseguridad -->
+        <div class="tool-safety-alert" id="toolModalSafety">
+          ⚠️ <strong>Advertencia de Bioseguridad:</strong> Nunca pipetear reactivos con la boca.
+        </div>
+
+        <!-- Simulador / Control Interactivo de la Herramienta en la Mesa -->
+        <div>
+          <h4 style="font-size: 0.88rem; color: #1e293b; margin: 0 0 0.5rem 0;">🎮 Usar Herramienta en la Mesa de Trabajo:</h4>
+          <div class="tool-interactive-playground" id="toolModalPlayground">
+            <!-- Controles específicos e interactivos de cada herramienta -->
+          </div>
+        </div>
+      </div>
+
+      <div class="eval-modal-footer">
+        <span style="font-size: 0.75rem; color: #64748b;">
+          💡 Práctica Guiada • Laboratorio Virtual Alexander Fleming
+        </span>
+        <button type="button" class="btn btn-primary" onclick="App.closeToolGuide()">
+          Listo / Volver a la Mesa
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL FICHA DE USUARIO / DETALLE DE NOTAS (ADMIN) ================= -->
+  <div class="eval-modal-backdrop" id="modalUserDetail" style="display: none;">
+    <div class="eval-modal-card" style="max-width: 600px;">
+      <div class="eval-modal-header">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <div class="user-table-avatar" id="detailUserAvatar" style="width: 44px; height: 44px; font-size: 1.1rem; margin: 0;">JP</div>
+          <div>
+            <h3 style="font-size: 1.15rem; font-weight: 800; color: #0f172a; margin: 0;" id="detailUserName">Juan Pérez</h3>
+            <span style="font-size: 0.78rem; color: #64748b;" id="detailUserEmail">estudiante@fleming.edu.pe</span>
+          </div>
+        </div>
+        <button class="btn btn-outline" style="padding: 0.25rem 0.55rem; font-size: 0.85rem;" onclick="App.closeUserDetailModal()">✕</button>
+      </div>
+
+      <div class="eval-modal-body" style="padding: 1.25rem;">
+        <!-- Alerta de Solicitud de Rol Docente en el Modal de Detalle -->
+        <div id="detailUserRequestAlert" style="display: none; background: #fffbeb; border: 1px solid #f59e0b; border-radius: 8px; padding: 0.85rem; margin-bottom: 1rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+            <div>
+              <strong style="color: #b45309; font-size: 0.85rem;">📨 Solicitud de Rol Docente Pendiente</strong>
+              <div style="font-size: 0.75rem; color: #78350f;" id="detailUserRequestDate">El usuario solicitó el rol de Docente al registrarse.</div>
+            </div>
+            <button class="btn btn-success" style="font-size: 0.78rem; padding: 0.35rem 0.75rem;" onclick="App.openAssignTeacherModal(App.currentDetailUserId)">
+              ✅ Aprobar y Asignar Rol Docente
+            </button>
+          </div>
+        </div>
+
+        <!-- Información Institucional General -->
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 0.85rem 1rem; margin-bottom: 1rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.75rem;">
+          <div>
+            <span style="font-size: 0.7rem; color: #64748b; font-weight: 700; text-transform: uppercase;">Rol en Sistema:</span>
+            <div id="detailUserRole" style="margin-top: 0.2rem;"><span class="badge-role badge-role-student">👨‍🎓 Estudiante</span></div>
+          </div>
+          <div>
+            <span style="font-size: 0.7rem; color: #64748b; font-weight: 700; text-transform: uppercase;">Salón / Sección:</span>
+            <div id="detailUserSalon" style="font-weight: 700; color: #1e293b; margin-top: 0.2rem; font-size: 0.85rem;">4to Año "A"</div>
+          </div>
+          <div>
+            <span style="font-size: 0.7rem; color: #64748b; font-weight: 700; text-transform: uppercase;">Fecha Registro:</span>
+            <div id="detailUserRegisteredAt" style="font-weight: 600; color: #475569; margin-top: 0.2rem; font-size: 0.82rem;">20/10/2026</div>
+          </div>
+          <div>
+            <span style="font-size: 0.7rem; color: #64748b; font-weight: 700; text-transform: uppercase;">Estado de Cuenta:</span>
+            <div id="detailUserAccountStatus" style="font-weight: 700; color: #15803d; margin-top: 0.2rem; font-size: 0.82rem;">🟢 Activo</div>
+          </div>
+        </div>
+
+        <!-- Ficha Académica y Notas -->
+        <div id="detailUserAcademicSection">
+          <h4 style="font-size: 0.88rem; color: #1e293b; margin: 0 0 0.5rem 0;">📊 Ficha de Calificaciones y Desempeño:</h4>
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
+            <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 0.75rem; text-align: center;">
+              <span style="font-size: 0.72rem; color: #64748b; display: block; font-weight: 700;">CALIFICACIÓN OBTENIDA</span>
+              <span id="detailUserScoreVal" style="font-size: 1.8rem; font-weight: 800; color: #16a34a; display: block;">18 / 20</span>
+              <span id="detailUserScoreLevel" style="font-size: 0.75rem; font-weight: 700; color: #15803d; background: #dcfce7; padding: 0.15rem 0.5rem; border-radius: 9999px;">AD - Logro Destacado</span>
+            </div>
+            <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 8px; padding: 0.75rem; text-align: center;">
+              <span style="font-size: 0.72rem; color: #64748b; display: block; font-weight: 700;">INTENTOS EN LABORATORIO</span>
+              <span id="detailUserAttemptsVal" style="font-size: 1.8rem; font-weight: 800; color: #2563eb; display: block;">1</span>
+              <span style="font-size: 0.75rem; color: #64748b;">Práctica completada con éxito</span>
+            </div>
+          </div>
+
+          <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.75rem; margin-bottom: 0.75rem;">
+            <div style="font-size: 0.78rem; font-weight: 700; color: #334155; margin-bottom: 0.35rem;">
+              🧪 Práctica Principal Asignada:
+            </div>
+            <div id="detailUserPractice" style="font-size: 0.85rem; color: #0f172a; font-weight: 600;">
+              Síntesis de Cloruro de Sodio (NaCl) - Enlace Iónico
+            </div>
+            <div style="font-size: 0.72rem; color: #64748b; margin-top: 0.2rem;" id="detailUserDate">
+              Última sesión registrada: 28/10/2026 10:15
+            </div>
+          </div>
+
+          <!-- Historial de Evaluaciones y Competencias -->
+          <h4 style="font-size: 0.82rem; color: #475569; margin: 0 0 0.35rem 0;">📝 Historial Curricular de Evaluaciones:</h4>
+          <div id="detailUserHistoryList" style="display: flex; flex-direction: column; gap: 0.4rem;">
+            <!-- Dinámico -->
+          </div>
+        </div>
+
+        <!-- Vista alternativa para Docentes y Administradores -->
+        <div id="detailUserStaffSection" style="display: none; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 1rem; text-align: center;">
+          <div style="font-size: 2rem; margin-bottom: 0.5rem;">👨‍🏫</div>
+          <h4 style="font-size: 0.95rem; color: #1e293b; margin: 0 0 0.25rem 0;" id="detailStaffTitle">Personal Docente de Ciencias</h4>
+          <p style="font-size: 0.8rem; color: #64748b; margin: 0;" id="detailStaffDesc">
+            Este usuario posee privilegios para supervisar salones, crear evaluaciones y asentar calificaciones.
+          </p>
+        </div>
+      </div>
+
+      <div class="eval-modal-footer">
+        <button type="button" class="btn btn-outline" onclick="App.printUserFile()">
+          🖨️ Imprimir Ficha
+        </button>
+        <button type="button" class="btn btn-secondary" onclick="App.openEditRoleModal(App.currentDetailUserId)">
+          ✏️ Modificar Rol
+        </button>
+        <button type="button" class="btn btn-primary" onclick="App.closeUserDetailModal()">
+          Entendido / Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL REGISTRAR NUEVO USUARIO (ADMIN) ================= -->
+  <div class="eval-modal-backdrop" id="modalAdminCreateUser" style="display: none;">
+    <div class="eval-modal-card" style="max-width: 520px;">
+      <div class="eval-modal-header">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <div style="font-size: 1.6rem; background: #ede9fe; width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center;">👤</div>
+          <div>
+            <h3 style="font-size: 1.15rem; font-weight: 800; color: #0f172a; margin: 0;">Registrar Nuevo Usuario</h3>
+            <span style="font-size: 0.78rem; color: #64748b;">Directorio de la I.E. Alexander Fleming</span>
+          </div>
+        </div>
+        <button class="btn btn-outline" style="padding: 0.25rem 0.55rem; font-size: 0.85rem;" onclick="App.closeAdminCreateUserModal()">✕</button>
+      </div>
+
+      <form onsubmit="App.handleAdminCreateUser(event)">
+        <div class="eval-modal-body" style="padding: 1.25rem;">
+          <div class="form-group">
+            <label>Nombres y Apellidos Completos:</label>
+            <input type="text" id="adminNewUserName" class="form-input" placeholder="Ej. Ricardo Medina Morales" required>
+          </div>
+
+          <div class="form-group">
+            <label>Correo Institucional Fleming:</label>
+            <input type="email" id="adminNewUserEmail" class="form-input" placeholder="ejemplo@fleming.edu.pe" required>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+            <div class="form-group">
+              <label>Rol Institucional:</label>
+              <select id="adminNewUserRole" class="form-input" required onchange="App.onAdminRoleSelectChange()">
+                <option value="student">👨‍🎓 Estudiante</option>
+                <option value="teacher">👩‍🏫 Docente</option>
+                <option value="admin">🛡️ Administrador</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Salón / Sección:</label>
+              <select id="adminNewUserSalon" class="form-input" required>
+                <option value="4A">4to Año "A"</option>
+                <option value="4B">4to Año "B"</option>
+                <option value="5A">5to Año "A"</option>
+                <option value="staff">Plana Docente / TI</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Contraseña Temporal:</label>
+            <input type="password" id="adminNewUserPass" class="form-input" placeholder="Mínimo 4 caracteres" value="123456" required>
+          </div>
+        </div>
+
+        <div class="eval-modal-footer">
+          <button type="button" class="btn btn-outline" onclick="App.closeAdminCreateUserModal()">
+            Cancelar
+          </button>
+          <button type="submit" class="btn btn-success">
+            ✅ Guardar y Registrar
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= MODAL ASIGNACIÓN DE ROL DOCENTE POR EL ADMIN ================= -->
+  <div class="eval-modal-backdrop" id="modalAdminAssignTeacher" style="display: none;">
+    <div class="eval-modal-card" style="max-width: 500px;">
+      <div class="eval-modal-header">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <div style="font-size: 1.8rem; background: #fef3c7; width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">👩‍🏫</div>
+          <div>
+            <h3 style="font-size: 1.15rem; font-weight: 800; color: #0f172a; margin: 0;">Aprobar y Asignar Rol Docente</h3>
+            <span style="font-size: 0.78rem; color: #64748b;">Validación Administrativa Institucional</span>
+          </div>
+        </div>
+        <button class="btn btn-outline" style="padding: 0.25rem 0.55rem; font-size: 0.85rem;" onclick="App.closeAssignTeacherModal()">✕</button>
+      </div>
+
+      <div class="eval-modal-body" style="padding: 1.25rem;">
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.75rem; margin-bottom: 1rem;">
+          <div style="font-size: 0.85rem; color: #1e293b; font-weight: 700;" id="assignTeacherNameDisplay">Prof. Carlos Mendoza</div>
+          <div style="font-size: 0.78rem; color: #64748b;" id="assignTeacherEmailDisplay">carlos.mendoza@fleming.edu.pe</div>
+          <div style="font-size: 0.72rem; color: #b45309; margin-top: 0.25rem;" id="assignTeacherDateDisplay">Solicitud enviada el 29/10/2026</div>
+        </div>
+
+        <div class="form-group">
+          <label>Salones Asignados a su Cargo:</label>
+          <select id="assignTeacherSalones" class="form-input">
+            <option value="Salones 4°A, 4°B, 5°A">Salones 4°A, 4°B y 5°A (Ciencias)</option>
+            <option value="Salones 4°A y 4°B">Salones 4°A y 4°B (4to Secundaria)</option>
+            <option value="Salón 5°A">Salón 5°A (5to Secundaria)</option>
+            <option value="Salones 5°B y 5°C">Salones 5°B y 5°C (Química General)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Especialidad / Asignatura:</label>
+          <input type="text" id="assignTeacherSubject" class="form-input" value="Química y Ciencias Naturales">
+        </div>
+
+        <div style="font-size: 0.75rem; color: #475569; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 0.5rem 0.75rem; border-radius: 6px;">
+          🔒 Al confirmar, este usuario obtendrá acceso completo al <strong>Panel Docente</strong>, gestión de cuestionarios y registro de calificaciones para los salones seleccionados.
+        </div>
+      </div>
+
+      <div class="eval-modal-footer">
+        <button type="button" class="btn btn-outline" onclick="App.closeAssignTeacherModal()">
+          Cancelar
+        </button>
+        <button type="button" class="btn btn-success" onclick="App.confirmAssignTeacherRole()">
+          ✅ Asignar Rol Oficial de Docente
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL MODIFICAR ROL DE USUARIO (ADMIN) ================= -->
+  <div class="eval-modal-backdrop" id="modalAdminEditRole" style="display: none;">
+    <div class="eval-modal-card" style="max-width: 480px;">
+      <div class="eval-modal-header">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <div style="font-size: 1.8rem; background: #e0e7ff; width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">🔄</div>
+          <div>
+            <h3 style="font-size: 1.15rem; font-weight: 800; color: #0f172a; margin: 0;">Modificar Rol de Usuario</h3>
+            <span style="font-size: 0.78rem; color: #64748b;">Gestión Administrativa de Permisos y Perfiles</span>
+          </div>
+        </div>
+        <button class="btn btn-outline" style="padding: 0.25rem 0.55rem; font-size: 0.85rem;" onclick="App.closeEditRoleModal()">✕</button>
+      </div>
+
+      <div class="eval-modal-body" style="padding: 1.25rem;">
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.75rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.75rem;">
+          <div class="user-table-avatar" id="editRoleUserAvatar" style="width: 40px; height: 40px; font-size: 0.95rem; margin: 0;">JP</div>
+          <div>
+            <strong style="font-size: 0.9rem; color: #0f172a;" id="editRoleUserName">Nombre Usuario</strong>
+            <div style="font-size: 0.75rem; color: #64748b;" id="editRoleUserEmail">correo@fleming.edu.pe</div>
+            <div style="font-size: 0.72rem; color: #475569; margin-top: 0.2rem;">Rol actual: <span id="editRoleCurrentBadge" class="badge-role badge-role-student">Estudiante</span></div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Nuevo Rol Institucional Asignado:</label>
+          <select id="editRoleSelect" class="form-input" onchange="App.onEditRoleChange()">
+            <option value="student">👨‍🎓 Estudiante de Secundaria</option>
+            <option value="teacher">👩‍🏫 Docente de Ciencias</option>
+            <option value="admin">🛡️ Administrador del Sistema</option>
+          </select>
+        </div>
+
+        <div class="form-group" id="editRoleSalonGroup">
+          <label>Salón / Asignación:</label>
+          <select id="editRoleSalonSelect" class="form-input">
+            <!-- Dinámico según el rol -->
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Estado de Cuenta:</label>
+          <select id="editRoleStatusSelect" class="form-input">
+            <option value="Activo">🟢 Activo</option>
+            <option value="Aprobado">✅ Aprobado</option>
+            <option value="Inactivo">⚪ Inactivo / Suspendido</option>
+          </select>
+        </div>
+
+        <div style="font-size: 0.74rem; color: #475569; background: #f1f5f9; border: 1px solid #cbd5e1; padding: 0.45rem 0.65rem; border-radius: 6px;">
+          💡 Los cambios de rol se aplican en tiempo real y modifican de inmediato los accesos y vistas disponibles para el usuario.
+        </div>
+      </div>
+
+      <div class="eval-modal-footer">
+        <button type="button" class="btn btn-outline" onclick="App.closeEditRoleModal()">
+          Cancelar
+        </button>
+        <button type="button" class="btn btn-primary" onclick="App.confirmSaveUserRole()">
+          💾 Guardar Cambio de Rol
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL RECUPERACIÓN DE CONTRASEÑA (GESTIÓN DE USUARIOS) ================= -->
+  <div class="eval-modal-backdrop" id="modalPasswordRecovery" style="display: none; z-index: 10000;">
+    <div class="eval-modal-card" style="max-width: 480px;">
+      
+      <!-- Cabecera del Modal -->
+      <div class="eval-modal-header">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <div style="font-size: 1.8rem; background: #e0e7ff; width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">🔑</div>
+          <div>
+            <h3 style="font-size: 1.15rem; font-weight: 800; color: #0f172a; margin: 0;">Recuperar Contraseña</h3>
+            <span style="font-size: 0.78rem; color: #64748b;">Colegio Alexander Fleming • Correo Fleming y Gmail</span>
+          </div>
+        </div>
+        <button class="btn btn-outline" style="padding: 0.25rem 0.55rem; font-size: 0.85rem;" onclick="App.closePasswordRecoveryModal()">✕</button>
+      </div>
+
+      <!-- Cuerpo del Modal: Paso 1, Paso 2 y Paso 3 -->
+      <div class="eval-modal-body" style="padding: 1.25rem;">
+
+        <!-- PASO 1: SOLICITAR CÓDIGO POR CORREO -->
+        <div id="recoveryStep1">
+          <p style="font-size: 0.85rem; color: #475569; margin: 0 0 1rem 0; line-height: 1.4;">
+            Ingresa tu correo electrónico registrado (institucional <strong>@fleming.edu.pe</strong> o personal <strong>@gmail.com</strong>). Te enviaremos un código de seguridad de 6 dígitos para validar tu identidad.
+          </p>
+
+          <form onsubmit="App.handleSendRecoveryCode(event)">
+            <div class="form-group">
+              <label>Correo Electrónico Registrado:</label>
+              <input type="email" id="recoveryEmailInput" class="form-input" placeholder="ejemplo@fleming.edu.pe o @gmail.com" required>
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1.25rem;">
+              <button type="button" class="btn btn-outline" onclick="App.closePasswordRecoveryModal()">
+                Cancelar
+              </button>
+              <button type="submit" class="btn btn-primary">
+                📨 Enviar Código de Verificación
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- PASO 2: INGRESAR CÓDIGO DE VERIFICACIÓN -->
+        <div id="recoveryStep2" style="display: none;">
+          <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 0.85rem; margin-bottom: 1.25rem;">
+            <div style="font-size: 0.85rem; color: #1e40af; line-height: 1.45;">
+              📧 Hemos enviado un código de seguridad de 6 dígitos a tu bandeja de correo:<br>
+              <strong id="recoveryEmailTargetDisplay" style="color: #1e3a8a; font-size: 0.95rem;">correo@fleming.edu.pe</strong>
+            </div>
+          </div>
+
+          <form onsubmit="App.handleVerifyRecoveryCode(event)">
+            <div class="form-group" style="text-align: center;">
+              <label style="display: block; margin-bottom: 0.5rem;">Ingresa el Código de 6 Dígitos:</label>
+              <input type="text" id="recoveryCodeInput" class="form-input" placeholder="000000" maxlength="6" pattern="[0-9]{6}" required style="text-align: center; font-size: 1.5rem; font-weight: 800; letter-spacing: 6px; width: 220px; margin: 0 auto; display: block;">
+            </div>
+
+            <div style="text-align: center; margin: 0.75rem 0 1.25rem 0;">
+              <a href="#" onclick="App.resendRecoveryCode(); return false;" style="font-size: 0.78rem; color: var(--primary); text-decoration: none; font-weight: 600;">
+                ¿No recibiste el código? Reenviar código
+              </a>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; gap: 0.5rem;">
+              <button type="button" class="btn btn-outline" onclick="App.backToRecoveryStep1()">
+                ← Volver
+              </button>
+              <button type="submit" class="btn btn-primary">
+                Validar Código →
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- PASO 3: NUEVO FORMULARIO DE RESTABLECIMIENTO DE CONTRASEÑA -->
+        <div id="recoveryStep3" style="display: none;">
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.75rem; margin-bottom: 1rem;">
+            <div style="font-size: 0.82rem; color: #334155;">
+              👤 Usuario verificado: <strong id="recoveryValidatedUserDisplay">Nombre</strong><br>
+              <span style="font-size: 0.75rem; color: #64748b;">Define tu nueva contraseña y confírmala exactamente igual.</span>
+            </div>
+          </div>
+
+          <form onsubmit="App.handleResetPasswordForm(event)">
+            <div class="form-group">
+              <label>Nueva Contraseña:</label>
+              <input type="password" id="recoveryNewPassword" class="form-input" placeholder="Mínimo 6 caracteres" minlength="6" required>
+            </div>
+
+            <div class="form-group">
+              <label>Repetir la Contraseña:</label>
+              <input type="password" id="recoveryConfirmPassword" class="form-input" placeholder="Confirma tu nueva contraseña" minlength="6" required>
+            </div>
+
+            <div style="font-size: 0.74rem; color: #475569; background: #f1f5f9; border: 1px solid #cbd5e1; padding: 0.45rem 0.65rem; border-radius: 6px; margin-bottom: 1rem;">
+              🔒 Ambas contraseñas deben ser exactamente iguales para confirmar el restablecimiento.
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
+              <button type="button" class="btn btn-outline" onclick="App.closePasswordRecoveryModal()">
+                Cancelar
+              </button>
+              <button type="submit" class="btn btn-success">
+                💾 Guardar Nueva Contraseña
+              </button>
+            </div>
+          </form>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL CREAR NUEVO SALÓN (DOCENTE / ADMIN) ================= -->
+  <div class="eval-modal-backdrop" id="modalCreateClassroom" style="display: none; z-index: 10000;">
+    <div class="eval-modal-card" style="max-width: 580px;">
+      <div class="eval-modal-header">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <div style="font-size: 1.6rem; background: #dcfce7; width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">🏫</div>
+          <div>
+            <h3 style="font-size: 1.15rem; font-weight: 800; color: #0f172a; margin: 0;">Crear Nuevo Salón de Clases</h3>
+            <span style="font-size: 0.78rem; color: #64748b;">Colegio Alexander Fleming • Gestión de Aulas</span>
+          </div>
+        </div>
+        <button class="btn btn-outline" style="padding: 0.25rem 0.55rem; font-size: 0.85rem;" onclick="App.closeCreateClassroomModal()">✕</button>
+      </div>
+
+      <form onsubmit="App.handleCreateClassroom(event)">
+        <div class="eval-modal-body" style="padding: 1.25rem; max-height: 75vh; overflow-y: auto;">
+          <div class="form-group">
+            <label>Nombre del Salón:</label>
+            <input type="text" id="newSalonName" class="form-input" placeholder="Ej: 5to Año 'B'" required>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+            <div class="form-group">
+              <label>Nivel Académico:</label>
+              <select id="newSalonGrade" class="form-input" required>
+                <option value="Secundaria">Secundaria</option>
+                <option value="Bachillerato">Bachillerato</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Turno:</label>
+              <select id="newSalonTurn" class="form-input" required>
+                <option value="Turno Mañana">Turno Mañana</option>
+                <option value="Turno Tarde">Turno Tarde</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Práctica de Laboratorio Asignada:</label>
+            <select id="newSalonPractice" class="form-input" required>
+              <option value="Síntesis de NaCl (Enlace Iónico)">Síntesis de NaCl (Enlace Iónico)</option>
+              <option value="Formación de Molécula de Agua (H₂O)">Formación de Molécula de Agua (H₂O)</option>
+              <option value="Neutralización Ácido-Base (HCl + NaOH)">Neutralización Ácido-Base (HCl + NaOH)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Docente / Tutor a Cargo:</label>
+            <input type="text" id="newSalonTutor" class="form-input" value="Prof. Midori Judith Castillo Peralta" required>
+          </div>
+
+          <div class="form-group">
+            <label>Capacidad Máxima de Alumnos:</label>
+            <input type="number" id="newSalonCapacity" class="form-input" value="20" min="5" max="45" required>
+          </div>
+
+          <!-- SECCIÓN: ALUMNOS ASIGNADOS AL SALÓN -->
+          <div style="margin-top: 1.25rem; border-top: 1px solid #e2e8f0; padding-top: 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem;">
+              <label style="font-weight: 800; color: #0f172a; margin: 0; font-size: 0.92rem; display: flex; align-items: center; gap: 0.4rem;">
+                <span>👥 Alumnos del Salón:</span>
+              </label>
+              <span id="createSalonSelectedCountBadge" class="badge-role badge-role-student" style="font-size: 0.75rem; padding: 0.2rem 0.65rem;">
+                0 alumnos seleccionados
+              </span>
+            </div>
+
+            <!-- Botón para abrir el Cuadro de Selección -->
+            <button type="button" class="btn btn-outline" style="width: 100%; justify-content: center; font-weight: 700; border: 2px dashed #2563eb; color: #1d4ed8; background: #eff6ff; padding: 0.75rem; font-size: 0.88rem; gap: 0.5rem;" onclick="App.openStudentSelectionModalForCreate()">
+              <span>📋 Seleccionar Alumnos de Fleming</span>
+              <span style="font-size: 0.78rem; opacity: 0.85;">(Buscador + Filtros + Tabla)</span>
+            </button>
+
+            <!-- Chips de alumnos seleccionados -->
+            <div id="createSalonSelectedChipsContainer" style="display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.75rem; min-height: 40px; max-height: 120px; overflow-y: auto; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.5rem;">
+              <div id="createSalonChipsPlaceholder" style="font-size: 0.78rem; color: #64748b; padding: 0.25rem 0.35rem;">
+                Ningún alumno seleccionado aún. Presione el botón de arriba para abrir el cuadro con todos los alumnos de Fleming.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="eval-modal-footer">
+          <button type="button" class="btn btn-outline" onclick="App.closeCreateClassroomModal()">
+            Cancelar
+          </button>
+          <button type="submit" class="btn btn-success">
+            💾 Registrar Salón con Alumnos Seleccionados
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ================= MODAL CUADRO: SELECCIÓN DE ALUMNOS (BUSCADOR, FILTRO Y TABLA) ================= -->
+  <div class="eval-modal-backdrop" id="modalSelectStudentsRoster" style="display: none; z-index: 10010;">
+    <div class="eval-modal-card" style="max-width: 820px; width: 95%;">
+      <div class="eval-modal-header" style="background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);">
+        <div style="display: flex; align-items: center; gap: 0.85rem;">
+          <div style="font-size: 1.8rem; background: #e0f2fe; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(2, 132, 199, 0.2);">
+            👥
+          </div>
+          <div>
+            <h3 style="font-size: 1.18rem; font-weight: 800; color: #0f172a; margin: 0;" id="modalRosterTitle">
+              Seleccionar Alumnos de Fleming
+            </h3>
+            <span style="font-size: 0.78rem; color: #64748b;" id="modalRosterSubtitle">
+              Directorio General de la I.E. Alexander Fleming • Seleccione los alumnos para el salón
+            </span>
+          </div>
+        </div>
+        <button class="btn btn-outline" style="padding: 0.3rem 0.6rem; font-size: 0.9rem;" onclick="App.closeStudentSelectionModal()">✕</button>
+      </div>
+
+      <div class="eval-modal-body" style="padding: 1.25rem; max-height: 72vh; overflow-y: auto;">
+        <!-- BARRA DE BÚSQUEDA Y FILTROS -->
+        <div style="display: flex; gap: 0.65rem; flex-wrap: wrap; margin-bottom: 0.85rem; align-items: center;">
+          <!-- Buscador -->
+          <div style="flex: 1; min-width: 220px;">
+            <input type="text" id="modalRosterSearch" class="form-input" placeholder="🔍 Buscar por nombre, apellido o correo..." style="font-size: 0.85rem;" oninput="App.filterRosterStudents()">
+          </div>
+
+          <!-- Filtro por Aula actual -->
+          <div style="min-width: 180px;">
+            <select id="modalRosterClassFilter" class="form-input" style="font-size: 0.85rem;" onchange="App.filterRosterStudents()">
+              <option value="all">🏫 Todos los Alumnos</option>
+              <option value="unassigned">Sin salón asignado</option>
+              <option value="4A">4to Año "A"</option>
+              <option value="4B">4to Año "B"</option>
+              <option value="5A">5to Año "A"</option>
+            </select>
+          </div>
+
+          <!-- Acciones de selección rápida -->
+          <div style="display: flex; gap: 0.35rem;">
+            <button type="button" class="btn btn-outline" style="font-size: 0.78rem; padding: 0.4rem 0.7rem;" onclick="App.toggleAllVisibleRosterStudents(true)">
+              ✓ Marcar Visibles
+            </button>
+            <button type="button" class="btn btn-outline" style="font-size: 0.78rem; padding: 0.4rem 0.7rem;" onclick="App.toggleAllVisibleRosterStudents(false)">
+              ✕ Desmarcar
+            </button>
+          </div>
+        </div>
+
+        <!-- Barra de Estado y Contador de Seleccionados -->
+        <div style="display: flex; justify-content: space-between; align-items: center; background: #f1f5f9; padding: 0.55rem 0.85rem; border-radius: 8px; margin-bottom: 0.75rem; border: 1px solid #e2e8f0; flex-wrap: wrap; gap: 0.4rem;">
+          <div style="font-size: 0.8rem; color: #475569;">
+            Mostrando: <strong id="modalRosterCountVisible" style="color: #0f172a;">0</strong> alumnos disponibles
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.4rem;">
+            <span style="font-size: 0.8rem; color: #475569;">Alumnos seleccionados:</span>
+            <span id="modalRosterCountSelected" class="badge-role badge-role-student" style="font-size: 0.82rem; font-weight: 800; padding: 0.2rem 0.65rem; background: #dcfce7; color: #166534; border: 1px solid #86efac;">
+              0 alumnos
+            </span>
+          </div>
+        </div>
+
+        <!-- Tabla de Estudiantes -->
+        <div style="border: 1px solid #cbd5e1; border-radius: 8px; overflow: hidden; background: #ffffff;">
+          <div style="max-height: 330px; overflow-y: auto;">
+            <table class="data-table" style="width: 100%; border-collapse: collapse; font-size: 0.84rem; margin: 0;">
+              <thead style="background: #f8fafc; position: sticky; top: 0; z-index: 2; border-bottom: 2px solid #e2e8f0;">
+                <tr>
+                  <th style="padding: 0.65rem 0.85rem; width: 45px; text-align: center;">
+                    <input type="checkbox" id="modalRosterMasterCheckbox" onchange="App.toggleRosterMasterCheckbox(this.checked)" style="cursor: pointer; width: 16px; height: 16px;">
+                  </th>
+                  <th style="padding: 0.65rem 0.85rem; text-align: left;">Estudiante</th>
+                  <th style="padding: 0.65rem 0.85rem; text-align: left;">Correo Electrónico</th>
+                  <th style="padding: 0.65rem 0.85rem; text-align: left;">Salón Actual</th>
+                  <th style="padding: 0.65rem 0.85rem; text-align: center;">Promedio</th>
+                  <th style="padding: 0.65rem 0.85rem; text-align: center;">Estado</th>
+                </tr>
+              </thead>
+              <tbody id="modalRosterTableBody">
+                <!-- Se puebla dinámicamente -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="eval-modal-footer" style="display: flex; justify-content: space-between; align-items: center; padding: 0.9rem 1.25rem;">
+        <div style="font-size: 0.82rem; color: #64748b;">
+          💡 Puede buscar por nombre o usar el filtro para encontrar alumnos rápidamente.
+        </div>
+        <div style="display: flex; gap: 0.65rem;">
+          <button type="button" class="btn btn-outline" onclick="App.closeStudentSelectionModal()">
+            Cancelar
+          </button>
+          <button type="button" class="btn btn-success" style="font-weight: 700; padding: 0.6rem 1.25rem;" onclick="App.confirmStudentSelectionModal()">
+            ✅ Guardar y Asignar al Salón
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= CUADRO DE MENSAJE CENTRADO (REEMPLAZA ALERTS) ================= -->
+  <div class="custom-dialog-backdrop" id="customDialogBackdrop">
+    <div class="custom-dialog-card">
+      <div class="custom-dialog-icon" id="customDialogIcon">ℹ️</div>
+      <div class="custom-dialog-title" id="customDialogTitle">Aviso del Sistema</div>
+      <div class="custom-dialog-message" id="customDialogMessage">Mensaje informativo</div>
+      <button class="custom-dialog-btn" id="customDialogBtn" onclick="App.closeDialog()">
+        Aceptar
+      </button>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="reaction_engine.js?v=0.8"></script>
+  <script src="pubchem_service.js?v=0.8"></script>
+  <script src="app.js?v=2.3"></script>
+</body>
+</html>
