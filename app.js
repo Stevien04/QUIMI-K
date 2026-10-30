@@ -1183,7 +1183,82 @@ const App = {
     // Exigir Login al entrar a la página
     this.openAuthModal('login');
 
+    // Cargar y sincronizar con PostgreSQL 16
+    this.initDatabase();
+
     console.log('QUIMI-K Inicializado con éxito con gestión de salones y creador de evaluaciones.');
+  },
+
+  // ================= CONEXIÓN PERSISTENTE A POSTGRESQL 16 =================
+  async initDatabase() {
+    try {
+      const res = await fetch('/api/db/data');
+      if (res.ok) {
+        const json = await res.json();
+        if (json.success && json.data) {
+          if (Array.isArray(json.data.users) && json.data.users.length > 0) {
+            this.registeredUsers = json.data.users;
+          }
+          if (Array.isArray(json.data.classrooms) && json.data.classrooms.length > 0) {
+            this.classrooms = json.data.classrooms;
+          }
+          if (Array.isArray(json.data.evaluations) && json.data.evaluations.length > 0) {
+            this.evaluations = json.data.evaluations;
+          }
+          console.log('[PostgreSQL 16] Datos cargados con éxito desde quimik_db:', {
+            usuarios: this.registeredUsers.length,
+            salones: this.classrooms.length,
+            evaluaciones: this.evaluations.length
+          });
+          this.renderClassroomsOverview();
+          this.renderAdminUsers();
+          if (this.state.currentUser && this.state.currentUser.role === 'student') {
+            this.renderStudentSalonView();
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('[PostgreSQL 16] Modo offline o fallback local:', err);
+    }
+  },
+
+  async syncClassroomToDb(classroom) {
+    try {
+      await fetch('/api/db/save-classroom', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(classroom)
+      });
+      console.log(`[PostgreSQL 16] Salón '${classroom.name}' sincronizado con éxito.`);
+    } catch (err) {
+      console.warn('[PostgreSQL 16] Fallo al sincronizar salón:', err);
+    }
+  },
+
+  async syncUserToDb(user) {
+    try {
+      await fetch('/api/db/save-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(user)
+      });
+      console.log(`[PostgreSQL 16] Usuario '${user.name}' sincronizado con éxito.`);
+    } catch (err) {
+      console.warn('[PostgreSQL 16] Fallo al sincronizar usuario:', err);
+    }
+  },
+
+  async syncScoreToDb(scorePayload) {
+    try {
+      await fetch('/api/db/save-score', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(scorePayload)
+      });
+      console.log(`[PostgreSQL 16] Calificación guardada en PostgreSQL:`, scorePayload);
+    } catch (err) {
+      console.warn('[PostgreSQL 16] Fallo al sincronizar nota:', err);
+    }
   },
 
   // ================= DIÁLOGO CUADRADO CENTRADO (REEMPLAZO DE ALERT NATIVO) =================
@@ -1309,6 +1384,7 @@ const App = {
     };
 
     this.registeredUsers.unshift(newUser);
+    this.syncUserToDb(newUser);
 
     if (!isTeacherRequest) {
       const c = this.classrooms.find(cl => cl.id === '4A');
@@ -3183,6 +3259,17 @@ const App = {
       }
     }
 
+    if (this.state.currentUser) {
+      this.syncScoreToDb({
+        userId: this.state.currentUser.id,
+        classroomId: this.state.currentUser.classroomId || '4A',
+        score: finalScore,
+        attempts: 1,
+        status: isPassed ? 'Aprobado' : 'Desaprobado',
+        date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString().slice(0, 5)
+      });
+    }
+
     this.showDialog(`Evaluación calificada con éxito.\nPuntaje obtenido: ${finalScore} / 20 (${isPassed ? 'Aprobado' : 'Desaprobado'}).\nPuede descargar o imprimir su reporte formal en PDF.`, isPassed ? '¡Evaluación Aprobada!' : 'Evaluación Finalizada', isPassed ? '🎉' : '📝');
   },
 
@@ -3877,6 +3964,7 @@ const App = {
       this.renderClassroomStudents(c);
       this.renderClassroomsOverview();
       this.renderAdminUsers();
+      this.syncClassroomToDb(c);
 
       this.showDialog(
         `¡Se incorporaron con éxito ${addedCount} estudiante${addedCount === 1 ? '' : 's'} a ${c.name}!
@@ -3946,6 +4034,7 @@ Los alumnos seleccionados ya aparecen registrados en el salón y asignados a la 
     };
 
     this.classrooms.push(newClassroom);
+    this.syncClassroomToDb(newClassroom);
     this.closeCreateClassroomModal();
     this.renderClassroomsOverview();
     this.renderAdminUsers();
