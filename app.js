@@ -2211,7 +2211,7 @@ const App = {
     if (modal) modal.style.display = 'none';
   },
 
-  // ================= SIMULADOR INTERACTIVO DE MANIPULACIÓN DE INSTRUMENTOS (MOVER, GIRAR, OPERAR) =================
+  // ================= SIMULADOR INTERACTIVO 2D FUNCIONAL (INTERACCIÓN CON RECIPIENTES REALES) =================
   toolInteractiveState: {
     isOpen: false,
     isDragging: false,
@@ -2221,7 +2221,15 @@ const App = {
     posY: 0,
     angle: 0,
     scale: 100,
-    operationVal: 50
+    // Estado físico interactivo de los recipientes y del instrumento
+    sourceVol: 50.0,     // Vaso izquierdo (origen)
+    toolVol: 0.0,        // Volumen o carga dentro del instrumento
+    targetVol: 0.0,      // Recipiente derecho (destino)
+    isMixed: false,      // Color o estado de reacción/viraje
+    flameBlue: false,    // Llama amarilla vs azul
+    waterTemp: 21.5,     // Temperatura del líquido calentado
+    tared: false,        // Balanza tarada
+    measuredPH: null     // Lectura de pH
   },
 
   inspectToolPart(toolKey, partIndex) {
@@ -2237,12 +2245,19 @@ const App = {
       'Punta capilar cónica': 'Extremo inferior estrecho que regula la salida gota a gota al apoyarse a 45° contra la pared del vaso receptor.'
     };
 
-    const detail = partDescriptions[partName] || `Componente clave de ${tool.title}. Presiona el botón "🖐️ Interactuar con el Instrumento" arriba para moverlo, girarlo y practicar su uso.`;
+    const detail = partDescriptions[partName] || `Componente clave de ${tool.title}. Presiona el botón "🖐️ Interactuar con el Instrumento" arriba para usarlo en la mesa 2D.`;
     const box = document.getElementById('toolPartInspectBox');
     if (box) {
       box.style.display = 'block';
       box.innerHTML = `🔍 <strong>${partName}:</strong> ${detail}`;
     }
+  },
+
+  getActiveWorkZone() {
+    const x = this.toolInteractiveState.posX;
+    if (x <= -75) return 'left';
+    if (x >= 75) return 'right';
+    return 'center';
   },
 
   initInteractiveToolWorkbench(toolKey, openDirectly = false) {
@@ -2255,7 +2270,14 @@ const App = {
       posY: 0,
       angle: 0,
       scale: 100,
-      operationVal: 50
+      sourceVol: toolKey === 'balanza' || toolKey === 'espatula' ? 15.0 : 50.0,
+      toolVol: toolKey === 'matraz' ? 100.0 : (toolKey === 'tubo' ? 4.0 : 0.0),
+      targetVol: 0.0,
+      isMixed: false,
+      flameBlue: false,
+      waterTemp: 21.5,
+      tared: false,
+      measuredPH: null
     };
 
     const staticView = document.getElementById('toolDiagramStaticView');
@@ -2266,33 +2288,16 @@ const App = {
     if (workbench) workbench.style.display = openDirectly ? 'block' : 'none';
     if (btnToggle) {
       btnToggle.innerHTML = openDirectly
-        ? '📐 Ver Diagrama Anatómico Estático'
+        ? '📐 Volver al Diagrama Anatómico'
         : '🖐️ Interactuar con el Instrumento (Mover / Girar / Operar)';
     }
 
     const angleSlider = document.getElementById('sliderToolAngle');
     const scaleSlider = document.getElementById('sliderToolScale');
-    const opSlider = document.getElementById('sliderToolOperation');
     if (angleSlider) angleSlider.value = 0;
     if (scaleSlider) scaleSlider.value = 100;
-    if (opSlider) opSlider.value = 50;
 
-    const opTitle = document.getElementById('lblToolActionSliderTitle');
-    if (opTitle) {
-      const titles = {
-        pipeta: '💧 Succión / Nivel de Menisco (0 - 10 mL):',
-        matraz: '🔄 Nivel de Llenado y Vórtice (mL):',
-        tubo: '🧪 Volumen de Muestra y Precipitado:',
-        mechero: '🔥 Entrada de Aire (Virola: Llama Amarilla → Azul):',
-        balanza: '⚖️ Dosificación de Masa en el Plato (g):',
-        termometro: '🌡️ Profundidad de Inmersión Térmica:',
-        phmetro: '📊 Inmersión en Solución (Acidez / Alcalinidad):',
-        espatula: '🥄 Cantidad de Cristales en la Hoja:'
-      };
-      opTitle.innerText = titles[toolKey] || '⚙️ Operar Mecanismo:';
-    }
-
-    this.renderInteractiveToolDynamicSVG();
+    this.renderWorkbenchScene();
     this.applyInteractiveToolTransform();
   },
 
@@ -2313,26 +2318,28 @@ const App = {
     }
 
     if (isNowOpen) {
-      this.renderInteractiveToolDynamicSVG();
+      this.renderWorkbenchScene();
       this.applyInteractiveToolTransform();
     }
   },
 
   resetInteractiveToolTransform() {
-    this.toolInteractiveState.posX = 0;
-    this.toolInteractiveState.posY = 0;
-    this.toolInteractiveState.angle = 0;
-    this.toolInteractiveState.scale = 100;
-    this.toolInteractiveState.operationVal = 50;
+    const toolKey = this.state.selectedTool || 'pipeta';
+    this.initInteractiveToolWorkbench(toolKey, true);
+  },
 
-    const angleSlider = document.getElementById('sliderToolAngle');
-    const scaleSlider = document.getElementById('sliderToolScale');
-    const opSlider = document.getElementById('sliderToolOperation');
-    if (angleSlider) angleSlider.value = 0;
-    if (scaleSlider) scaleSlider.value = 100;
-    if (opSlider) opSlider.value = 50;
-
-    this.renderInteractiveToolDynamicSVG();
+  snapToolToStation(zone) {
+    if (zone === 'left') {
+      this.toolInteractiveState.posX = -155;
+      this.toolInteractiveState.posY = 12;
+    } else if (zone === 'right') {
+      this.toolInteractiveState.posX = 155;
+      this.toolInteractiveState.posY = 12;
+    } else {
+      this.toolInteractiveState.posX = 0;
+      this.toolInteractiveState.posY = 0;
+    }
+    this.renderWorkbenchScene();
     this.applyInteractiveToolTransform();
   },
 
@@ -2340,20 +2347,18 @@ const App = {
     this.toolInteractiveState.angle = deg;
     const angleSlider = document.getElementById('sliderToolAngle');
     if (angleSlider) angleSlider.value = deg;
-    this.renderInteractiveToolDynamicSVG();
+    this.renderWorkbenchScene();
     this.applyInteractiveToolTransform();
   },
 
   updateInteractiveToolControl() {
     const angleSlider = document.getElementById('sliderToolAngle');
     const scaleSlider = document.getElementById('sliderToolScale');
-    const opSlider = document.getElementById('sliderToolOperation');
 
     if (angleSlider) this.toolInteractiveState.angle = parseInt(angleSlider.value, 10) || 0;
     if (scaleSlider) this.toolInteractiveState.scale = parseInt(scaleSlider.value, 10) || 100;
-    if (opSlider) this.toolInteractiveState.operationVal = parseInt(opSlider.value, 10) || 0;
 
-    this.renderInteractiveToolDynamicSVG();
+    this.renderWorkbenchScene();
     this.applyInteractiveToolTransform();
   },
 
@@ -2369,8 +2374,8 @@ const App = {
     if (!this.toolInteractiveState.isDragging) return;
     const rawX = event.clientX - this.toolInteractiveState.dragStartX;
     const rawY = event.clientY - this.toolInteractiveState.dragStartY;
-    this.toolInteractiveState.posX = Math.max(-110, Math.min(110, rawX));
-    this.toolInteractiveState.posY = Math.max(-75, Math.min(75, rawY));
+    this.toolInteractiveState.posX = Math.max(-210, Math.min(210, rawX));
+    this.toolInteractiveState.posY = Math.max(-55, Math.min(45, rawY));
     this.applyInteractiveToolTransform();
   },
 
@@ -2379,21 +2384,203 @@ const App = {
     this.toolInteractiveState.isDragging = false;
     const stage = document.getElementById('interactiveToolStage');
     if (stage) stage.style.cursor = 'grab';
+    this.renderWorkbenchScene();
   },
 
   wheelToolZoom(event) {
     event.preventDefault();
-    const delta = event.deltaY < 0 ? 8 : -8;
-    const nextScale = Math.max(60, Math.min(170, this.toolInteractiveState.scale + delta));
+    const delta = event.deltaY < 0 ? 6 : -6;
+    const nextScale = Math.max(70, Math.min(150, this.toolInteractiveState.scale + delta));
     this.toolInteractiveState.scale = nextScale;
     const scaleSlider = document.getElementById('sliderToolScale');
     if (scaleSlider) scaleSlider.value = nextScale;
     this.applyInteractiveToolTransform();
   },
 
-  applyInteractiveToolTransform() {
-    const { posX, posY, angle, scale, operationVal } = this.toolInteractiveState;
+  triggerFluidEffect(zone, color = '#38bdf8') {
+    const stream = document.getElementById('workbenchFluidStream');
+    if (!stream) return;
+    stream.style.display = 'block';
+    stream.style.background = color;
+    stream.style.boxShadow = `0 0 8px ${color}`;
+    stream.style.left = zone === 'left' ? '105px' : 'calc(100% - 110px)';
+    stream.style.bottom = '45px';
+    stream.style.height = '75px';
+    setTimeout(() => {
+      stream.style.display = 'none';
+    }, 550);
+  },
+
+  // Ejecuta las acciones físicas reales de cada instrumento interactuando con las estaciones izquierda y derecha
+  performWorkbenchAction(action) {
     const toolKey = this.state.selectedTool || 'pipeta';
+    const st = this.toolInteractiveState;
+    const zone = this.getActiveWorkZone();
+    const coachEl = document.getElementById('interactiveLiveCoaching');
+
+    if (toolKey === 'pipeta') {
+      if (action === 'aspirate') {
+        if (zone !== 'left') {
+          this.snapToolToStation('left');
+        }
+        const draw = Math.min(2.5, Math.max(0, 10.0 - st.toolVol), st.sourceVol);
+        if (draw > 0) {
+          st.sourceVol = parseFloat((st.sourceVol - draw).toFixed(1));
+          st.toolVol = parseFloat((st.toolVol + draw).toFixed(1));
+          this.triggerFluidEffect('left', '#38bdf8');
+          if (coachEl) coachEl.innerHTML = `💧 <strong>Extracción activa:</strong> Aspiraste <strong>+${draw.toFixed(1)} mL</strong> del Vaso de Agua Destilada. Volumen en la pipeta: <strong>${st.toolVol.toFixed(1)} mL</strong> (Vaso origen: ${st.sourceVol.toFixed(1)} mL).`;
+        } else {
+          if (coachEl) coachEl.innerHTML = `⚠️ La pipeta ya alcanzó su capacidad máxima de <strong>10.0 mL</strong>. Ahora enrásala a 5.0 mL o transpórtala al Matraz Receptor.`;
+        }
+      } else if (action === 'meniscus5') {
+        if (st.toolVol < 5.0 && st.sourceVol >= (5.0 - st.toolVol)) {
+          this.snapToolToStation('left');
+          const diff = 5.0 - st.toolVol;
+          st.sourceVol = parseFloat((st.sourceVol - diff).toFixed(1));
+          st.toolVol = 5.0;
+        } else if (st.toolVol > 5.0) {
+          this.snapToolToStation('left');
+          const diff = st.toolVol - 5.0;
+          st.sourceVol = parseFloat((st.sourceVol + diff).toFixed(1));
+          st.toolVol = 5.0;
+        }
+        st.angle = 0;
+        const angleSlider = document.getElementById('sliderToolAngle');
+        if (angleSlider) angleSlider.value = 0;
+        if (coachEl) coachEl.innerHTML = `🎯 <strong>Medición y Enrase Exacto (5.0 mL a 0°):</strong> El menisco cóncavo coincide al ras del aforo de 5.0 mL. Ahora <strong>arrastra la pipeta a la derecha</strong> (Matraz Receptor), inclínala a <strong>45°</strong> y dispensa.`;
+      } else if (action === 'dispense1' || action === 'dispenseAll') {
+        if (zone !== 'right') {
+          this.snapToolToStation('right');
+        }
+        if (st.toolVol <= 0) {
+          if (coachEl) coachEl.innerHTML = `⚠️ La pipeta está vacía (<strong>0.0 mL</strong>). Primero llévala al <strong>Vaso de Agua (Izquierda)</strong> y presiona <strong>"💧 Aspirar Agua"</strong>.`;
+        } else {
+          const amount = action === 'dispense1' ? Math.min(1.0, st.toolVol) : st.toolVol;
+          st.toolVol = parseFloat((st.toolVol - amount).toFixed(1));
+          st.targetVol = parseFloat((st.targetVol + amount).toFixed(1));
+          this.triggerFluidEffect('right', '#38bdf8');
+          const angleNote = Math.abs(st.angle) >= 30 ? 'con inclinación reglamentaria de 45°' : '(Recuerda inclinarla a 45° contra la pared del vaso)';
+          if (coachEl) coachEl.innerHTML = `✅ <strong>Dispensación controlada:</strong> Se vertieron <strong>${amount.toFixed(1)} mL</strong> en el Matraz Receptor ${angleNote}. Total dispensado: <strong>${st.targetVol.toFixed(1)} mL</strong>.`;
+        }
+      }
+    } else if (toolKey === 'matraz') {
+      if (action === 'fillSource') {
+        this.snapToolToStation('left');
+        const add = Math.min(50, st.sourceVol);
+        st.sourceVol -= add;
+        st.toolVol = Math.min(250, st.toolVol + add);
+        this.triggerFluidEffect('left', '#38bdf8');
+        if (coachEl) coachEl.innerHTML = `💧 Se trasvasaron <strong>50 mL</strong> desde la Probeta hacia el Matraz Erlenmeyer (Total: <strong>${st.toolVol} mL</strong>).`;
+      } else if (action === 'addIndicator') {
+        this.snapToolToStation('right');
+        st.isMixed = true;
+        this.triggerFluidEffect('right', '#ec4899');
+        if (coachEl) coachEl.innerHTML = `🧪 Se añadieron gotas de Fenolftaleína desde el gotero derecho. Ahora presiona <strong>"🔄 Agitar en Órbita"</strong> para homogenizar.`;
+      } else if (action === 'swirl') {
+        st.angle = st.angle === 18 ? -18 : 18;
+        st.isMixed = true;
+        if (coachEl) coachEl.innerHTML = `✅ <strong>Agitación orbital completada:</strong> El cuello estrecho del Erlenmeyer evitó salpicaduras y la solución viró a color fucsia homogéneo.`;
+      } else if (action === 'pourOut') {
+        this.snapToolToStation('right');
+        st.angle = 45;
+        st.targetVol += st.toolVol;
+        st.toolVol = 0;
+        if (coachEl) coachEl.innerHTML = `🫗 Se trasvasó el contenido mezclado al vaso colector derecho.`;
+      }
+    } else if (toolKey === 'tubo') {
+      if (action === 'fillTube') {
+        this.snapToolToStation('left');
+        st.toolVol = Math.min(10, st.toolVol + 3);
+        this.triggerFluidEffect('left', '#38bdf8');
+        if (coachEl) coachEl.innerHTML = `💧 Se cargaron <strong>3 mL</strong> de solución en el Tubo de Ensayo (1/3 de su capacidad segura).`;
+      } else if (action === 'precipitate') {
+        this.snapToolToStation('left');
+        st.isMixed = true;
+        this.triggerFluidEffect('left', '#facc15');
+        if (coachEl) coachEl.innerHTML = `✨ <strong>¡Precipitado formado!</strong> Al reaccionar en el tubo se observa un sólido insoluble amarillo en el fondo.`;
+      } else if (action === 'heatTube') {
+        this.snapToolToStation('right');
+        st.angle = 45;
+        st.waterTemp = 78.0;
+        if (coachEl) coachEl.innerHTML = `🔥 <strong>Calentamiento seguro a 45°:</strong> El tubo está inclinado sobre el mechero apuntando lejos de tus compañeros (${st.waterTemp} °C).`;
+      } else if (action === 'rackTube') {
+        this.snapToolToStation('center');
+        st.angle = 0;
+        if (coachEl) coachEl.innerHTML = `🧪 Tubo colocado verticalmente en su gradilla de reposo.`;
+      }
+    } else if (toolKey === 'mechero') {
+      if (action === 'igniteYellow') {
+        st.toolVol = 1;
+        st.flameBlue = false;
+        if (coachEl) coachEl.innerHTML = `🟡 <strong>Mechero encendido (Llama Amarilla 600 °C):</strong> Collarín cerrado. Abre la virola de aire para obtener llama azul oxidante.`;
+      } else if (action === 'openCollarBlue') {
+        st.toolVol = 1;
+        st.flameBlue = true;
+        if (coachEl) coachEl.innerHTML = `🔵 <strong>Llama Azul Oxidante (1500 °C):</strong> Combustión completa alcanzada. Arrastra el mechero debajo del Vaso Derecho para hervir el agua.`;
+      } else if (action === 'heatBeaker') {
+        this.snapToolToStation('right');
+        st.toolVol = 1;
+        st.flameBlue = true;
+        st.waterTemp = Math.min(100.0, parseFloat((st.waterTemp + 26.5).toFixed(1)));
+        if (coachEl) coachEl.innerHTML = `🌡️ <strong>Calentando Vaso de Precipitados:</strong> La llama azul elevó la temperatura del agua a <strong>${st.waterTemp.toFixed(1)} °C</strong> ${st.waterTemp >= 95 ? '(¡En ebullición con vapor!)' : ''}.`;
+      } else if (action === 'turnOff') {
+        st.toolVol = 0;
+        if (coachEl) coachEl.innerHTML = `🛑 Paso de gas cerrado. Mechero apagado de forma segura.`;
+      }
+    } else if (toolKey === 'balanza' || toolKey === 'espatula') {
+      if (action === 'tare') {
+        st.tared = true;
+        st.targetVol = 0.0;
+        if (coachEl) coachEl.innerHTML = `⚖️ <strong>Balanza Tarada (0.000 g):</strong> Se descontó el peso del vidrio de reloj. Ahora toma sal del frasco izquierdo con la espátula.`;
+      } else if (action === 'scoopSalt') {
+        this.snapToolToStation('left');
+        const scoop = Math.min(1.15, st.sourceVol);
+        st.sourceVol = parseFloat((st.sourceVol - scoop).toFixed(2));
+        st.toolVol = parseFloat((st.toolVol + scoop).toFixed(2));
+        if (coachEl) coachEl.innerHTML = `🥄 <strong>Muestra extraída:</strong> Recogiste <strong>${st.toolVol.toFixed(2)} g</strong> de cristales de NaCl del frasco reactivo. Arrástralo al plato de la balanza (derecha).`;
+      } else if (action === 'depositScale') {
+        this.snapToolToStation('right');
+        st.targetVol = parseFloat((st.targetVol + st.toolVol).toFixed(2));
+        st.toolVol = 0.0;
+        if (coachEl) coachEl.innerHTML = `✅ <strong>Pesaje en vivo:</strong> Depositaste los cristales en el vidrio de reloj. Lectura de la balanza: <strong>${st.targetVol.toFixed(3)} g</strong>.`;
+      } else if (action === 'cleanSpatula') {
+        this.snapToolToStation('center');
+        st.toolVol = 0;
+        if (coachEl) coachEl.innerHTML = `✨ Hoja de acero inoxidable limpia y libre de residuos.`;
+      }
+    } else if (toolKey === 'termometro' || toolKey === 'phmetro') {
+      if (action === 'dipLeft') {
+        this.snapToolToStation('left');
+        st.waterTemp = 18.2;
+        st.measuredPH = 2.4;
+        if (coachEl) coachEl.innerHTML = toolKey === 'termometro'
+          ? `❄️ <strong>Inmersión en Vaso Izquierdo (Baño Frío):</strong> El sensor registra <strong>18.2 °C</strong> sin tocar el fondo del vidrio.`
+          : `🔴 <strong>Inmersión en Solución Ácida (HCl):</strong> El bulbo sensor registra <strong>pH 2.40 (Ácido Fuerte)</strong>.`;
+      } else if (action === 'dipRight') {
+        this.snapToolToStation('right');
+        st.waterTemp = 88.5;
+        st.measuredPH = 12.6;
+        if (coachEl) coachEl.innerHTML = toolKey === 'termometro'
+          ? `🔥 <strong>Inmersión en Vaso Derecho (Agua Caliente):</strong> La sonda registra <strong>88.5 °C</strong> en equilibrio térmico.`
+          : `🔵 <strong>Inmersión en Solución Alcalina (NaOH):</strong> El electrodo registra <strong>pH 12.60 (Base Fuerte)</strong>.`;
+      } else if (action === 'rinseProbe') {
+        this.snapToolToStation('center');
+        st.waterTemp = 21.5;
+        st.measuredPH = 7.0;
+        if (coachEl) coachEl.innerHTML = `🚿 <strong> Lavado con Agua Destilada:</strong> Sonda enjuagada y calibrada en punto neutro (<strong>${toolKey === 'termometro' ? '21.5 °C' : 'pH 7.00'}</strong>).`;
+      }
+    }
+
+    const angleSlider = document.getElementById('sliderToolAngle');
+    if (angleSlider) angleSlider.value = st.angle;
+
+    this.renderWorkbenchScene();
+    this.applyInteractiveToolTransform();
+  },
+
+  applyInteractiveToolTransform() {
+    const { posX, posY, angle, scale } = this.toolInteractiveState;
+    const zone = this.getActiveWorkZone();
 
     const box = document.getElementById('interactiveToolTransformBox');
     if (box) {
@@ -2403,98 +2590,233 @@ const App = {
     const lblAngle = document.getElementById('lblToolAngle');
     const lblScale = document.getElementById('lblToolScale');
     const badge = document.getElementById('interactiveStageCoordsBadge');
+    const zoneBadge = document.getElementById('interactiveZoneBadge');
+
     if (lblAngle) lblAngle.innerText = `${angle}°`;
     if (lblScale) lblScale.innerText = `${scale}%`;
     if (badge) {
       badge.innerText = `Pos: (${Math.round(posX)}, ${Math.round(posY)}) | Giro: ${angle}° | Zoom: ${scale}%`;
     }
-
-    // Actualizar el vaso auxiliar si inclina o descarga
-    const auxFill = document.getElementById('auxVesselLiquidFill');
-    if (auxFill) {
-      const pourBonus = Math.abs(angle) >= 35 ? 35 : 0;
-      const fillPct = Math.min(92, Math.max(15, Math.round((100 - operationVal) * 0.55 + pourBonus)));
-      auxFill.style.height = `${fillPct}%`;
-    }
-
-    // Actualizar texto y retroalimentación pedagógica según cómo lo mueve/gira/opera
-    const lblOpVal = document.getElementById('lblToolActionVal');
-    const coachEl = document.getElementById('interactiveLiveCoaching');
-
-    if (toolKey === 'pipeta') {
-      const ml = ((operationVal / 100) * 10).toFixed(1);
-      if (lblOpVal) lblOpVal.innerText = `${ml} mL`;
-      if (coachEl) {
-        if (Math.abs(angle) >= 35 && Math.abs(angle) <= 55) {
-          coachEl.innerHTML = `✅ <strong>¡Excelente técnica (${angle}°)!</strong> Inclinación ideal de 45° para apoyar la punta de la pipeta contra la pared del vaso receptor y descargar ${ml} mL sin salpicaduras.`;
-        } else if (angle === 0 && Math.abs(operationVal - 50) <= 5) {
-          coachEl.innerHTML = `🎯 <strong>Enrase exacto a 5.0 mL (0° Vertical):</strong> La pipeta está perfectamente vertical y el menisco cóncavo coincide con la línea de aforo sin error de paralaje.`;
-        } else {
-          coachEl.innerHTML = `💡 <strong>Guía interactiva:</strong> Pon el giro en <strong>0° Vertical</strong> para enrasar el menisco a <strong>5.0 mL</strong>, o gírala a <strong>45° Uso</strong> y arrástrala hacia el vaso receptor para descargar.`;
-        }
-      }
-    } else if (toolKey === 'matraz') {
-      const ml = Math.round(50 + (operationVal / 100) * 200);
-      if (lblOpVal) lblOpVal.innerText = `${ml} mL`;
-      if (coachEl) {
-        coachEl.innerHTML = Math.abs(angle) > 65
-          ? `⚠️ <strong>Cuidado (${angle}°):</strong> Si inclinas demasiado el matraz Erlenmeyer con ${ml} mL, el líquido puede rebasar el cuello estrecho. Usa giros suaves de -25° a 25° para agitar.`
-          : `✅ <strong>Agitación orbital (${angle}°):</strong> Mueve el matraz en círculos con el mouse y alterna el ángulo para mezclar los ${ml} mL sin derrames gracias a su cuello cónico.`;
-      }
-    } else if (toolKey === 'tubo') {
-      const pct = Math.round((operationVal / 100) * 60);
-      if (lblOpVal) lblOpVal.innerText = `${pct}% lleno`;
-      if (coachEl) {
-        coachEl.innerHTML = Math.abs(angle) >= 40 && Math.abs(angle) <= 55
-          ? `✅ <strong>Ángulo seguro de calentamiento (${angle}°):</strong> El tubo de ensayo debe inclinarse a 45° apuntando hacia una zona libre de compañeros.`
-          : `💡 <strong>Consejo de uso:</strong> Inclina el tubo a <strong>45° Uso</strong> y no superes el 33% de su capacidad al calentarlo.`;
-      }
-    } else if (toolKey === 'mechero') {
-      const temp = Math.round(600 + (operationVal / 100) * 900);
-      if (lblOpVal) lblOpVal.innerText = `${temp} °C`;
-      if (coachEl) {
-        coachEl.innerHTML = operationVal >= 70
-          ? `🔵 <strong>Llama Azul Oxidante (${temp} °C):</strong> Collarín abierto con combustión completa. Arrastra el mechero debajo del recipiente para calentar sin hollín.`
-          : `🟡 <strong>Llama Amarilla Luminosa (${temp} °C):</strong> Entrada de aire cerrada. Desliza el control hacia la derecha para abrir el collarín y obtener llama azul de 1500 °C.`;
-      }
-    } else {
-      if (lblOpVal) lblOpVal.innerText = `${operationVal}%`;
-      if (coachEl) {
-        coachEl.innerHTML = `✅ <strong>Manipulación activa:</strong> Arrastra el instrumento a la posición (${Math.round(posX)}, ${Math.round(posY)}), gíralo a ${angle}° y haz zoom (${scale}%) para inspeccionar su funcionamiento.`;
+    if (zoneBadge) {
+      if (zone === 'left') {
+        zoneBadge.innerText = '📍 En Estación Izquierda (Origen / Extracción)';
+        zoneBadge.style.color = '#38bdf8';
+        zoneBadge.style.borderColor = '#0284c7';
+      } else if (zone === 'right') {
+        zoneBadge.innerText = '📍 En Estación Derecha (Destino / Dispensación)';
+        zoneBadge.style.color = '#4ade80';
+        zoneBadge.style.borderColor = '#16a34a';
+      } else {
+        zoneBadge.innerText = '📍 Zona Central (En Transporte)';
+        zoneBadge.style.color = '#fde047';
+        zoneBadge.style.borderColor = '#f59e0b';
       }
     }
   },
 
-  renderInteractiveToolDynamicSVG() {
-    const box = document.getElementById('interactiveToolTransformBox');
-    if (!box) return;
+  // Renderiza los recipientes izquierdo/derecho, los botones de acción y el instrumento con niveles dinámicos
+  renderWorkbenchScene() {
     const toolKey = this.state.selectedTool || 'pipeta';
-    const op = this.toolInteractiveState.operationVal;
+    const st = this.toolInteractiveState;
+
+    const leftEl = document.getElementById('workbenchLeftStation');
+    const rightEl = document.getElementById('workbenchRightStation');
+    const actionsEl = document.getElementById('workbenchActionButtons');
+    const readoutEl = document.getElementById('workbenchInstrumentReadout');
+    const missionEl = document.getElementById('workbenchMissionText');
+    const box = document.getElementById('interactiveToolTransformBox');
+
+    if (!leftEl || !rightEl || !actionsEl || !box) return;
 
     if (toolKey === 'pipeta') {
-      // El nivel de líquido sube/baja dinámicamente según el slider de operación (0-10 mL)
-      const liqHeight = Math.round((op / 100) * 82);
+      if (missionEl) {
+        missionEl.innerText = 'Misión con la Pipeta: 1) Llévala al Vaso de Agua (Izq) y aspira líquido. 2) Enrasa el menisco a 5.0 mL. 3) Transpórtala al Matraz Receptor (Der), inclina a 45° y dispensa.';
+      }
+      if (readoutEl) readoutEl.innerText = `En Pipeta: ${st.toolVol.toFixed(1)} / 10.0 mL`;
+
+      const srcPct = Math.min(92, Math.max(8, (st.sourceVol / 60) * 100));
+      leftEl.innerHTML = `
+        <div style="font-size: 0.7rem; font-weight: 700; color: #38bdf8; margin-bottom: 4px;">💧 Vaso de Agua (${st.sourceVol.toFixed(1)} mL)</div>
+        <div style="width: 78px; height: 92px; border: 2.5px solid #94a3b8; border-top: none; border-radius: 0 0 10px 10px; margin: 0 auto; position: relative; background: rgba(255,255,255,0.05); overflow: hidden;">
+          <div style="position: absolute; bottom: 0; left: 0; right: 0; height: ${srcPct}%; background: linear-gradient(180deg, #38bdf8, #0284c7); opacity: 0.85; transition: height 0.25s;"></div>
+          <div style="position: absolute; right: 4px; top: 15px; font-size: 8px; color: #cbd5e1;">50mL</div>
+          <div style="position: absolute; right: 4px; top: 50px; font-size: 8px; color: #cbd5e1;">25mL</div>
+        </div>
+      `;
+
+      const dstPct = Math.min(92, Math.max(4, (st.targetVol / 15) * 100));
+      rightEl.innerHTML = `
+        <div style="font-size: 0.7rem; font-weight: 700; color: #4ade80; margin-bottom: 4px;">🧪 Matraz Receptor (${st.targetVol.toFixed(1)} mL)</div>
+        <div style="width: 82px; height: 92px; border: 2.5px solid #94a3b8; border-top: none; border-radius: 0 0 14px 14px; margin: 0 auto; position: relative; background: rgba(255,255,255,0.05); overflow: hidden;">
+          <div style="position: absolute; bottom: 0; left: 0; right: 0; height: ${dstPct}%; background: linear-gradient(180deg, #22d3ee, #0284c7); opacity: 0.9; transition: height 0.25s;"></div>
+          <div style="position: absolute; left: 5px; top: 22px; font-size: 8px; color: #fde047;">10mL</div>
+          <div style="position: absolute; left: 5px; top: 52px; font-size: 8px; color: #fde047;">5mL</div>
+        </div>
+      `;
+
+      actionsEl.innerHTML = `
+        <button type="button" class="btn btn-primary" style="font-size: 0.74rem; padding: 0.42rem 0.5rem; justify-content: center;" onclick="App.performWorkbenchAction('aspirate')">
+          💧 1. Aspirar Agua (+2.5 mL)
+        </button>
+        <button type="button" class="btn btn-secondary" style="font-size: 0.74rem; padding: 0.42rem 0.5rem; justify-content: center;" onclick="App.performWorkbenchAction('meniscus5')">
+          🎯 2. Enrasar Aforo (5.0 mL)
+        </button>
+        <button type="button" class="btn btn-success" style="font-size: 0.74rem; padding: 0.42rem 0.5rem; justify-content: center;" onclick="App.performWorkbenchAction('dispense1')">
+          🫗 3. Dispensar 1.0 mL (Der)
+        </button>
+        <button type="button" class="btn btn-outline" style="font-size: 0.74rem; padding: 0.42rem 0.5rem; justify-content: center; color: #38bdf8; border-color: #0284c7;" onclick="App.performWorkbenchAction('dispenseAll')">
+          ⏬ 4. Vaciar Todo al Matraz
+        </button>
+      `;
+
+      const liqHeight = Math.round((st.toolVol / 10) * 84);
       const liqY = 148 - liqHeight;
-      const mlText = ((op / 100) * 10).toFixed(1);
       box.innerHTML = `
-        <svg viewBox="0 0 260 180" width="240" height="175" xmlns="http://www.w3.org/2000/svg">
-          <ellipse cx="130" cy="22" rx="22" ry="15" fill="#ef4444" stroke="#fca5a5" stroke-width="1.5"/>
-          <rect x="126" y="35" width="8" height="13" fill="#dc2626"/>
-          <rect x="123" y="48" width="14" height="100" rx="3" fill="rgba(224,242,254,0.22)" stroke="#cbd5e1" stroke-width="1.8"/>
-          <rect x="125" y="${liqY}" width="10" height="${liqHeight}" fill="#38bdf8"/>
-          <path d="M125 ${liqY} Q130 ${liqY + 4} 135 ${liqY}" fill="none" stroke="#ffffff" stroke-width="2"/>
-          <polygon points="123,148 137,148 132,166 128,166" fill="rgba(224,242,254,0.3)" stroke="#cbd5e1" stroke-width="1.5"/>
-          <circle cx="130" cy="172" r="${op > 5 ? 3.5 : 0}" fill="#38bdf8"/>
-          <line x1="117" y1="66" x2="125" y2="66" stroke="#f8fafc" stroke-width="1.5"/><text x="112" y="69" font-size="9" fill="#cbd5e1" text-anchor="end">10 mL</text>
-          <line x1="116" y1="107" x2="126" y2="107" stroke="#facc15" stroke-width="2"/><text x="112" y="110" font-size="9" font-weight="bold" fill="#facc15" text-anchor="end">Aforo 5 mL</text>
-          <line x1="138" y1="${liqY}" x2="172" y2="${liqY}" stroke="#38bdf8" stroke-dasharray="3,2" stroke-width="1.5"/>
-          <text x="176" y="${liqY + 3}" font-size="10" font-weight="bold" fill="#38bdf8">${mlText} mL</text>
+        <svg viewBox="0 0 220 180" width="190" height="175" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="110" cy="20" rx="20" ry="14" fill="#ef4444" stroke="#fca5a5" stroke-width="1.5"/>
+          <rect x="106" y="32" width="8" height="14" fill="#dc2626"/>
+          <rect x="103" y="46" width="14" height="102" rx="3" fill="rgba(224,242,254,0.22)" stroke="#e2e8f0" stroke-width="1.8"/>
+          <rect x="105" y="${liqY}" width="10" height="${liqHeight}" fill="#38bdf8"/>
+          ${st.toolVol > 0 ? `<path d="M105 ${liqY} Q110 ${liqY + 4} 115 ${liqY}" fill="none" stroke="#ffffff" stroke-width="2"/>` : ''}
+          <polygon points="103,148 117,148 112,168 108,168" fill="rgba(224,242,254,0.3)" stroke="#e2e8f0" stroke-width="1.5"/>
+          ${st.toolVol > 0 ? `<polygon points="105,148 115,148 111,166 109,166" fill="#38bdf8"/>` : ''}
+          <line x1="96" y1="64" x2="104" y2="64" stroke="#f8fafc" stroke-width="1.5"/><text x="92" y="67" font-size="8.5" fill="#cbd5e1" text-anchor="end">10 mL</text>
+          <line x1="95" y1="106" x2="105" y2="106" stroke="#facc15" stroke-width="2"/><text x="92" y="109" font-size="8.5" font-weight="bold" fill="#facc15" text-anchor="end">Aforo 5mL</text>
+          <line x1="118" y1="${liqY}" x2="148" y2="${liqY}" stroke="#38bdf8" stroke-dasharray="3,2" stroke-width="1.5"/>
+          <text x="152" y="${liqY + 3}" font-size="10" font-weight="bold" fill="#38bdf8">${st.toolVol.toFixed(1)} mL</text>
         </svg>
       `;
       return;
     }
 
-    // Para los demás instrumentos, reutilizamos el modelo vectorial 2D con respuesta al movimiento/giro/escala
+    if (toolKey === 'matraz') {
+      if (readoutEl) readoutEl.innerText = `Matraz: ${st.toolVol.toFixed(0)} mL ${st.isMixed ? '(Titulado)' : ''}`;
+      leftEl.innerHTML = `
+        <div style="font-size: 0.7rem; font-weight: 700; color: #38bdf8; margin-bottom: 4px;">🧪 Probeta Reactivo (${st.sourceVol} mL)</div>
+        <div style="width: 46px; height: 92px; border: 2px solid #94a3b8; border-top: none; margin: 0 auto; position: relative; background: rgba(255,255,255,0.05);">
+          <div style="position: absolute; bottom: 0; left: 0; right: 0; height: ${Math.min(95, st.sourceVol * 1.6)}%; background: #38bdf8; opacity: 0.8;"></div>
+        </div>
+      `;
+      rightEl.innerHTML = `
+        <div style="font-size: 0.7rem; font-weight: 700; color: #f472b6; margin-bottom: 4px;">💧 Gotero Fenolftaleína + Vaso (${st.targetVol} mL)</div>
+        <div style="width: 72px; height: 85px; border: 2px solid #94a3b8; border-top: none; border-radius: 0 0 8px 8px; margin: 0 auto; position: relative; background: rgba(255,255,255,0.05);">
+          <div style="position: absolute; bottom: 0; left: 0; right: 0; height: ${Math.min(90, st.targetVol * 0.45)}%; background: #ec4899; opacity: 0.85;"></div>
+        </div>
+      `;
+      actionsEl.innerHTML = `
+        <button type="button" class="btn btn-primary" style="font-size: 0.73rem; padding: 0.4rem;" onclick="App.performWorkbenchAction('fillSource')">💧 1. Cargar 50 mL (Izq)</button>
+        <button type="button" class="btn btn-secondary" style="font-size: 0.73rem; padding: 0.4rem;" onclick="App.performWorkbenchAction('addIndicator')">🧪 2. Añadir Indicador (Der)</button>
+        <button type="button" class="btn btn-success" style="font-size: 0.73rem; padding: 0.4rem;" onclick="App.performWorkbenchAction('swirl')">🔄 3. Agitar en Órbita</button>
+        <button type="button" class="btn btn-outline" style="font-size: 0.73rem; padding: 0.4rem; color: #f472b6; border-color: #db2777;" onclick="App.performWorkbenchAction('pourOut')">🫗 4. Verter Mezcla</button>
+      `;
+      const liqColor = st.isMixed ? '#ec4899' : '#38bdf8';
+      box.innerHTML = `
+        <svg viewBox="0 0 220 180" width="185" height="170">
+          <rect x="98" y="22" width="24" height="38" fill="rgba(255,255,255,0.18)" stroke="#e2e8f0" stroke-width="2"/>
+          <polygon points="98,60 122,60 162,155 58,155" fill="rgba(255,255,255,0.18)" stroke="#e2e8f0" stroke-width="2"/>
+          ${st.toolVol > 0 ? `<polygon points="75,115 145,115 160,153 60,153" fill="${liqColor}" opacity="0.88"/>` : ''}
+          <text x="110" y="142" font-size="11" font-weight="bold" fill="#ffffff" text-anchor="middle">${st.toolVol} mL</text>
+        </svg>
+      `;
+      return;
+    }
+
+    if (toolKey === 'mechero') {
+      if (readoutEl) readoutEl.innerText = st.toolVol ? (st.flameBlue ? 'Llama Azul (1500 °C)' : 'Llama Amarilla (600 °C)') : 'Mechero Apagado';
+      leftEl.innerHTML = `
+        <div style="font-size: 0.7rem; font-weight: 700; color: #fbbf24; margin-bottom: 4px;">🔥 Llave de Gas GLP</div>
+        <div style="padding: 1rem 0.5rem; background: #1e293b; border: 2px solid #f59e0b; border-radius: 8px; color: #fde047; font-size: 0.75rem; font-weight: 700;">Válvula Abierta</div>
+      `;
+      rightEl.innerHTML = `
+        <div style="font-size: 0.7rem; font-weight: 700; color: #38bdf8; margin-bottom: 4px;">🌡️ Vaso en Trípode (${st.waterTemp.toFixed(1)} °C)</div>
+        <div style="width: 76px; height: 65px; border: 2px solid #cbd5e1; border-top: none; margin: 0 auto; position: relative; background: rgba(56,189,248,0.2);">
+          <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 65%; background: ${st.waterTemp > 60 ? '#ef4444' : '#38bdf8'}; opacity: 0.75;"></div>
+        </div>
+        <div style="width: 86px; height: 22px; border-top: 3px solid #94a3b8; border-left: 3px solid #94a3b8; border-right: 3px solid #94a3b8; margin: 0 auto;"></div>
+      `;
+      actionsEl.innerHTML = `
+        <button type="button" class="btn btn-secondary" style="font-size: 0.73rem; padding: 0.4rem;" onclick="App.performWorkbenchAction('igniteYellow')">🟡 1. Encender Llama Amarilla</button>
+        <button type="button" class="btn btn-primary" style="font-size: 0.73rem; padding: 0.4rem;" onclick="App.performWorkbenchAction('openCollarBlue')">🔵 2. Abrir Virola (Llama Azul)</button>
+        <button type="button" class="btn btn-success" style="font-size: 0.73rem; padding: 0.4rem;" onclick="App.performWorkbenchAction('heatBeaker')">🔥 3. Calentar Vaso (Der)</button>
+        <button type="button" class="btn btn-outline" style="font-size: 0.73rem; padding: 0.4rem; color: #f87171; border-color: #ef4444;" onclick="App.performWorkbenchAction('turnOff')">🛑 4. Apagar Mechero</button>
+      `;
+      const flameColor = st.flameBlue ? '#38bdf8' : '#facc15';
+      box.innerHTML = `
+        <svg viewBox="0 0 220 180" width="180" height="170">
+          ${st.toolVol ? `<path d="M98 78 Q82 32 110 8 Q138 32 122 78 Z" fill="${flameColor}" opacity="0.92"/>` : ''}
+          <rect x="101" y="78" width="18" height="72" fill="#d97706" stroke="#fde047" stroke-width="1.5"/>
+          <rect x="96" y="125" width="28" height="14" rx="2" fill="#94a3b8"/>
+          <ellipse cx="110" cy="158" rx="45" ry="10" fill="#475569" stroke="#cbd5e1" stroke-width="1.5"/>
+        </svg>
+      `;
+      return;
+    }
+
+    if (toolKey === 'tubo') {
+      if (readoutEl) readoutEl.innerText = `Tubo: ${st.toolVol.toFixed(0)} mL | ${st.waterTemp.toFixed(0)} °C`;
+      leftEl.innerHTML = `
+        <div style="font-size: 0.7rem; font-weight: 700; color: #38bdf8; margin-bottom: 4px;">💧 Reactivos A + B</div>
+        <div style="width: 68px; height: 80px; border: 2px solid #94a3b8; border-top: none; border-radius: 0 0 8px 8px; margin: 0 auto; background: rgba(56,189,248,0.35);"></div>
+      `;
+      rightEl.innerHTML = `
+        <div style="font-size: 0.7rem; font-weight: 700; color: #f97316; margin-bottom: 4px;">🔥 Mechero Encendido</div>
+        <div style="width: 24px; height: 42px; background: #38bdf8; border-radius: 50% 50% 20% 20%; margin: 0 auto; box-shadow: 0 0 12px #38bdf8;"></div>
+        <div style="width: 48px; height: 40px; background: #475569; margin: 0 auto; border-radius: 4px;"></div>
+      `;
+      actionsEl.innerHTML = `
+        <button type="button" class="btn btn-primary" style="font-size: 0.73rem; padding: 0.4rem;" onclick="App.performWorkbenchAction('fillTube')">💧 1. Llenar 1/3 Tubo (Izq)</button>
+        <button type="button" class="btn btn-secondary" style="font-size: 0.73rem; padding: 0.4rem;" onclick="App.performWorkbenchAction('precipitate')">✨ 2. Formar Precipitado</button>
+        <button type="button" class="btn btn-success" style="font-size: 0.73rem; padding: 0.4rem;" onclick="App.performWorkbenchAction('heatTube')">🔥 3. Calentar a 45° (Der)</button>
+        <button type="button" class="btn btn-outline" style="font-size: 0.73rem; padding: 0.4rem; color: #cbd5e1;" onclick="App.performWorkbenchAction('rackTube')">🧪 4. Poner en Gradilla</button>
+      `;
+      box.innerHTML = this.renderTool2DModel(toolKey);
+      return;
+    }
+
+    if (toolKey === 'balanza' || toolKey === 'espatula') {
+      if (readoutEl) readoutEl.innerText = `En Espátula: ${st.toolVol.toFixed(2)} g | Balanza: ${st.targetVol.toFixed(3)} g`;
+      leftEl.innerHTML = `
+        <div style="font-size: 0.7rem; font-weight: 700; color: #e2e8f0; margin-bottom: 4px;">🧂 Frasco NaCl (${st.sourceVol.toFixed(1)} g)</div>
+        <div style="width: 68px; height: 82px; border: 2px solid #cbd5e1; border-radius: 8px; margin: 0 auto; background: rgba(255,255,255,0.12); display: flex; align-items: flex-end; justify-content: center; padding-bottom: 6px;">
+          <div style="width: 85%; height: 45%; background: #f8fafc; border-radius: 4px;"></div>
+        </div>
+      `;
+      rightEl.innerHTML = `
+        <div style="font-size: 0.7rem; font-weight: 700; color: #4ade80; margin-bottom: 4px;">⚖️ Balanza Digital</div>
+        <div style="background: #000; border: 2px solid #22c55e; color: #22c55e; font-family: monospace; font-weight: 800; padding: 0.35rem; border-radius: 6px; font-size: 0.9rem; margin-bottom: 4px;">
+          ${st.targetVol.toFixed(3)} g
+        </div>
+        <div style="width: 90px; height: 18px; background: #64748b; margin: 0 auto; border-radius: 4px;"></div>
+      `;
+      actionsEl.innerHTML = `
+        <button type="button" class="btn btn-secondary" style="font-size: 0.73rem; padding: 0.4rem;" onclick="App.performWorkbenchAction('tare')">🔘 1. Tarar Balanza (0.000 g)</button>
+        <button type="button" class="btn btn-primary" style="font-size: 0.73rem; padding: 0.4rem;" onclick="App.performWorkbenchAction('scoopSalt')">🥄 2. Extraer Sal (Izq)</button>
+        <button type="button" class="btn btn-success" style="font-size: 0.73rem; padding: 0.4rem;" onclick="App.performWorkbenchAction('depositScale')">⚖️ 3. Depositar y Pesar (Der)</button>
+        <button type="button" class="btn btn-outline" style="font-size: 0.73rem; padding: 0.4rem; color: #cbd5e1;" onclick="App.performWorkbenchAction('cleanSpatula')">✨ 4. Limpiar Espátula</button>
+      `;
+      box.innerHTML = this.renderTool2DModel(toolKey);
+      return;
+    }
+
+    // Termómetro y pH-metro
+    if (readoutEl) {
+      readoutEl.innerText = toolKey === 'termometro'
+        ? `Lectura: ${st.waterTemp.toFixed(1)} °C`
+        : `Lectura: pH ${(st.measuredPH !== null ? st.measuredPH : 7.0).toFixed(2)}`;
+    }
+    leftEl.innerHTML = `
+      <div style="font-size: 0.7rem; font-weight: 700; color: #f87171; margin-bottom: 4px;">${toolKey === 'termometro' ? '❄️ Vaso Baño Frío (18.2 °C)' : '🔴 Vaso Ácido HCl (pH 2.4)'}</div>
+      <div style="width: 74px; height: 82px; border: 2px solid #94a3b8; border-top: none; border-radius: 0 0 10px 10px; margin: 0 auto; background: rgba(239,68,68,0.28);"></div>
+    `;
+    rightEl.innerHTML = `
+      <div style="font-size: 0.7rem; font-weight: 700; color: #38bdf8; margin-bottom: 4px;">${toolKey === 'termometro' ? '🔥 Vaso Agua Caliente (88.5 °C)' : '🔵 Vaso Base NaOH (pH 12.6)'}</div>
+      <div style="width: 74px; height: 82px; border: 2px solid #94a3b8; border-top: none; border-radius: 0 0 10px 10px; margin: 0 auto; background: rgba(56,189,248,0.28);"></div>
+    `;
+    actionsEl.innerHTML = `
+      <button type="button" class="btn btn-primary" style="font-size: 0.73rem; padding: 0.4rem;" onclick="App.performWorkbenchAction('dipLeft')">↙️ 1. Sumergir en Vaso Izq</button>
+      <button type="button" class="btn btn-success" style="font-size: 0.73rem; padding: 0.4rem;" onclick="App.performWorkbenchAction('dipRight')">↘️ 2. Sumergir en Vaso Der</button>
+      <button type="button" class="btn btn-secondary" style="font-size: 0.73rem; padding: 0.4rem; grid-column: span 2;" onclick="App.performWorkbenchAction('rinseProbe')">🚿 3. Enjuagar Sonda con Agua Destilada (Neutro)</button>
+    `;
     box.innerHTML = this.renderTool2DModel(toolKey);
   },
 
