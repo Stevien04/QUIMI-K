@@ -2207,11 +2207,13 @@ const App = {
   },
 
   closeToolGuide() {
+    this.stopContinuousFlow();
+    if (this.toolAnimFrame) cancelAnimationFrame(this.toolAnimFrame);
     const modal = document.getElementById('modalToolGuide');
     if (modal) modal.style.display = 'none';
   },
 
-  // ================= SIMULADOR INTERACTIVO 2D FUNCIONAL (INTERACCIÓN CON RECIPIENTES REALES) =================
+  // ================= SIMULADOR INTERACTIVO 2D FLUIDO EN TIEMPO REAL (60 FPS + VERTIDO POR INCLINACIÓN) =================
   toolInteractiveState: {
     isOpen: false,
     isDragging: false,
@@ -2221,16 +2223,20 @@ const App = {
     posY: 0,
     angle: 0,
     scale: 100,
-    // Estado físico interactivo de los recipientes y del instrumento
     sourceVol: 50.0,     // Vaso izquierdo (origen)
     toolVol: 0.0,        // Volumen o carga dentro del instrumento
     targetVol: 0.0,      // Recipiente derecho (destino)
-    isMixed: false,      // Color o estado de reacción/viraje
-    flameBlue: false,    // Llama amarilla vs azul
-    waterTemp: 21.5,     // Temperatura del líquido calentado
-    tared: false,        // Balanza tarada
-    measuredPH: null     // Lectura de pH
+    isMixed: false,
+    flameBlue: false,
+    waterTemp: 21.5,
+    tared: false,
+    measuredPH: null
   },
+
+  flowTimer: null,
+  tiltPourTimer: null,
+  toolAnimFrame: null,
+  keyListenerBound: false,
 
   inspectToolPart(toolKey, partIndex) {
     const tool = this.toolsDatabase[toolKey];
@@ -2255,12 +2261,59 @@ const App = {
 
   getActiveWorkZone() {
     const x = this.toolInteractiveState.posX;
-    if (x <= -75) return 'left';
-    if (x >= 75) return 'right';
+    if (x <= -70) return 'left';
+    if (x >= 70) return 'right';
     return 'center';
   },
 
+  bindWorkbenchKeyboard() {
+    if (this.keyListenerBound) return;
+    this.keyListenerBound = true;
+    window.addEventListener('keydown', (e) => {
+      const modal = document.getElementById('modalToolGuide');
+      if (!modal || modal.style.display === 'none' || !this.toolInteractiveState.isOpen) return;
+      if (['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
+
+      const st = this.toolInteractiveState;
+      let handled = false;
+      if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
+        st.posX = Math.max(-185, st.posX - 12);
+        handled = true;
+      } else if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') {
+        st.posX = Math.min(185, st.posX + 12);
+        handled = true;
+      } else if (e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
+        st.posY = Math.max(-50, st.posY - 8);
+        handled = true;
+      } else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') {
+        st.posY = Math.min(45, st.posY + 8);
+        handled = true;
+      } else if (e.key === 'q' || e.key === 'Q') {
+        st.angle = Math.max(-80, st.angle - 5);
+        const s = document.getElementById('sliderToolAngle');
+        if (s) s.value = st.angle;
+        handled = true;
+      } else if (e.key === 'e' || e.key === 'E') {
+        st.angle = Math.min(80, st.angle + 5);
+        const s = document.getElementById('sliderToolAngle');
+        if (s) s.value = st.angle;
+        handled = true;
+      }
+
+      if (handled) {
+        e.preventDefault();
+        const sx = document.getElementById('sliderToolPosX');
+        if (sx) sx.value = Math.round(st.posX);
+        this.applyInteractiveToolTransform();
+        this.checkAutoTiltPour();
+      }
+    });
+  },
+
   initInteractiveToolWorkbench(toolKey, openDirectly = false) {
+    this.stopContinuousFlow();
+    this.bindWorkbenchKeyboard();
+
     this.toolInteractiveState = {
       isOpen: openDirectly,
       isDragging: false,
@@ -2294,8 +2347,10 @@ const App = {
 
     const angleSlider = document.getElementById('sliderToolAngle');
     const scaleSlider = document.getElementById('sliderToolScale');
+    const posXSlider = document.getElementById('sliderToolPosX');
     if (angleSlider) angleSlider.value = 0;
     if (scaleSlider) scaleSlider.value = 100;
+    if (posXSlider) posXSlider.value = 0;
 
     this.renderWorkbenchScene();
     this.applyInteractiveToolTransform();
@@ -2320,6 +2375,8 @@ const App = {
     if (isNowOpen) {
       this.renderWorkbenchScene();
       this.applyInteractiveToolTransform();
+    } else {
+      this.stopContinuousFlow();
     }
   },
 
@@ -2328,27 +2385,66 @@ const App = {
     this.initInteractiveToolWorkbench(toolKey, true);
   },
 
+  // Animación interpolada suave en vez de teletransportar de golpe
+  animateToolTo(targetX, targetY, targetAngle, onComplete = null) {
+    if (this.toolAnimFrame) cancelAnimationFrame(this.toolAnimFrame);
+    const st = this.toolInteractiveState;
+    const startX = st.posX;
+    const startY = st.posY;
+    const startAngle = st.angle;
+
+    const endX = targetX !== null && targetX !== undefined ? targetX : startX;
+    const endY = targetY !== null && targetY !== undefined ? targetY : startY;
+    const endAngle = targetAngle !== null && targetAngle !== undefined ? targetAngle : startAngle;
+
+    const duration = 260;
+    const startTime = performance.now();
+
+    const step = (now) => {
+      const t = Math.min(1, (now - startTime) / duration);
+      const ease = 1 - Math.pow(1 - t, 3); // Ease-out cubic suave
+
+      st.posX = startX + (endX - startX) * ease;
+      st.posY = startY + (endY - startY) * ease;
+      st.angle = Math.round(startAngle + (endAngle - startAngle) * ease);
+
+      const angleSlider = document.getElementById('sliderToolAngle');
+      const posXSlider = document.getElementById('sliderToolPosX');
+      if (angleSlider) angleSlider.value = st.angle;
+      if (posXSlider) posXSlider.value = Math.round(st.posX);
+
+      this.applyInteractiveToolTransform();
+
+      if (t < 1) {
+        this.toolAnimFrame = requestAnimationFrame(step);
+      } else {
+        this.toolAnimFrame = null;
+        this.checkAutoTiltPour();
+        if (typeof onComplete === 'function') onComplete();
+      }
+    };
+
+    this.toolAnimFrame = requestAnimationFrame(step);
+  },
+
   snapToolToStation(zone) {
     if (zone === 'left') {
-      this.toolInteractiveState.posX = -155;
-      this.toolInteractiveState.posY = 12;
+      this.animateToolTo(-150, 14, null);
     } else if (zone === 'right') {
-      this.toolInteractiveState.posX = 155;
-      this.toolInteractiveState.posY = 12;
+      this.animateToolTo(150, 10, null);
     } else {
-      this.toolInteractiveState.posX = 0;
-      this.toolInteractiveState.posY = 0;
+      this.animateToolTo(0, 0, 0);
     }
-    this.renderWorkbenchScene();
-    this.applyInteractiveToolTransform();
   },
 
   setQuickToolAngle(deg) {
-    this.toolInteractiveState.angle = deg;
-    const angleSlider = document.getElementById('sliderToolAngle');
-    if (angleSlider) angleSlider.value = deg;
-    this.renderWorkbenchScene();
+    this.animateToolTo(null, null, deg);
+  },
+
+  onSliderPosXChange(val) {
+    this.toolInteractiveState.posX = parseFloat(val) || 0;
     this.applyInteractiveToolTransform();
+    this.checkAutoTiltPour();
   },
 
   updateInteractiveToolControl() {
@@ -2358,60 +2454,242 @@ const App = {
     if (angleSlider) this.toolInteractiveState.angle = parseInt(angleSlider.value, 10) || 0;
     if (scaleSlider) this.toolInteractiveState.scale = parseInt(scaleSlider.value, 10) || 100;
 
-    this.renderWorkbenchScene();
     this.applyInteractiveToolTransform();
+    this.checkAutoTiltPour();
   },
 
+  // Si el estudiante inclina la pipeta o matraz (>= 30°) sobre el vaso receptor, el agua sale sola de forma fluida
+  checkAutoTiltPour() {
+    const toolKey = this.state.selectedTool || 'pipeta';
+    const st = this.toolInteractiveState;
+    const zone = this.getActiveWorkZone();
+
+    if ((toolKey === 'pipeta' || toolKey === 'matraz') && zone === 'right' && Math.abs(st.angle) >= 30 && st.toolVol > 0) {
+      if (!this.tiltPourTimer) {
+        this.tiltPourTimer = setInterval(() => {
+          const currentZone = this.getActiveWorkZone();
+          if (currentZone !== 'right' || Math.abs(st.angle) < 30 || st.toolVol <= 0) {
+            this.stopTiltPour();
+            return;
+          }
+          const stepVol = toolKey === 'pipeta' ? Math.min(0.2, st.toolVol) : Math.min(5, st.toolVol);
+          st.toolVol = parseFloat((st.toolVol - stepVol).toFixed(1));
+          st.targetVol = parseFloat((st.targetVol + stepVol).toFixed(1));
+          this.showDynamicStream(true, '#38bdf8');
+          this.updateLiveLevelsInDOM();
+          const coachEl = document.getElementById('interactiveLiveCoaching');
+          if (coachEl) {
+            coachEl.innerHTML = `🫗 <strong>Vertido por inclinación (${st.angle}°):</strong> El líquido fluye suavemente hacia el Matraz Receptor (Dispensado: <strong>${st.targetVol.toFixed(1)} mL</strong> | Restante: <strong>${st.toolVol.toFixed(1)} mL</strong>). Ponlo en 0° para detener.`;
+          }
+        }, 90);
+      }
+    } else {
+      this.stopTiltPour();
+    }
+  },
+
+  stopTiltPour() {
+    if (this.tiltPourTimer) {
+      clearInterval(this.tiltPourTimer);
+      this.tiltPourTimer = null;
+      this.showDynamicStream(false);
+    }
+  },
+
+  // Soporte de arrastrar fluido con Pointer Capture (no se traba aunque el mouse salga rápido)
   startToolDrag(event) {
+    if (this.toolAnimFrame) cancelAnimationFrame(this.toolAnimFrame);
     this.toolInteractiveState.isDragging = true;
     this.toolInteractiveState.dragStartX = event.clientX - this.toolInteractiveState.posX;
     this.toolInteractiveState.dragStartY = event.clientY - this.toolInteractiveState.posY;
     const stage = document.getElementById('interactiveToolStage');
-    if (stage) stage.style.cursor = 'grabbing';
+    if (stage) {
+      stage.style.cursor = 'grabbing';
+      if (stage.setPointerCapture && event.pointerId !== undefined) {
+        try { stage.setPointerCapture(event.pointerId); } catch (e) {}
+      }
+    }
   },
 
   moveToolDrag(event) {
     if (!this.toolInteractiveState.isDragging) return;
     const rawX = event.clientX - this.toolInteractiveState.dragStartX;
     const rawY = event.clientY - this.toolInteractiveState.dragStartY;
-    this.toolInteractiveState.posX = Math.max(-210, Math.min(210, rawX));
-    this.toolInteractiveState.posY = Math.max(-55, Math.min(45, rawY));
+    this.toolInteractiveState.posX = Math.max(-185, Math.min(185, rawX));
+    this.toolInteractiveState.posY = Math.max(-50, Math.min(45, rawY));
+
+    const posXSlider = document.getElementById('sliderToolPosX');
+    if (posXSlider) posXSlider.value = Math.round(this.toolInteractiveState.posX);
+
     this.applyInteractiveToolTransform();
+    this.checkAutoTiltPour();
   },
 
-  endToolDrag() {
+  endToolDrag(event) {
     if (!this.toolInteractiveState.isDragging) return;
     this.toolInteractiveState.isDragging = false;
     const stage = document.getElementById('interactiveToolStage');
-    if (stage) stage.style.cursor = 'grab';
-    this.renderWorkbenchScene();
+    if (stage) {
+      stage.style.cursor = 'grab';
+      if (stage.releasePointerCapture && event && event.pointerId !== undefined) {
+        try { stage.releasePointerCapture(event.pointerId); } catch (e) {}
+      }
+    }
   },
 
   wheelToolZoom(event) {
     event.preventDefault();
-    const delta = event.deltaY < 0 ? 6 : -6;
-    const nextScale = Math.max(70, Math.min(150, this.toolInteractiveState.scale + delta));
+    const delta = event.deltaY < 0 ? 5 : -5;
+    const nextScale = Math.max(75, Math.min(140, this.toolInteractiveState.scale + delta));
     this.toolInteractiveState.scale = nextScale;
     const scaleSlider = document.getElementById('sliderToolScale');
     if (scaleSlider) scaleSlider.value = nextScale;
     this.applyInteractiveToolTransform();
   },
 
-  triggerFluidEffect(zone, color = '#38bdf8') {
+  // Posiciona el chorro de agua justo debajo de la punta actual de la pipeta/instrumento
+  showDynamicStream(visible, color = '#38bdf8') {
     const stream = document.getElementById('workbenchFluidStream');
     if (!stream) return;
-    stream.style.display = 'block';
-    stream.style.background = color;
-    stream.style.boxShadow = `0 0 8px ${color}`;
-    stream.style.left = zone === 'left' ? '105px' : 'calc(100% - 110px)';
-    stream.style.bottom = '45px';
-    stream.style.height = '75px';
-    setTimeout(() => {
+    if (!visible) {
       stream.style.display = 'none';
-    }, 550);
+      return;
+    }
+    const { posX, posY, angle } = this.toolInteractiveState;
+    const tipOffsetX = -Math.sin((angle * Math.PI) / 180) * 65;
+    stream.style.display = 'block';
+    stream.style.background = `linear-gradient(180deg, #bae6fd, ${color})`;
+    stream.style.boxShadow = `0 0 10px ${color}`;
+    stream.style.left = `calc(50% + ${Math.round(posX + tipOffsetX)}px)`;
+    stream.style.bottom = '46px';
+    stream.style.height = `${Math.max(45, Math.min(115, 85 - posY))}px`;
   },
 
-  // Ejecuta las acciones físicas reales de cada instrumento interactuando con las estaciones izquierda y derecha
+  triggerFluidEffect(zone, color = '#38bdf8') {
+    this.showDynamicStream(true, color);
+    setTimeout(() => {
+      if (!this.flowTimer && !this.tiltPourTimer) {
+        this.showDynamicStream(false);
+      }
+    }, 350);
+  },
+
+  // Flujo continuo mientras mantiene presionado el botón de Aspirar o Dispensar (sin mover el instrumento de su sitio si ya está en el vaso)
+  startContinuousFlow(mode) {
+    this.stopContinuousFlow();
+    const st = this.toolInteractiveState;
+    const zone = this.getActiveWorkZone();
+
+    const executeStep = () => {
+      const coachEl = document.getElementById('interactiveLiveCoaching');
+      if (mode === 'aspirate') {
+        const draw = Math.min(0.4, Math.max(0, 10.0 - st.toolVol), st.sourceVol);
+        if (draw > 0) {
+          st.sourceVol = parseFloat((st.sourceVol - draw).toFixed(1));
+          st.toolVol = parseFloat((st.toolVol + draw).toFixed(1));
+          this.showDynamicStream(true, '#38bdf8');
+          this.updateLiveLevelsInDOM();
+          if (coachEl) {
+            coachEl.innerHTML = `💧 <strong>Succionando en flujo continuo:</strong> El agua sube suavemente por la pipeta (<strong>${st.toolVol.toFixed(1)} / 10.0 mL</strong>). Suelta el botón cuando llegues al volumen deseado.`;
+          }
+        } else {
+          this.stopContinuousFlow();
+        }
+      } else if (mode === 'dispense') {
+        if (st.toolVol <= 0) {
+          if (coachEl) coachEl.innerHTML = `⚠️ La pipeta está vacía (<strong>0.0 mL</strong>).Primero aspira agua del vaso izquierdo.`;
+          this.stopContinuousFlow();
+          return;
+        }
+        const drop = Math.min(0.4, st.toolVol);
+        st.toolVol = parseFloat((st.toolVol - drop).toFixed(1));
+        st.targetVol = parseFloat((st.targetVol + drop).toFixed(1));
+        this.showDynamicStream(true, '#38bdf8');
+        this.updateLiveLevelsInDOM();
+        if (coachEl) {
+          coachEl.innerHTML = `🫗 <strong>Dispensando líquido en vivo:</strong> Cayendo al Matraz Receptor (Dispensado: <strong>${st.targetVol.toFixed(1)} mL</strong> | En pipeta: <strong>${st.toolVol.toFixed(1)} mL</strong>).`;
+        }
+      }
+    };
+
+    // Si no está en la estación correspondiente, primero desliza suavemente y luego inicia el flujo
+    if (mode === 'aspirate' && zone !== 'left') {
+      this.animateToolTo(-150, 14, 0, () => {
+        executeStep();
+        this.flowTimer = setInterval(executeStep, 85);
+      });
+    } else if (mode === 'dispense' && zone !== 'right') {
+      this.animateToolTo(150, 10, st.angle === 0 ? 35 : st.angle, () => {
+        executeStep();
+        this.flowTimer = setInterval(executeStep, 85);
+      });
+    } else {
+      executeStep();
+      this.flowTimer = setInterval(executeStep, 85);
+    }
+  },
+
+  stopContinuousFlow() {
+    if (this.flowTimer) {
+      clearInterval(this.flowTimer);
+      this.flowTimer = null;
+    }
+    if (!this.tiltPourTimer) {
+      this.showDynamicStream(false);
+    }
+  },
+
+  // Actualiza niveles de agua y textos sin destruir el DOM completo para que sea 100% fluido a 60fps
+  updateLiveLevelsInDOM() {
+    const st = this.toolInteractiveState;
+    const toolKey = this.state.selectedTool || 'pipeta';
+    if (toolKey !== 'pipeta') {
+      this.renderWorkbenchScene();
+      return;
+    }
+
+    const readoutEl = document.getElementById('workbenchInstrumentReadout');
+    if (readoutEl) readoutEl.innerText = `En Pipeta: ${st.toolVol.toFixed(1)} / 10.0 mL`;
+
+    const srcTitle = document.getElementById('wbLeftBeakerTitle');
+    const srcFill = document.getElementById('wbLeftBeakerFill');
+    if (srcTitle) srcTitle.innerText = `💧 Vaso de Agua (${st.sourceVol.toFixed(1)} mL)`;
+    if (srcFill) srcFill.style.height = `${Math.min(92, Math.max(6, (st.sourceVol / 60) * 100))}%`;
+
+    const dstTitle = document.getElementById('wbRightFlaskTitle');
+    const dstFill = document.getElementById('wbRightFlaskFill');
+    if (dstTitle) dstTitle.innerText = `🧪 Matraz Receptor (${st.targetVol.toFixed(1)} mL)`;
+    if (dstFill) dstFill.style.height = `${Math.min(92, Math.max(4, (st.targetVol / 15) * 100))}%`;
+
+    const liqHeight = Math.round((st.toolVol / 10) * 84);
+    const liqY = 148 - liqHeight;
+    const pipRect = document.getElementById('wbPipetteLiqRect');
+    const pipMeniscus = document.getElementById('wbPipetteMeniscus');
+    const pipTipFill = document.getElementById('wbPipetteTipFill');
+    const pipLine = document.getElementById('wbPipetteGuideLine');
+    const pipText = document.getElementById('wbPipetteGuideText');
+
+    if (pipRect) {
+      pipRect.setAttribute('y', liqY);
+      pipRect.setAttribute('height', liqHeight);
+    }
+    if (pipMeniscus) {
+      pipMeniscus.setAttribute('d', st.toolVol > 0 ? `M105 ${liqY} Q110 ${liqY + 4} 115 ${liqY}` : '');
+    }
+    if (pipTipFill) {
+      pipTipFill.style.display = st.toolVol > 0 ? 'block' : 'none';
+    }
+    if (pipLine) {
+      pipLine.setAttribute('y1', liqY);
+      pipLine.setAttribute('y2', liqY);
+    }
+    if (pipText) {
+      pipText.setAttribute('y', liqY + 3);
+      pipText.textContent = `${st.toolVol.toFixed(1)} mL`;
+    }
+  },
+
+  // Ejecuta acciones puntuales con animación suave
   performWorkbenchAction(action) {
     const toolKey = this.state.selectedTool || 'pipeta';
     const st = this.toolInteractiveState;
@@ -2419,163 +2697,176 @@ const App = {
     const coachEl = document.getElementById('interactiveLiveCoaching');
 
     if (toolKey === 'pipeta') {
-      if (action === 'aspirate') {
-        if (zone !== 'left') {
-          this.snapToolToStation('left');
-        }
-        const draw = Math.min(2.5, Math.max(0, 10.0 - st.toolVol), st.sourceVol);
-        if (draw > 0) {
-          st.sourceVol = parseFloat((st.sourceVol - draw).toFixed(1));
-          st.toolVol = parseFloat((st.toolVol + draw).toFixed(1));
-          this.triggerFluidEffect('left', '#38bdf8');
-          if (coachEl) coachEl.innerHTML = `💧 <strong>Extracción activa:</strong> Aspiraste <strong>+${draw.toFixed(1)} mL</strong> del Vaso de Agua Destilada. Volumen en la pipeta: <strong>${st.toolVol.toFixed(1)} mL</strong> (Vaso origen: ${st.sourceVol.toFixed(1)} mL).`;
-        } else {
-          if (coachEl) coachEl.innerHTML = `⚠️ La pipeta ya alcanzó su capacidad máxima de <strong>10.0 mL</strong>. Ahora enrásala a 5.0 mL o transpórtala al Matraz Receptor.`;
-        }
-      } else if (action === 'meniscus5') {
-        if (st.toolVol < 5.0 && st.sourceVol >= (5.0 - st.toolVol)) {
-          this.snapToolToStation('left');
+      if (action === 'meniscus5') {
+        const doEnrase = () => {
           const diff = 5.0 - st.toolVol;
-          st.sourceVol = parseFloat((st.sourceVol - diff).toFixed(1));
+          st.sourceVol = parseFloat(Math.max(0, st.sourceVol - diff).toFixed(1));
           st.toolVol = 5.0;
-        } else if (st.toolVol > 5.0) {
-          this.snapToolToStation('left');
-          const diff = st.toolVol - 5.0;
-          st.sourceVol = parseFloat((st.sourceVol + diff).toFixed(1));
-          st.toolVol = 5.0;
-        }
-        st.angle = 0;
-        const angleSlider = document.getElementById('sliderToolAngle');
-        if (angleSlider) angleSlider.value = 0;
-        if (coachEl) coachEl.innerHTML = `🎯 <strong>Medición y Enrase Exacto (5.0 mL a 0°):</strong> El menisco cóncavo coincide al ras del aforo de 5.0 mL. Ahora <strong>arrastra la pipeta a la derecha</strong> (Matraz Receptor), inclínala a <strong>45°</strong> y dispensa.`;
-      } else if (action === 'dispense1' || action === 'dispenseAll') {
-        if (zone !== 'right') {
-          this.snapToolToStation('right');
-        }
-        if (st.toolVol <= 0) {
-          if (coachEl) coachEl.innerHTML = `⚠️ La pipeta está vacía (<strong>0.0 mL</strong>). Primero llévala al <strong>Vaso de Agua (Izquierda)</strong> y presiona <strong>"💧 Aspirar Agua"</strong>.`;
+          this.triggerFluidEffect('left', '#38bdf8');
+          this.updateLiveLevelsInDOM();
+          if (coachEl) {
+            coachEl.innerHTML = `🎯 <strong>Enrasado exacto a 5.0 mL (0° Vertical):</strong> El menisco cóncavo quedó al ras del aforo. Ahora arrastra la pipeta hacia el Matraz Receptor derecho e inclínala (o mantén presionado Dispensar).`;
+          }
+        };
+        if (zone !== 'left') {
+          this.animateToolTo(-150, 14, 0, doEnrase);
         } else {
-          const amount = action === 'dispense1' ? Math.min(1.0, st.toolVol) : st.toolVol;
-          st.toolVol = parseFloat((st.toolVol - amount).toFixed(1));
-          st.targetVol = parseFloat((st.targetVol + amount).toFixed(1));
-          this.triggerFluidEffect('right', '#38bdf8');
-          const angleNote = Math.abs(st.angle) >= 30 ? 'con inclinación reglamentaria de 45°' : '(Recuerda inclinarla a 45° contra la pared del vaso)';
-          if (coachEl) coachEl.innerHTML = `✅ <strong>Dispensación controlada:</strong> Se vertieron <strong>${amount.toFixed(1)} mL</strong> en el Matraz Receptor ${angleNote}. Total dispensado: <strong>${st.targetVol.toFixed(1)} mL</strong>.`;
+          this.animateToolTo(st.posX, st.posY, 0, doEnrase);
+        }
+      } else if (action === 'dispenseAll') {
+        if (st.toolVol <= 0) {
+          if (coachEl) coachEl.innerHTML = `⚠️ La pipeta está vacía (<strong>0.0 mL</strong>). Primero aspira agua del vaso izquierdo.`;
+          return;
+        }
+        const startEmpty = () => {
+          this.startContinuousFlow('dispense');
+        };
+        if (zone !== 'right') {
+          this.animateToolTo(150, 10, 40, startEmpty);
+        } else {
+          this.animateToolTo(st.posX, st.posY, 40, startEmpty);
         }
       }
-    } else if (toolKey === 'matraz') {
+      return;
+    }
+
+    if (toolKey === 'matraz') {
       if (action === 'fillSource') {
-        this.snapToolToStation('left');
-        const add = Math.min(50, st.sourceVol);
-        st.sourceVol -= add;
-        st.toolVol = Math.min(250, st.toolVol + add);
-        this.triggerFluidEffect('left', '#38bdf8');
-        if (coachEl) coachEl.innerHTML = `💧 Se trasvasaron <strong>50 mL</strong> desde la Probeta hacia el Matraz Erlenmeyer (Total: <strong>${st.toolVol} mL</strong>).`;
+        this.animateToolTo(-145, 10, 0, () => {
+          const add = Math.min(50, st.sourceVol);
+          st.sourceVol -= add;
+          st.toolVol = Math.min(250, st.toolVol + add);
+          this.triggerFluidEffect('left', '#38bdf8');
+          this.renderWorkbenchScene();
+          if (coachEl) coachEl.innerHTML = `💧 Se trasvasaron <strong>50 mL</strong> desde la Probeta hacia el Matraz Erlenmeyer (Total: <strong>${st.toolVol} mL</strong>).`;
+        });
       } else if (action === 'addIndicator') {
-        this.snapToolToStation('right');
-        st.isMixed = true;
-        this.triggerFluidEffect('right', '#ec4899');
-        if (coachEl) coachEl.innerHTML = `🧪 Se añadieron gotas de Fenolftaleína desde el gotero derecho. Ahora presiona <strong>"🔄 Agitar en Órbita"</strong> para homogenizar.`;
+        this.animateToolTo(145, 10, 0, () => {
+          st.isMixed = true;
+          this.triggerFluidEffect('right', '#ec4899');
+          this.renderWorkbenchScene();
+          if (coachEl) coachEl.innerHTML = `🧪 Se añadieron gotas de Fenolftaleína. Ahora presiona <strong>"🔄 Agitar en Órbita"</strong> para homogenizar.`;
+        });
       } else if (action === 'swirl') {
-        st.angle = st.angle === 18 ? -18 : 18;
-        st.isMixed = true;
-        if (coachEl) coachEl.innerHTML = `✅ <strong>Agitación orbital completada:</strong> El cuello estrecho del Erlenmeyer evitó salpicaduras y la solución viró a color fucsia homogéneo.`;
+        this.animateToolTo(st.posX, st.posY, st.angle === 18 ? -18 : 18, () => {
+          st.isMixed = true;
+          this.renderWorkbenchScene();
+          if (coachEl) coachEl.innerHTML = `✅ <strong>Agitación orbital completada:</strong> La solución viró a color fucsia homogéneo sin derrames.`;
+        });
       } else if (action === 'pourOut') {
-        this.snapToolToStation('right');
-        st.angle = 45;
-        st.targetVol += st.toolVol;
-        st.toolVol = 0;
-        if (coachEl) coachEl.innerHTML = `🫗 Se trasvasó el contenido mezclado al vaso colector derecho.`;
+        this.animateToolTo(145, 10, 45, () => {
+          st.targetVol += st.toolVol;
+          st.toolVol = 0;
+          this.triggerFluidEffect('right', '#ec4899');
+          this.renderWorkbenchScene();
+          if (coachEl) coachEl.innerHTML = `🫗 Se trasvasó la mezcla titulada al vaso colector derecho.`;
+        });
       }
     } else if (toolKey === 'tubo') {
       if (action === 'fillTube') {
-        this.snapToolToStation('left');
-        st.toolVol = Math.min(10, st.toolVol + 3);
-        this.triggerFluidEffect('left', '#38bdf8');
-        if (coachEl) coachEl.innerHTML = `💧 Se cargaron <strong>3 mL</strong> de solución en el Tubo de Ensayo (1/3 de su capacidad segura).`;
+        this.animateToolTo(-145, 10, 0, () => {
+          st.toolVol = Math.min(10, st.toolVol + 3);
+          this.triggerFluidEffect('left', '#38bdf8');
+          this.renderWorkbenchScene();
+          if (coachEl) coachEl.innerHTML = `💧 Se cargaron <strong>3 mL</strong> en el Tubo de Ensayo (1/3 de capacidad segura).`;
+        });
       } else if (action === 'precipitate') {
-        this.snapToolToStation('left');
         st.isMixed = true;
-        this.triggerFluidEffect('left', '#facc15');
-        if (coachEl) coachEl.innerHTML = `✨ <strong>¡Precipitado formado!</strong> Al reaccionar en el tubo se observa un sólido insoluble amarillo en el fondo.`;
+        this.triggerFluidEffect(zone === 'right' ? 'right' : 'left', '#facc15');
+        this.renderWorkbenchScene();
+        if (coachEl) coachEl.innerHTML = `✨ <strong>¡Precipitado formado!</strong> Se observa un sólido insoluble amarillo en el fondo del tubo.`;
       } else if (action === 'heatTube') {
-        this.snapToolToStation('right');
-        st.angle = 45;
-        st.waterTemp = 78.0;
-        if (coachEl) coachEl.innerHTML = `🔥 <strong>Calentamiento seguro a 45°:</strong> El tubo está inclinado sobre el mechero apuntando lejos de tus compañeros (${st.waterTemp} °C).`;
+        this.animateToolTo(145, 8, 45, () => {
+          st.waterTemp = 78.0;
+          this.renderWorkbenchScene();
+          if (coachEl) coachEl.innerHTML = `🔥 <strong>Calentamiento seguro a 45°:</strong> El tubo está inclinado sobre el mechero (${st.waterTemp} °C).`;
+        });
       } else if (action === 'rackTube') {
-        this.snapToolToStation('center');
-        st.angle = 0;
-        if (coachEl) coachEl.innerHTML = `🧪 Tubo colocado verticalmente en su gradilla de reposo.`;
+        this.animateToolTo(0, 0, 0, () => {
+          this.renderWorkbenchScene();
+          if (coachEl) coachEl.innerHTML = `🧪 Tubo colocado verticalmente en su gradilla de reposo.`;
+        });
       }
     } else if (toolKey === 'mechero') {
       if (action === 'igniteYellow') {
         st.toolVol = 1;
         st.flameBlue = false;
-        if (coachEl) coachEl.innerHTML = `🟡 <strong>Mechero encendido (Llama Amarilla 600 °C):</strong> Collarín cerrado. Abre la virola de aire para obtener llama azul oxidante.`;
+        this.renderWorkbenchScene();
+        if (coachEl) coachEl.innerHTML = `🟡 <strong>Mechero encendido (Llama Amarilla 600 °C):</strong> Abre la virola de aire para obtener llama azul.`;
       } else if (action === 'openCollarBlue') {
         st.toolVol = 1;
         st.flameBlue = true;
-        if (coachEl) coachEl.innerHTML = `🔵 <strong>Llama Azul Oxidante (1500 °C):</strong> Combustión completa alcanzada. Arrastra el mechero debajo del Vaso Derecho para hervir el agua.`;
+        this.renderWorkbenchScene();
+        if (coachEl) coachEl.innerHTML = `🔵 <strong>Llama Azul Oxidante (1500 °C):</strong> Desliza el mechero al Vaso Derecho para calentar el agua.`;
       } else if (action === 'heatBeaker') {
-        this.snapToolToStation('right');
-        st.toolVol = 1;
-        st.flameBlue = true;
-        st.waterTemp = Math.min(100.0, parseFloat((st.waterTemp + 26.5).toFixed(1)));
-        if (coachEl) coachEl.innerHTML = `🌡️ <strong>Calentando Vaso de Precipitados:</strong> La llama azul elevó la temperatura del agua a <strong>${st.waterTemp.toFixed(1)} °C</strong> ${st.waterTemp >= 95 ? '(¡En ebullición con vapor!)' : ''}.`;
+        this.animateToolTo(145, 18, 0, () => {
+          st.toolVol = 1;
+          st.flameBlue = true;
+          st.waterTemp = Math.min(100.0, parseFloat((st.waterTemp + 26.5).toFixed(1)));
+          this.renderWorkbenchScene();
+          if (coachEl) coachEl.innerHTML = `🌡️ <strong>Calentando Vaso:</strong> Temperatura del agua en <strong>${st.waterTemp.toFixed(1)} °C</strong> ${st.waterTemp >= 95 ? '(¡Hirviendo!)' : ''}.`;
+        });
       } else if (action === 'turnOff') {
         st.toolVol = 0;
-        if (coachEl) coachEl.innerHTML = `🛑 Paso de gas cerrado. Mechero apagado de forma segura.`;
+        this.renderWorkbenchScene();
+        if (coachEl) coachEl.innerHTML = `🛑 Paso de gas cerrado. Mechero apagado.`;
       }
     } else if (toolKey === 'balanza' || toolKey === 'espatula') {
       if (action === 'tare') {
         st.tared = true;
         st.targetVol = 0.0;
-        if (coachEl) coachEl.innerHTML = `⚖️ <strong>Balanza Tarada (0.000 g):</strong> Se descontó el peso del vidrio de reloj. Ahora toma sal del frasco izquierdo con la espátula.`;
+        this.renderWorkbenchScene();
+        if (coachEl) coachEl.innerHTML = `⚖️ <strong>Balanza Tarada (0.000 g):</strong> Ahora extrae sal del frasco izquierdo con la espátula.`;
       } else if (action === 'scoopSalt') {
-        this.snapToolToStation('left');
-        const scoop = Math.min(1.15, st.sourceVol);
-        st.sourceVol = parseFloat((st.sourceVol - scoop).toFixed(2));
-        st.toolVol = parseFloat((st.toolVol + scoop).toFixed(2));
-        if (coachEl) coachEl.innerHTML = `🥄 <strong>Muestra extraída:</strong> Recogiste <strong>${st.toolVol.toFixed(2)} g</strong> de cristales de NaCl del frasco reactivo. Arrástralo al plato de la balanza (derecha).`;
+        this.animateToolTo(-145, 10, -15, () => {
+          const scoop = Math.min(1.15, st.sourceVol);
+          st.sourceVol = parseFloat((st.sourceVol - scoop).toFixed(2));
+          st.toolVol = parseFloat((st.toolVol + scoop).toFixed(2));
+          this.renderWorkbenchScene();
+          if (coachEl) coachEl.innerHTML = `🥄 <strong>Muestra en la hoja:</strong> Recogiste <strong>${st.toolVol.toFixed(2)} g</strong> de NaCl. Llévala a la balanza (derecha).`;
+        });
       } else if (action === 'depositScale') {
-        this.snapToolToStation('right');
-        st.targetVol = parseFloat((st.targetVol + st.toolVol).toFixed(2));
-        st.toolVol = 0.0;
-        if (coachEl) coachEl.innerHTML = `✅ <strong>Pesaje en vivo:</strong> Depositaste los cristales en el vidrio de reloj. Lectura de la balanza: <strong>${st.targetVol.toFixed(3)} g</strong>.`;
+        this.animateToolTo(145, 10, 20, () => {
+          st.targetVol = parseFloat((st.targetVol + st.toolVol).toFixed(2));
+          st.toolVol = 0.0;
+          this.renderWorkbenchScene();
+          if (coachEl) coachEl.innerHTML = `✅ <strong>Pesaje en vivo:</strong> Lectura en pantalla digital: <strong>${st.targetVol.toFixed(3)} g</strong>.`;
+        });
       } else if (action === 'cleanSpatula') {
-        this.snapToolToStation('center');
-        st.toolVol = 0;
-        if (coachEl) coachEl.innerHTML = `✨ Hoja de acero inoxidable limpia y libre de residuos.`;
+        this.animateToolTo(0, 0, 0, () => {
+          st.toolVol = 0;
+          this.renderWorkbenchScene();
+          if (coachEl) coachEl.innerHTML = `✨ Espátula limpia y lista.`;
+        });
       }
     } else if (toolKey === 'termometro' || toolKey === 'phmetro') {
       if (action === 'dipLeft') {
-        this.snapToolToStation('left');
-        st.waterTemp = 18.2;
-        st.measuredPH = 2.4;
-        if (coachEl) coachEl.innerHTML = toolKey === 'termometro'
-          ? `❄️ <strong>Inmersión en Vaso Izquierdo (Baño Frío):</strong> El sensor registra <strong>18.2 °C</strong> sin tocar el fondo del vidrio.`
-          : `🔴 <strong>Inmersión en Solución Ácida (HCl):</strong> El bulbo sensor registra <strong>pH 2.40 (Ácido Fuerte)</strong>.`;
+        this.animateToolTo(-145, 16, 0, () => {
+          st.waterTemp = 18.2;
+          st.measuredPH = 2.4;
+          this.renderWorkbenchScene();
+          if (coachEl) coachEl.innerHTML = toolKey === 'termometro'
+            ? `❄️ <strong>Vaso Izquierdo (Baño Frío):</strong> Lectura estabilizada en <strong>18.2 °C</strong>.`
+            : `🔴 <strong>Solución Ácida (HCl):</strong> Lectura estabilizada en <strong>pH 2.40</strong>.`;
+        });
       } else if (action === 'dipRight') {
-        this.snapToolToStation('right');
-        st.waterTemp = 88.5;
-        st.measuredPH = 12.6;
-        if (coachEl) coachEl.innerHTML = toolKey === 'termometro'
-          ? `🔥 <strong>Inmersión en Vaso Derecho (Agua Caliente):</strong> La sonda registra <strong>88.5 °C</strong> en equilibrio térmico.`
-          : `🔵 <strong>Inmersión en Solución Alcalina (NaOH):</strong> El electrodo registra <strong>pH 12.60 (Base Fuerte)</strong>.`;
+        this.animateToolTo(145, 16, 0, () => {
+          st.waterTemp = 88.5;
+          st.measuredPH = 12.6;
+          this.renderWorkbenchScene();
+          if (coachEl) coachEl.innerHTML = toolKey === 'termometro'
+            ? `🔥 <strong>Vaso Derecho (Agua Caliente):</strong> Lectura estabilizada en <strong>88.5 °C</strong>.`
+            : `🔵 <strong>Solución Alcalina (NaOH):</strong> Lectura estabilizada en <strong>pH 12.60</strong>.`;
+        });
       } else if (action === 'rinseProbe') {
-        this.snapToolToStation('center');
-        st.waterTemp = 21.5;
-        st.measuredPH = 7.0;
-        if (coachEl) coachEl.innerHTML = `🚿 <strong> Lavado con Agua Destilada:</strong> Sonda enjuagada y calibrada en punto neutro (<strong>${toolKey === 'termometro' ? '21.5 °C' : 'pH 7.00'}</strong>).`;
+        this.animateToolTo(0, 0, 0, () => {
+          st.waterTemp = 21.5;
+          st.measuredPH = 7.0;
+          this.renderWorkbenchScene();
+          if (coachEl) coachEl.innerHTML = `🚿 <strong>Sonda enjuagada:</strong> Calibrada en punto neutro (<strong>${toolKey === 'termometro' ? '21.5 °C' : 'pH 7.00'}</strong>).`;
+        });
       }
     }
-
-    const angleSlider = document.getElementById('sliderToolAngle');
-    if (angleSlider) angleSlider.value = st.angle;
-
-    this.renderWorkbenchScene();
-    this.applyInteractiveToolTransform();
   },
 
   applyInteractiveToolTransform() {
@@ -2584,26 +2875,30 @@ const App = {
 
     const box = document.getElementById('interactiveToolTransformBox');
     if (box) {
-      box.style.transform = `translate(${posX}px, ${posY}px) rotate(${angle}deg) scale(${scale / 100})`;
+      box.style.transform = `translate3d(${posX}px, ${posY}px, 0) rotate(${angle}deg) scale(${scale / 100})`;
     }
 
     const lblAngle = document.getElementById('lblToolAngle');
     const lblScale = document.getElementById('lblToolScale');
+    const lblPosX = document.getElementById('lblToolPosX');
     const badge = document.getElementById('interactiveStageCoordsBadge');
     const zoneBadge = document.getElementById('interactiveZoneBadge');
 
     if (lblAngle) lblAngle.innerText = `${angle}°`;
     if (lblScale) lblScale.innerText = `${scale}%`;
+    if (lblPosX) {
+      lblPosX.innerText = zone === 'left' ? 'Vaso Izquierdo' : (zone === 'right' ? 'Matraz Derecho' : `X: ${Math.round(posX)}`);
+    }
     if (badge) {
-      badge.innerText = `Pos: (${Math.round(posX)}, ${Math.round(posY)}) | Giro: ${angle}° | Zoom: ${scale}%`;
+      badge.innerText = `🖱️ Arrastra libremente | Pos: (${Math.round(posX)}, ${Math.round(posY)}) | Giro: ${angle}° | Zoom: ${scale}%`;
     }
     if (zoneBadge) {
       if (zone === 'left') {
-        zoneBadge.innerText = '📍 En Estación Izquierda (Origen / Extracción)';
+        zoneBadge.innerText = '📍 Sobre Vaso Izquierdo (Listo para Extraer)';
         zoneBadge.style.color = '#38bdf8';
         zoneBadge.style.borderColor = '#0284c7';
       } else if (zone === 'right') {
-        zoneBadge.innerText = '📍 En Estación Derecha (Destino / Dispensación)';
+        zoneBadge.innerText = '📍 Sobre Matraz Derecho (Inclina ≥30° o Dispensa)';
         zoneBadge.style.color = '#4ade80';
         zoneBadge.style.borderColor = '#16a34a';
       } else {
@@ -2614,7 +2909,7 @@ const App = {
     }
   },
 
-  // Renderiza los recipientes izquierdo/derecho, los botones de acción y el instrumento con niveles dinámicos
+  // Renderiza los recipientes izquierdo/derecho, los botones de acción continua y el instrumento
   renderWorkbenchScene() {
     const toolKey = this.state.selectedTool || 'pipeta';
     const st = this.toolInteractiveState;
@@ -2630,42 +2925,46 @@ const App = {
 
     if (toolKey === 'pipeta') {
       if (missionEl) {
-        missionEl.innerText = 'Misión con la Pipeta: 1) Llévala al Vaso de Agua (Izq) y aspira líquido. 2) Enrasa el menisco a 5.0 mL. 3) Transpórtala al Matraz Receptor (Der), inclina a 45° y dispensa.';
+        missionEl.innerText = 'Arrastra la pipeta libremente: 1) Mantén presionado "Aspirar Agua" en el Vaso Izquierdo. 2) Llévala al Matraz Derecho e inclínala (≥ 30°) o mantén presionado "Dispensar" para verter el agua.';
       }
       if (readoutEl) readoutEl.innerText = `En Pipeta: ${st.toolVol.toFixed(1)} / 10.0 mL`;
 
-      const srcPct = Math.min(92, Math.max(8, (st.sourceVol / 60) * 100));
+      const srcPct = Math.min(92, Math.max(6, (st.sourceVol / 60) * 100));
       leftEl.innerHTML = `
-        <div style="font-size: 0.7rem; font-weight: 700; color: #38bdf8; margin-bottom: 4px;">💧 Vaso de Agua (${st.sourceVol.toFixed(1)} mL)</div>
-        <div style="width: 78px; height: 92px; border: 2.5px solid #94a3b8; border-top: none; border-radius: 0 0 10px 10px; margin: 0 auto; position: relative; background: rgba(255,255,255,0.05); overflow: hidden;">
-          <div style="position: absolute; bottom: 0; left: 0; right: 0; height: ${srcPct}%; background: linear-gradient(180deg, #38bdf8, #0284c7); opacity: 0.85; transition: height 0.25s;"></div>
-          <div style="position: absolute; right: 4px; top: 15px; font-size: 8px; color: #cbd5e1;">50mL</div>
-          <div style="position: absolute; right: 4px; top: 50px; font-size: 8px; color: #cbd5e1;">25mL</div>
+        <div id="wbLeftBeakerTitle" style="font-size: 0.72rem; font-weight: 700; color: #38bdf8; margin-bottom: 5px; text-shadow: 0 1px 3px #000;">💧 Vaso de Agua (${st.sourceVol.toFixed(1)} mL)</div>
+        <div style="width: 84px; height: 96px; border: 2.5px solid #94a3b8; border-top: none; border-radius: 0 0 10px 10px; margin: 0 auto; position: relative; background: rgba(255,255,255,0.05); overflow: hidden;">
+          <div id="wbLeftBeakerFill" style="position: absolute; bottom: 0; left: 0; right: 0; height: ${srcPct}%; background: linear-gradient(180deg, #38bdf8, #0284c7); opacity: 0.88; transition: height 0.08s linear;"></div>
+          <div style="position: absolute; right: 5px; top: 14px; font-size: 8.5px; color: #e2e8f0;">50mL</div>
+          <div style="position: absolute; right: 5px; top: 50px; font-size: 8.5px; color: #e2e8f0;">25mL</div>
         </div>
       `;
 
       const dstPct = Math.min(92, Math.max(4, (st.targetVol / 15) * 100));
       rightEl.innerHTML = `
-        <div style="font-size: 0.7rem; font-weight: 700; color: #4ade80; margin-bottom: 4px;">🧪 Matraz Receptor (${st.targetVol.toFixed(1)} mL)</div>
-        <div style="width: 82px; height: 92px; border: 2.5px solid #94a3b8; border-top: none; border-radius: 0 0 14px 14px; margin: 0 auto; position: relative; background: rgba(255,255,255,0.05); overflow: hidden;">
-          <div style="position: absolute; bottom: 0; left: 0; right: 0; height: ${dstPct}%; background: linear-gradient(180deg, #22d3ee, #0284c7); opacity: 0.9; transition: height 0.25s;"></div>
-          <div style="position: absolute; left: 5px; top: 22px; font-size: 8px; color: #fde047;">10mL</div>
-          <div style="position: absolute; left: 5px; top: 52px; font-size: 8px; color: #fde047;">5mL</div>
+        <div id="wbRightFlaskTitle" style="font-size: 0.72rem; font-weight: 700; color: #4ade80; margin-bottom: 5px; text-shadow: 0 1px 3px #000;">🧪 Matraz Receptor (${st.targetVol.toFixed(1)} mL)</div>
+        <div style="width: 86px; height: 96px; border: 2.5px solid #94a3b8; border-top: none; border-radius: 0 0 14px 14px; margin: 0 auto; position: relative; background: rgba(255,255,255,0.05); overflow: hidden;">
+          <div id="wbRightFlaskFill" style="position: absolute; bottom: 0; left: 0; right: 0; height: ${dstPct}%; background: linear-gradient(180deg, #22d3ee, #0284c7); opacity: 0.92; transition: height 0.08s linear;"></div>
+          <div style="position: absolute; left: 6px; top: 20px; font-size: 8.5px; color: #fde047;">10mL</div>
+          <div style="position: absolute; left: 6px; top: 52px; font-size: 8.5px; color: #fde047;">5mL</div>
         </div>
       `;
 
       actionsEl.innerHTML = `
-        <button type="button" class="btn btn-primary" style="font-size: 0.74rem; padding: 0.42rem 0.5rem; justify-content: center;" onclick="App.performWorkbenchAction('aspirate')">
-          💧 1. Aspirar Agua (+2.5 mL)
+        <button type="button" class="btn btn-primary" style="font-size: 0.73rem; padding: 0.45rem 0.5rem; justify-content: center; user-select: none;"
+          onpointerdown="App.startContinuousFlow('aspirate')" onpointerup="App.stopContinuousFlow()" onpointerleave="App.stopContinuousFlow()">
+          💧 1. Mantén para Aspirar Agua
         </button>
-        <button type="button" class="btn btn-secondary" style="font-size: 0.74rem; padding: 0.42rem 0.5rem; justify-content: center;" onclick="App.performWorkbenchAction('meniscus5')">
-          🎯 2. Enrasar Aforo (5.0 mL)
+        <button type="button" class="btn btn-secondary" style="font-size: 0.73rem; padding: 0.45rem 0.5rem; justify-content: center;"
+          onclick="App.performWorkbenchAction('meniscus5')">
+          🎯 2. Enrasar Exacto (5.0 mL)
         </button>
-        <button type="button" class="btn btn-success" style="font-size: 0.74rem; padding: 0.42rem 0.5rem; justify-content: center;" onclick="App.performWorkbenchAction('dispense1')">
-          🫗 3. Dispensar 1.0 mL (Der)
+        <button type="button" class="btn btn-success" style="font-size: 0.73rem; padding: 0.45rem 0.5rem; justify-content: center; user-select: none;"
+          onpointerdown="App.startContinuousFlow('dispense')" onpointerup="App.stopContinuousFlow()" onpointerleave="App.stopContinuousFlow()">
+          🫗 3. Mantén para Dispensar
         </button>
-        <button type="button" class="btn btn-outline" style="font-size: 0.74rem; padding: 0.42rem 0.5rem; justify-content: center; color: #38bdf8; border-color: #0284c7;" onclick="App.performWorkbenchAction('dispenseAll')">
-          ⏬ 4. Vaciar Todo al Matraz
+        <button type="button" class="btn btn-outline" style="font-size: 0.73rem; padding: 0.45rem 0.5rem; justify-content: center; color: #38bdf8; border-color: #0284c7;"
+          onclick="App.performWorkbenchAction('dispenseAll')">
+          ⏬ 4. Inclinar 45° y Vaciar
         </button>
       `;
 
@@ -2676,14 +2975,14 @@ const App = {
           <ellipse cx="110" cy="20" rx="20" ry="14" fill="#ef4444" stroke="#fca5a5" stroke-width="1.5"/>
           <rect x="106" y="32" width="8" height="14" fill="#dc2626"/>
           <rect x="103" y="46" width="14" height="102" rx="3" fill="rgba(224,242,254,0.22)" stroke="#e2e8f0" stroke-width="1.8"/>
-          <rect x="105" y="${liqY}" width="10" height="${liqHeight}" fill="#38bdf8"/>
-          ${st.toolVol > 0 ? `<path d="M105 ${liqY} Q110 ${liqY + 4} 115 ${liqY}" fill="none" stroke="#ffffff" stroke-width="2"/>` : ''}
+          <rect id="wbPipetteLiqRect" x="105" y="${liqY}" width="10" height="${liqHeight}" fill="#38bdf8"/>
+          <path id="wbPipetteMeniscus" d="${st.toolVol > 0 ? `M105 ${liqY} Q110 ${liqY + 4} 115 ${liqY}` : ''}" fill="none" stroke="#ffffff" stroke-width="2"/>
           <polygon points="103,148 117,148 112,168 108,168" fill="rgba(224,242,254,0.3)" stroke="#e2e8f0" stroke-width="1.5"/>
-          ${st.toolVol > 0 ? `<polygon points="105,148 115,148 111,166 109,166" fill="#38bdf8"/>` : ''}
+          <polygon id="wbPipetteTipFill" points="105,148 115,148 111,166 109,166" fill="#38bdf8" style="display: ${st.toolVol > 0 ? 'block' : 'none'};"/>
           <line x1="96" y1="64" x2="104" y2="64" stroke="#f8fafc" stroke-width="1.5"/><text x="92" y="67" font-size="8.5" fill="#cbd5e1" text-anchor="end">10 mL</text>
           <line x1="95" y1="106" x2="105" y2="106" stroke="#facc15" stroke-width="2"/><text x="92" y="109" font-size="8.5" font-weight="bold" fill="#facc15" text-anchor="end">Aforo 5mL</text>
-          <line x1="118" y1="${liqY}" x2="148" y2="${liqY}" stroke="#38bdf8" stroke-dasharray="3,2" stroke-width="1.5"/>
-          <text x="152" y="${liqY + 3}" font-size="10" font-weight="bold" fill="#38bdf8">${st.toolVol.toFixed(1)} mL</text>
+          <line id="wbPipetteGuideLine" x1="118" y1="${liqY}" x2="148" y2="${liqY}" stroke="#38bdf8" stroke-dasharray="3,2" stroke-width="1.5"/>
+          <text id="wbPipetteGuideText" x="152" y="${liqY + 3}" font-size="10" font-weight="bold" fill="#38bdf8">${st.toolVol.toFixed(1)} mL</text>
         </svg>
       `;
       return;
