@@ -2170,14 +2170,20 @@ const App = {
       model2DEl.innerHTML = this.renderTool2DModel(toolKey);
     }
 
-    // Renderizar lista de partes anatómicas
+    // Renderizar lista de partes anatómicas clicables con explicación pedagógica
     if (partsListEl) {
       let partsHtml = '';
-      (tool.parts || []).forEach(p => {
-        partsHtml += `<span class="tool-part-tag">🏷️ ${p}</span>`;
+      (tool.parts || []).forEach((p, idx) => {
+        partsHtml += `<span class="tool-part-tag" style="cursor: pointer; transition: all 0.2s;" onclick="App.inspectToolPart('${toolKey}', ${idx})" title="Haz clic para ver cómo funciona esta parte">🏷️ ${p}</span>`;
       });
       partsListEl.innerHTML = partsHtml;
     }
+
+    const inspectBox = document.getElementById('toolPartInspectBox');
+    if (inspectBox) inspectBox.style.display = 'none';
+
+    // Inicializar estado de la mesa interactiva para este instrumento
+    this.initInteractiveToolWorkbench(toolKey, false);
 
     // Renderizar pasos de uso guiado (RF009)
     let stepsHtml = '';
@@ -2203,6 +2209,293 @@ const App = {
   closeToolGuide() {
     const modal = document.getElementById('modalToolGuide');
     if (modal) modal.style.display = 'none';
+  },
+
+  // ================= SIMULADOR INTERACTIVO DE MANIPULACIÓN DE INSTRUMENTOS (MOVER, GIRAR, OPERAR) =================
+  toolInteractiveState: {
+    isOpen: false,
+    isDragging: false,
+    dragStartX: 0,
+    dragStartY: 0,
+    posX: 0,
+    posY: 0,
+    angle: 0,
+    scale: 100,
+    operationVal: 50
+  },
+
+  inspectToolPart(toolKey, partIndex) {
+    const tool = this.toolsDatabase[toolKey];
+    if (!tool || !tool.parts) return;
+    const partName = tool.parts[partIndex] || 'Componente';
+
+    const partDescriptions = {
+      'Propipeta de 3 vías': 'Pera de goma de seguridad con válvulas A (aire), S (succión) y E (expulsión) para aspirar reactivos sin usar jamás la boca.',
+      'Línea de enrase (Aforo)': 'Marca anular grabada en el vidrio donde debe coincidir la base inferior del menisco cóncavo a la altura de los ojos.',
+      'Tubo de vidrio borosilicato': 'Cuerpo cilíndrico transparente de baja dilatación térmica que mantiene constante el volumen calibrado a 20 °C.',
+      'Escala graduada (mL)': 'Divisiones milimétricas de 0 a 10 mL que permiten medir y descargar alícuotas variables con exactitud.',
+      'Punta capilar cónica': 'Extremo inferior estrecho que regula la salida gota a gota al apoyarse a 45° contra la pared del vaso receptor.'
+    };
+
+    const detail = partDescriptions[partName] || `Componente clave de ${tool.title}. Presiona el botón "🖐️ Interactuar con el Instrumento" arriba para moverlo, girarlo y practicar su uso.`;
+    const box = document.getElementById('toolPartInspectBox');
+    if (box) {
+      box.style.display = 'block';
+      box.innerHTML = `🔍 <strong>${partName}:</strong> ${detail}`;
+    }
+  },
+
+  initInteractiveToolWorkbench(toolKey, openDirectly = false) {
+    this.toolInteractiveState = {
+      isOpen: openDirectly,
+      isDragging: false,
+      dragStartX: 0,
+      dragStartY: 0,
+      posX: 0,
+      posY: 0,
+      angle: 0,
+      scale: 100,
+      operationVal: 50
+    };
+
+    const staticView = document.getElementById('toolDiagramStaticView');
+    const workbench = document.getElementById('toolInteractiveWorkbench');
+    const btnToggle = document.getElementById('btnToggleInteractiveTool');
+
+    if (staticView) staticView.style.display = openDirectly ? 'none' : 'block';
+    if (workbench) workbench.style.display = openDirectly ? 'block' : 'none';
+    if (btnToggle) {
+      btnToggle.innerHTML = openDirectly
+        ? '📐 Ver Diagrama Anatómico Estático'
+        : '🖐️ Interactuar con el Instrumento (Mover / Girar / Operar)';
+    }
+
+    const angleSlider = document.getElementById('sliderToolAngle');
+    const scaleSlider = document.getElementById('sliderToolScale');
+    const opSlider = document.getElementById('sliderToolOperation');
+    if (angleSlider) angleSlider.value = 0;
+    if (scaleSlider) scaleSlider.value = 100;
+    if (opSlider) opSlider.value = 50;
+
+    const opTitle = document.getElementById('lblToolActionSliderTitle');
+    if (opTitle) {
+      const titles = {
+        pipeta: '💧 Succión / Nivel de Menisco (0 - 10 mL):',
+        matraz: '🔄 Nivel de Llenado y Vórtice (mL):',
+        tubo: '🧪 Volumen de Muestra y Precipitado:',
+        mechero: '🔥 Entrada de Aire (Virola: Llama Amarilla → Azul):',
+        balanza: '⚖️ Dosificación de Masa en el Plato (g):',
+        termometro: '🌡️ Profundidad de Inmersión Térmica:',
+        phmetro: '📊 Inmersión en Solución (Acidez / Alcalinidad):',
+        espatula: '🥄 Cantidad de Cristales en la Hoja:'
+      };
+      opTitle.innerText = titles[toolKey] || '⚙️ Operar Mecanismo:';
+    }
+
+    this.renderInteractiveToolDynamicSVG();
+    this.applyInteractiveToolTransform();
+  },
+
+  toggleInteractiveToolSpace() {
+    const isNowOpen = !this.toolInteractiveState.isOpen;
+    this.toolInteractiveState.isOpen = isNowOpen;
+
+    const staticView = document.getElementById('toolDiagramStaticView');
+    const workbench = document.getElementById('toolInteractiveWorkbench');
+    const btnToggle = document.getElementById('btnToggleInteractiveTool');
+
+    if (staticView) staticView.style.display = isNowOpen ? 'none' : 'block';
+    if (workbench) workbench.style.display = isNowOpen ? 'block' : 'none';
+    if (btnToggle) {
+      btnToggle.innerHTML = isNowOpen
+        ? '📐 Volver al Diagrama Anatómico'
+        : '🖐️ Interactuar con el Instrumento (Mover / Girar / Operar)';
+    }
+
+    if (isNowOpen) {
+      this.renderInteractiveToolDynamicSVG();
+      this.applyInteractiveToolTransform();
+    }
+  },
+
+  resetInteractiveToolTransform() {
+    this.toolInteractiveState.posX = 0;
+    this.toolInteractiveState.posY = 0;
+    this.toolInteractiveState.angle = 0;
+    this.toolInteractiveState.scale = 100;
+    this.toolInteractiveState.operationVal = 50;
+
+    const angleSlider = document.getElementById('sliderToolAngle');
+    const scaleSlider = document.getElementById('sliderToolScale');
+    const opSlider = document.getElementById('sliderToolOperation');
+    if (angleSlider) angleSlider.value = 0;
+    if (scaleSlider) scaleSlider.value = 100;
+    if (opSlider) opSlider.value = 50;
+
+    this.renderInteractiveToolDynamicSVG();
+    this.applyInteractiveToolTransform();
+  },
+
+  setQuickToolAngle(deg) {
+    this.toolInteractiveState.angle = deg;
+    const angleSlider = document.getElementById('sliderToolAngle');
+    if (angleSlider) angleSlider.value = deg;
+    this.renderInteractiveToolDynamicSVG();
+    this.applyInteractiveToolTransform();
+  },
+
+  updateInteractiveToolControl() {
+    const angleSlider = document.getElementById('sliderToolAngle');
+    const scaleSlider = document.getElementById('sliderToolScale');
+    const opSlider = document.getElementById('sliderToolOperation');
+
+    if (angleSlider) this.toolInteractiveState.angle = parseInt(angleSlider.value, 10) || 0;
+    if (scaleSlider) this.toolInteractiveState.scale = parseInt(scaleSlider.value, 10) || 100;
+    if (opSlider) this.toolInteractiveState.operationVal = parseInt(opSlider.value, 10) || 0;
+
+    this.renderInteractiveToolDynamicSVG();
+    this.applyInteractiveToolTransform();
+  },
+
+  startToolDrag(event) {
+    this.toolInteractiveState.isDragging = true;
+    this.toolInteractiveState.dragStartX = event.clientX - this.toolInteractiveState.posX;
+    this.toolInteractiveState.dragStartY = event.clientY - this.toolInteractiveState.posY;
+    const stage = document.getElementById('interactiveToolStage');
+    if (stage) stage.style.cursor = 'grabbing';
+  },
+
+  moveToolDrag(event) {
+    if (!this.toolInteractiveState.isDragging) return;
+    const rawX = event.clientX - this.toolInteractiveState.dragStartX;
+    const rawY = event.clientY - this.toolInteractiveState.dragStartY;
+    this.toolInteractiveState.posX = Math.max(-110, Math.min(110, rawX));
+    this.toolInteractiveState.posY = Math.max(-75, Math.min(75, rawY));
+    this.applyInteractiveToolTransform();
+  },
+
+  endToolDrag() {
+    if (!this.toolInteractiveState.isDragging) return;
+    this.toolInteractiveState.isDragging = false;
+    const stage = document.getElementById('interactiveToolStage');
+    if (stage) stage.style.cursor = 'grab';
+  },
+
+  wheelToolZoom(event) {
+    event.preventDefault();
+    const delta = event.deltaY < 0 ? 8 : -8;
+    const nextScale = Math.max(60, Math.min(170, this.toolInteractiveState.scale + delta));
+    this.toolInteractiveState.scale = nextScale;
+    const scaleSlider = document.getElementById('sliderToolScale');
+    if (scaleSlider) scaleSlider.value = nextScale;
+    this.applyInteractiveToolTransform();
+  },
+
+  applyInteractiveToolTransform() {
+    const { posX, posY, angle, scale, operationVal } = this.toolInteractiveState;
+    const toolKey = this.state.selectedTool || 'pipeta';
+
+    const box = document.getElementById('interactiveToolTransformBox');
+    if (box) {
+      box.style.transform = `translate(${posX}px, ${posY}px) rotate(${angle}deg) scale(${scale / 100})`;
+    }
+
+    const lblAngle = document.getElementById('lblToolAngle');
+    const lblScale = document.getElementById('lblToolScale');
+    const badge = document.getElementById('interactiveStageCoordsBadge');
+    if (lblAngle) lblAngle.innerText = `${angle}°`;
+    if (lblScale) lblScale.innerText = `${scale}%`;
+    if (badge) {
+      badge.innerText = `Pos: (${Math.round(posX)}, ${Math.round(posY)}) | Giro: ${angle}° | Zoom: ${scale}%`;
+    }
+
+    // Actualizar el vaso auxiliar si inclina o descarga
+    const auxFill = document.getElementById('auxVesselLiquidFill');
+    if (auxFill) {
+      const pourBonus = Math.abs(angle) >= 35 ? 35 : 0;
+      const fillPct = Math.min(92, Math.max(15, Math.round((100 - operationVal) * 0.55 + pourBonus)));
+      auxFill.style.height = `${fillPct}%`;
+    }
+
+    // Actualizar texto y retroalimentación pedagógica según cómo lo mueve/gira/opera
+    const lblOpVal = document.getElementById('lblToolActionVal');
+    const coachEl = document.getElementById('interactiveLiveCoaching');
+
+    if (toolKey === 'pipeta') {
+      const ml = ((operationVal / 100) * 10).toFixed(1);
+      if (lblOpVal) lblOpVal.innerText = `${ml} mL`;
+      if (coachEl) {
+        if (Math.abs(angle) >= 35 && Math.abs(angle) <= 55) {
+          coachEl.innerHTML = `✅ <strong>¡Excelente técnica (${angle}°)!</strong> Inclinación ideal de 45° para apoyar la punta de la pipeta contra la pared del vaso receptor y descargar ${ml} mL sin salpicaduras.`;
+        } else if (angle === 0 && Math.abs(operationVal - 50) <= 5) {
+          coachEl.innerHTML = `🎯 <strong>Enrase exacto a 5.0 mL (0° Vertical):</strong> La pipeta está perfectamente vertical y el menisco cóncavo coincide con la línea de aforo sin error de paralaje.`;
+        } else {
+          coachEl.innerHTML = `💡 <strong>Guía interactiva:</strong> Pon el giro en <strong>0° Vertical</strong> para enrasar el menisco a <strong>5.0 mL</strong>, o gírala a <strong>45° Uso</strong> y arrástrala hacia el vaso receptor para descargar.`;
+        }
+      }
+    } else if (toolKey === 'matraz') {
+      const ml = Math.round(50 + (operationVal / 100) * 200);
+      if (lblOpVal) lblOpVal.innerText = `${ml} mL`;
+      if (coachEl) {
+        coachEl.innerHTML = Math.abs(angle) > 65
+          ? `⚠️ <strong>Cuidado (${angle}°):</strong> Si inclinas demasiado el matraz Erlenmeyer con ${ml} mL, el líquido puede rebasar el cuello estrecho. Usa giros suaves de -25° a 25° para agitar.`
+          : `✅ <strong>Agitación orbital (${angle}°):</strong> Mueve el matraz en círculos con el mouse y alterna el ángulo para mezclar los ${ml} mL sin derrames gracias a su cuello cónico.`;
+      }
+    } else if (toolKey === 'tubo') {
+      const pct = Math.round((operationVal / 100) * 60);
+      if (lblOpVal) lblOpVal.innerText = `${pct}% lleno`;
+      if (coachEl) {
+        coachEl.innerHTML = Math.abs(angle) >= 40 && Math.abs(angle) <= 55
+          ? `✅ <strong>Ángulo seguro de calentamiento (${angle}°):</strong> El tubo de ensayo debe inclinarse a 45° apuntando hacia una zona libre de compañeros.`
+          : `💡 <strong>Consejo de uso:</strong> Inclina el tubo a <strong>45° Uso</strong> y no superes el 33% de su capacidad al calentarlo.`;
+      }
+    } else if (toolKey === 'mechero') {
+      const temp = Math.round(600 + (operationVal / 100) * 900);
+      if (lblOpVal) lblOpVal.innerText = `${temp} °C`;
+      if (coachEl) {
+        coachEl.innerHTML = operationVal >= 70
+          ? `🔵 <strong>Llama Azul Oxidante (${temp} °C):</strong> Collarín abierto con combustión completa. Arrastra el mechero debajo del recipiente para calentar sin hollín.`
+          : `🟡 <strong>Llama Amarilla Luminosa (${temp} °C):</strong> Entrada de aire cerrada. Desliza el control hacia la derecha para abrir el collarín y obtener llama azul de 1500 °C.`;
+      }
+    } else {
+      if (lblOpVal) lblOpVal.innerText = `${operationVal}%`;
+      if (coachEl) {
+        coachEl.innerHTML = `✅ <strong>Manipulación activa:</strong> Arrastra el instrumento a la posición (${Math.round(posX)}, ${Math.round(posY)}), gíralo a ${angle}° y haz zoom (${scale}%) para inspeccionar su funcionamiento.`;
+      }
+    }
+  },
+
+  renderInteractiveToolDynamicSVG() {
+    const box = document.getElementById('interactiveToolTransformBox');
+    if (!box) return;
+    const toolKey = this.state.selectedTool || 'pipeta';
+    const op = this.toolInteractiveState.operationVal;
+
+    if (toolKey === 'pipeta') {
+      // El nivel de líquido sube/baja dinámicamente según el slider de operación (0-10 mL)
+      const liqHeight = Math.round((op / 100) * 82);
+      const liqY = 148 - liqHeight;
+      const mlText = ((op / 100) * 10).toFixed(1);
+      box.innerHTML = `
+        <svg viewBox="0 0 260 180" width="240" height="175" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="130" cy="22" rx="22" ry="15" fill="#ef4444" stroke="#fca5a5" stroke-width="1.5"/>
+          <rect x="126" y="35" width="8" height="13" fill="#dc2626"/>
+          <rect x="123" y="48" width="14" height="100" rx="3" fill="rgba(224,242,254,0.22)" stroke="#cbd5e1" stroke-width="1.8"/>
+          <rect x="125" y="${liqY}" width="10" height="${liqHeight}" fill="#38bdf8"/>
+          <path d="M125 ${liqY} Q130 ${liqY + 4} 135 ${liqY}" fill="none" stroke="#ffffff" stroke-width="2"/>
+          <polygon points="123,148 137,148 132,166 128,166" fill="rgba(224,242,254,0.3)" stroke="#cbd5e1" stroke-width="1.5"/>
+          <circle cx="130" cy="172" r="${op > 5 ? 3.5 : 0}" fill="#38bdf8"/>
+          <line x1="117" y1="66" x2="125" y2="66" stroke="#f8fafc" stroke-width="1.5"/><text x="112" y="69" font-size="9" fill="#cbd5e1" text-anchor="end">10 mL</text>
+          <line x1="116" y1="107" x2="126" y2="107" stroke="#facc15" stroke-width="2"/><text x="112" y="110" font-size="9" font-weight="bold" fill="#facc15" text-anchor="end">Aforo 5 mL</text>
+          <line x1="138" y1="${liqY}" x2="172" y2="${liqY}" stroke="#38bdf8" stroke-dasharray="3,2" stroke-width="1.5"/>
+          <text x="176" y="${liqY + 3}" font-size="10" font-weight="bold" fill="#38bdf8">${mlText} mL</text>
+        </svg>
+      `;
+      return;
+    }
+
+    // Para los demás instrumentos, reutilizamos el modelo vectorial 2D con respuesta al movimiento/giro/escala
+    box.innerHTML = this.renderTool2DModel(toolKey);
   },
 
   // ================= GENERADOR DE MODELOS 2D VECTORIALES SVG =================
