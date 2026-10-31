@@ -125,10 +125,10 @@
               <label>Rol en la Institución:</label>
               <select id="regRole" class="form-input" required onchange="App.onRegisterRoleChange()">
                 <option value="student">👨‍🎓 Estudiante de Secundaria</option>
-                <option value="teacher">👩‍🏫 Docente de Ciencias (Envía Solicitud al Admin)</option>
+                <option value="teacher">👩‍🏫 Docente de Ciencias (Envía Solicitud de Ingreso)</option>
               </select>
               <div id="teacherRequestNotice" style="display: none; font-size: 0.74rem; color: #b45309; background: #fef3c7; border: 1px solid #fde047; padding: 0.45rem 0.65rem; border-radius: 6px; margin-top: 0.4rem; line-height: 1.35;">
-                ℹ️ <strong>Validación Requerida:</strong> Al registrarte como Docente, tu cuenta se creará en modo de espera. El <strong>Administrador</strong> revisará tu solicitud para asignarte formalmente el rol de Docente y tus salones de clase.
+                ℹ️ <strong>Política de Roles:</strong> Todo usuario ingresa inicialmente por defecto con el rol de <strong>Estudiante</strong>. Al aceptar tu solicitud, el <strong>Administrador</strong> podrá cambiar tu rol a <strong>Docente</strong> directamente desde la tabla de usuarios.
               </div>
             </div>
             <div class="form-group">
@@ -843,10 +843,10 @@
             </div>
           </div>
 
-          <!-- BANDEJA DE SOLICITUDES DE ROL DOCENTE PENDIENTES -->
+          <!-- BANDEJA DE SOLICITUDES DE INGRESO PENDIENTES -->
           <div class="card" id="adminTeacherRequestsCard" style="margin-top: 1rem; border-left: 4px solid #f59e0b;">
             <div class="card-title" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
-              <span>📬 Solicitudes de Registro para Rol Docente (Pendientes de Aprobación)</span>
+              <span>📬 Solicitudes de Ingreso Pendientes de Aceptación (Ingresan por defecto como Estudiante)</span>
               <span class="badge-role badge-role-pending" id="adminPendingRequestsCount">
                 ⏳ 1 Solicitud Pendiente
               </span>
@@ -1543,11 +1543,10 @@
         </div>
 
         <div class="form-group">
-          <label>Nuevo Rol Institucional Asignado:</label>
+          <label>Designar Rol del Usuario (Estudiante o Docente):</label>
           <select id="editRoleSelect" class="form-input" onchange="App.onEditRoleChange()">
-            <option value="student">👨‍🎓 Estudiante de Secundaria</option>
-            <option value="teacher">👩‍🏫 Docente de Ciencias</option>
-            <option value="admin">🛡️ Administrador del Sistema</option>
+            <option value="student">👨‍🎓 Estudiante</option>
+            <option value="teacher">👩‍🏫 Docente</option>
           </select>
         </div>
 
@@ -1894,6 +1893,30 @@
     </div>
   </div>
 
+  <!-- ================= VENTANA EMERGENTE DE CONFIRMACIÓN DE CAMBIO DE ROL ================= -->
+  <div class="eval-modal-backdrop" id="modalConfirmRoleQuickChange" style="display: none; z-index: 10020;">
+    <div class="eval-modal-card" style="max-width: 440px; text-align: center;">
+      <div class="eval-modal-body" style="padding: 1.6rem 1.5rem 1.25rem 1.5rem;">
+        <div style="font-size: 2.4rem; margin-bottom: 0.6rem;">🔄</div>
+        <h3 style="font-size: 1.15rem; font-weight: 800; color: #0f172a; margin: 0 0 0.5rem 0;">Confirmar Cambio de Rol</h3>
+        <p id="confirmRoleQuickMessage" style="font-size: 0.88rem; color: #334155; line-height: 1.5; margin: 0 0 1rem 0;">
+          ¿Está seguro de cambiar el rol de este usuario?
+        </p>
+        <div style="font-size: 0.76rem; color: #0369a1; background: #e0f2fe; border: 1px solid #bae6fd; padding: 0.55rem 0.75rem; border-radius: 8px; line-height: 1.4;">
+          🔒 Al hacer clic en <strong>Aceptar</strong>, se actualizarán los permisos y vistas de acceso del usuario de forma inmediata.
+        </div>
+      </div>
+      <div class="eval-modal-footer" style="display: flex; justify-content: center; gap: 0.75rem; padding: 0.85rem 1.25rem;">
+        <button type="button" class="btn btn-outline" style="min-width: 120px; justify-content: center;" onclick="App.cancelQuickRoleChange()">
+          Cancelar
+        </button>
+        <button type="button" class="btn btn-success" style="min-width: 140px; justify-content: center; font-weight: 700;" onclick="App.confirmQuickRoleChange()">
+          ✅ Aceptar Cambio
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- ================= CUADRO DE MENSAJE CENTRADO (REEMPLAZA ALERTS) ================= -->
   <div class="custom-dialog-backdrop" id="customDialogBackdrop">
     <div class="custom-dialog-card">
@@ -1907,8 +1930,8 @@
   </div>
 
   <!-- Scripts -->
-  <script src="reaction_engine.js?v=0.8"></script>
-  <script src="pubchem_service.js?v=0.8"></script>
-  <script src="app.js?v=2.3"></script>
+  <script src="reaction_engine.js?v=0.9"></script>
+  <script src="pubchem_service.js?v=0.9"></script>
+  <script src="app.js?v=2.5"></script>
 </body>
 </html>

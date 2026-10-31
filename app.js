@@ -1362,21 +1362,22 @@ const App = {
     }
 
     const isTeacherRequest = role === 'teacher';
+    // Todo usuario registrado ingresa por defecto con el rol de Estudiante.
+    // Si envía solicitud, al ser aceptada ingresa también por defecto como Estudiante y luego el Admin puede cambiar su rol en la columna Rol.
     const newUser = {
       id: 'usr-' + Date.now(),
       name,
       email,
       password: pass,
-      // Solo el Administrador puede asignar el rol a Docente cuando se envía la solicitud
       role: 'student',
       requestedRole: isTeacherRequest ? 'teacher' : null,
       teacherRequestStatus: isTeacherRequest ? 'pending' : 'none',
       teacherRequestDate: isTeacherRequest ? new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString().slice(0, 5) : null,
-      classroom: isTeacherRequest ? 'Pendiente de Asignación Docente' : '4to Año "A"',
-      classroomId: isTeacherRequest ? 'staff' : '4A',
-      practice: isTeacherRequest ? 'Supervisión Curricular (En Espera)' : 'Síntesis de NaCl (Enlace Iónico)',
-      attempts: isTeacherRequest ? '-' : 0,
-      score: isTeacherRequest ? null : 18,
+      classroom: '4to Año "A"',
+      classroomId: '4A',
+      practice: 'Síntesis de NaCl (Enlace Iónico)',
+      attempts: 0,
+      score: 18,
       status: isTeacherRequest ? 'Solicitud Pendiente' : 'Aprobado',
       date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString().slice(0, 5),
       registeredAt: new Date().toLocaleDateString(),
@@ -1386,30 +1387,33 @@ const App = {
     this.registeredUsers.unshift(newUser);
     this.syncUserToDb(newUser);
 
-    if (!isTeacherRequest) {
-      const c = this.classrooms.find(cl => cl.id === '4A');
-      if (c) {
-        c.students.unshift({
-          name: name,
-          practice: newUser.practice,
-          attempts: 1,
-          score: 18,
-          status: 'Aprobado',
-          date: newUser.date
-        });
-      }
+    const c = this.classrooms.find(cl => cl.id === '4A');
+    if (c) {
+      c.students.unshift({
+        id: newUser.id,
+        name: name,
+        practice: newUser.practice,
+        attempts: 1,
+        score: 18,
+        status: 'Aprobado',
+        date: newUser.date
+      });
+      this.syncClassroomToDb(c);
     }
 
     this.loginUser(newUser);
-
     if (isTeacherRequest) {
       this.showDialog(
-        `¡Registro completado!\n\nBienvenido/a, ${name}.\n\n📨 Has enviado una SOLICITUD para el rol de Docente de Ciencias.\n\n🔒 Por seguridad institucional, el Administrador debe validar tu solicitud y asignarte oficialmente el rol docente y tus salones.\n\nMientras tanto, tu cuenta tiene acceso regular al laboratorio como Estudiante.`,
-        'Solicitud Docente Enviada',
+        `¡Registro completado!\n\nBienvenido/a, ${name}.\nTu cuenta se ha creado por defecto con el rol de Estudiante y se ha enviado tu solicitud al Administrador.\n\nCuando el Administrador acepte la solicitud, quedarás habilitado por defecto como Estudiante y el Administrador podrá cambiar tu rol entre Estudiante y Docente en el Padrón Oficial.`,
+        'Solicitud Enviada (Rol Inicial: Estudiante)',
         '⏳'
       );
     } else {
-      this.showDialog(`¡Cuenta registrada con éxito!\nBienvenido/a, ${name}. Has ingresado con el perfil de Estudiante.`, 'Registro Exitoso', '✅');
+      this.showDialog(
+        `¡Cuenta registrada con éxito!\n\nBienvenido/a, ${name}.\nSe te ha asignado por defecto el rol de Estudiante.`,
+        'Registro Exitoso (Rol por Defecto: Estudiante)',
+        '✅'
+      );
     }
   },
 
@@ -4750,8 +4754,8 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
                 </div>
               </div>
               <div style="display: flex; gap: 0.4rem; align-items: center;">
-                <button class="btn btn-success" style="font-size: 0.75rem; padding: 0.35rem 0.65rem;" onclick="App.openAssignTeacherModal('${req.id}')">
-                  ✅ Asignar Rol Docente
+                <button class="btn btn-success" style="font-size: 0.75rem; padding: 0.35rem 0.65rem;" onclick="App.acceptUserRequestAsStudent('${req.id}')">
+                  ✅ Aceptar (Ingresa como Estudiante)
                 </button>
                 <button class="btn btn-outline" style="font-size: 0.75rem; padding: 0.35rem 0.65rem; color: #ef4444; border-color: rgba(239, 68, 68, 0.4);" onclick="App.rejectTeacherRequest('${req.id}')">
                   ❌ Rechazar
@@ -4786,16 +4790,29 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
       const tr = document.createElement('tr');
       const initials = u.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
 
-      // Badge de rol
+      // Selector interactivo de Rol (Estudiante / Docente) directamente en la columna Rol
       let roleBadge = '';
-      if (u.teacherRequestStatus === 'pending') {
-        roleBadge = '<span class="badge-role badge-role-pending">⏳ Solicitud Docente</span>';
-      } else if (u.role === 'student') {
-        roleBadge = '<span class="badge-role badge-role-student">👨‍🎓 Estudiante</span>';
-      } else if (u.role === 'teacher') {
-        roleBadge = '<span class="badge-role badge-role-teacher">👩‍🏫 Docente</span>';
-      } else {
+      if (u.role === 'admin') {
         roleBadge = '<span class="badge-role badge-role-admin">🛡️ Administrador</span>';
+      } else {
+        const isTeacher = u.role === 'teacher';
+        const pillBg = isTeacher ? '#fce7f3' : '#e0f2fe';
+        const pillColor = isTeacher ? '#be185d' : '#0369a1';
+        const pillBorder = isTeacher ? '#fbcfe8' : '#bae6fd';
+        roleBadge = `
+          <div style="display: inline-flex; flex-direction: column; align-items: flex-start; gap: 0.2rem;">
+            <select
+              id="roleSelect_${u.id}"
+              onchange="App.promptQuickRoleChange('${u.id}', this.value)"
+              title="Cambiar rol entre Estudiante y Docente"
+              style="appearance: auto; cursor: pointer; font-weight: 700; font-size: 0.78rem; padding: 0.32rem 0.6rem; border-radius: 999px; background: ${pillBg}; color: ${pillColor}; border: 1.5px solid ${pillBorder}; outline: none; box-shadow: 0 1px 2px rgba(0,0,0,0.05);"
+            >
+              <option value="student" ${u.role === 'student' ? 'selected' : ''} style="background: #ffffff; color: #0f172a; font-weight: 600;">👨‍🎓 Estudiante</option>
+              <option value="teacher" ${u.role === 'teacher' ? 'selected' : ''} style="background: #ffffff; color: #0f172a; font-weight: 600;">👩‍🏫 Docente</option>
+            </select>
+            ${u.teacherRequestStatus === 'pending' ? '<span style="font-size: 0.66rem; color: #b45309; font-weight: 700;">⏳ Solicitud Pendiente</span>' : ''}
+          </div>
+        `;
       }
 
       // Badge de calificación / nota
@@ -4826,8 +4843,8 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
       let actionButtons = '';
       if (u.teacherRequestStatus === 'pending') {
         actionButtons = `
-          <button class="btn btn-primary" style="font-size: 0.72rem; padding: 0.2rem 0.45rem; background: #16a34a; border-color: #16a34a; margin-right: 0.25rem; white-space: nowrap;" onclick="App.openAssignTeacherModal('${u.id}')" title="Asignar Rol Docente">
-            ✅ Asignar
+          <button class="btn btn-primary" style="font-size: 0.72rem; padding: 0.2rem 0.45rem; background: #16a34a; border-color: #16a34a; margin-right: 0.25rem; white-space: nowrap;" onclick="App.acceptUserRequestAsStudent('${u.id}')" title="Aceptar Solicitud (Ingresa por defecto como Estudiante)">
+            ✅ Aceptar
           </button>
           <button class="btn btn-outline" style="font-size: 0.72rem; padding: 0.2rem 0.45rem; margin-right: 0.25rem; white-space: nowrap;" onclick="App.openEditRoleModal('${u.id}')" title="Modificar Rol">
             ✏️ Rol
@@ -5003,6 +5020,127 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
   closeUserDetailModal() {
     const modal = document.getElementById('modalUserDetail');
     if (modal) modal.style.display = 'none';
+  },
+
+  // ================= ACEPTACIÓN DE SOLICITUD (INGRESA POR DEFECTO COMO ESTUDIANTE) =================
+  acceptUserRequestAsStudent(userId) {
+    const user = this.registeredUsers.find(u => u.id === userId);
+    if (!user) return;
+
+    // Al aceptar la solicitud, el usuario ingresa por defecto con el rol de Estudiante.
+    // El Administrador luego puede cambiar su rol a Docente o Estudiante desde la columna Rol de la tabla.
+    user.role = 'student';
+    user.teacherRequestStatus = 'approved';
+    user.classroom = user.classroom && !user.classroom.includes('Pendiente') ? user.classroom : '4to Año "A"';
+    user.classroomId = user.classroomId && user.classroomId !== 'staff' ? user.classroomId : '4A';
+    user.practice = 'Síntesis de NaCl (Enlace Iónico)';
+    user.status = 'Aprobado';
+    user.attempts = typeof user.attempts === 'number' ? user.attempts : 1;
+    user.score = typeof user.score === 'number' ? user.score : 18;
+
+    this.syncUserToDb(user);
+
+    if (this.currentDetailUserId === userId) {
+      this.closeUserDetailModal();
+    }
+
+    this.renderAdminUsers();
+    this.renderClassroomsOverview();
+
+    this.showDialog(
+      `¡Solicitud Aceptada!\n\nUsuario: ${user.name}\nRol asignado por defecto: 👨‍🎓 Estudiante\n\nAhora el usuario ya se encuentra habilitado en el Padrón Oficial. Si deseas designarlo como Docente, puedes cambiar su rol directamente en el selector de la columna "Rol" de la tabla y confirmar en la ventana emergente.`,
+      'Solicitud Aceptada (Rol Inicial: Estudiante)',
+      '✅'
+    );
+  },
+
+  // ================= CAMBIO DIRECTO EN COLUMNA ROL CON VENTANA EMERGENTE DE CONFIRMACIÓN =================
+  promptQuickRoleChange(userId, targetRole) {
+    const user = this.registeredUsers.find(u => u.id === userId);
+    if (!user) return;
+
+    // Si seleccionó el mismo rol que ya tenía, no hacer nada
+    if (user.role === targetRole) return;
+
+    this.pendingQuickRoleUserId = userId;
+    this.pendingQuickRoleValue = targetRole;
+
+    const oldRoleLabel = user.role === 'teacher' ? '👩‍🏫 Docente' : '👨‍🎓 Estudiante';
+    const newRoleLabel = targetRole === 'teacher' ? '👩‍🏫 Docente' : '👨‍🎓 Estudiante';
+
+    const msgEl = document.getElementById('confirmRoleQuickMessage');
+    if (msgEl) {
+      msgEl.innerHTML = `¿Confirmas cambiar el rol del usuario <strong>${user.name}</strong> de <strong>${oldRoleLabel}</strong> a <strong>${newRoleLabel}</strong>?`;
+    }
+
+    const modal = document.getElementById('modalConfirmRoleQuickChange');
+    if (modal) modal.style.display = 'flex';
+  },
+
+  cancelQuickRoleChange() {
+    const userId = this.pendingQuickRoleUserId;
+    const user = this.registeredUsers.find(u => u.id === userId);
+    if (user) {
+      const sel = document.getElementById(`roleSelect_${userId}`);
+      if (sel) sel.value = user.role;
+    }
+    this.pendingQuickRoleUserId = null;
+    this.pendingQuickRoleValue = null;
+    const modal = document.getElementById('modalConfirmRoleQuickChange');
+    if (modal) modal.style.display = 'none';
+  },
+
+  confirmQuickRoleChange() {
+    const userId = this.pendingQuickRoleUserId;
+    const targetRole = this.pendingQuickRoleValue;
+    const user = this.registeredUsers.find(u => u.id === userId);
+
+    const modal = document.getElementById('modalConfirmRoleQuickChange');
+    if (modal) modal.style.display = 'none';
+
+    if (!user || !targetRole) return;
+
+    user.role = targetRole;
+    if (user.teacherRequestStatus === 'pending') {
+      user.teacherRequestStatus = targetRole === 'teacher' ? 'approved' : 'resolved';
+    }
+
+    if (targetRole === 'teacher') {
+      user.classroom = 'Salones 4°A, 4°B, 5°A';
+      user.classroomId = 'staff';
+      user.practice = 'Supervisión Curricular y Calificaciones';
+      user.attempts = '-';
+      user.score = null;
+      user.status = 'Activo';
+    } else {
+      user.classroom = '4to Año "A"';
+      user.classroomId = '4A';
+      user.practice = 'Síntesis de NaCl (Enlace Iónico)';
+      user.attempts = 1;
+      user.score = 18;
+      user.status = 'Aprobado';
+    }
+
+    // Si es el usuario activo, sincronizar UI
+    if (this.state.currentUser && this.state.currentUser.id === user.id) {
+      this.state.currentUser.role = targetRole;
+      this.state.currentRole = targetRole;
+      this.updateUserUI();
+    }
+
+    this.syncUserToDb(user);
+    this.pendingQuickRoleUserId = null;
+    this.pendingQuickRoleValue = null;
+
+    this.renderAdminUsers();
+    this.renderClassroomsOverview();
+
+    const roleLabel = targetRole === 'teacher' ? '👩‍🏫 Docente' : '👨‍🎓 Estudiante';
+    this.showDialog(
+      `¡Cambio de rol confirmado con éxito!\n\nUsuario: ${user.name}\nNuevo Rol asignado: ${roleLabel}\nAsignación: ${user.classroom}\n\nLos permisos de acceso han sido actualizados inmediatamente.`,
+      'Rol Actualizado',
+      '✅'
+    );
   },
 
   // ================= ASIGNACIÓN DE ROL DOCENTE POR EL ADMINISTRADOR =================
@@ -5282,6 +5420,8 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
       this.viewUserDetail(user.id);
     }
 
+    this.syncUserToDb(user);
+
     this.closeEditRoleModal();
     this.renderAdminUsers();
     this.renderClassroomsOverview();
@@ -5370,6 +5510,7 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
     };
 
     this.registeredUsers.unshift(newUser);
+    this.syncUserToDb(newUser);
 
     // Si es estudiante, agregar también al salón correspondiente
     if (role === 'student') {
