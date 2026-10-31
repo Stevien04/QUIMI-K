@@ -1859,6 +1859,9 @@ const App = {
         if (targetId === 'tab-student-salon') {
           App.renderStudentSalonView();
         }
+        if (targetId === 'tab-assistant') {
+          App.updateContextualAssistantUI();
+        }
 
         // Desactivar todas las pestañas y paneles
         document.querySelectorAll('.nav-tab, .sidebar-nav-item').forEach(t => t.classList.remove('active'));
@@ -1908,6 +1911,7 @@ const App = {
     document.getElementById('labLogText').innerText = `Se ha cargado la ${p.title}. Proceda a ejecutar el Paso 1: ${p.steps[0].name}.`;
     document.getElementById('experimentStatusBadge').className = 'status-tag status-pending';
     document.getElementById('experimentStatusBadge').innerText = 'Paso 1 Pendiente';
+    this.updateContextualAssistantUI();
   },
 
   // Renderizar pasos de la práctica
@@ -3897,6 +3901,420 @@ const App = {
     }
 
     return `En la práctica activa (<strong>${p.title}</strong>), tu meta es observar cómo la interacción atómica modelada por el motor de reacciones sigue leyes físicas y químicas exactas. Puedes continuar avanzando con el botón "Ejecutar Siguiente Paso".`;
+  },
+
+  // ================= OPCIÓN 2: RESPUESTAS CONTEXTUALES (LABORATORIO ASIGNADO + LIBRO GUÍA DIGITAL) =================
+  activeAssistantSubtab: 'general',
+  contextualInitialized: false,
+
+  switchAssistantSubtab(mode) {
+    this.activeAssistantSubtab = mode === 'contextual' ? 'contextual' : 'general';
+
+    const generalPane = document.getElementById('quimiSubtabGeneral');
+    const contextualPane = document.getElementById('quimiSubtabContextual');
+    const btnGeneral = document.getElementById('btnQuimiModeGeneral');
+    const btnContextual = document.getElementById('btnQuimiModeContextual');
+
+    if (generalPane) generalPane.style.display = this.activeAssistantSubtab === 'general' ? 'block' : 'none';
+    if (contextualPane) contextualPane.style.display = this.activeAssistantSubtab === 'contextual' ? 'block' : 'none';
+
+    if (btnGeneral && btnContextual) {
+      if (this.activeAssistantSubtab === 'general') {
+        btnGeneral.style.border = '2px solid #2563eb';
+        btnGeneral.style.background = '#ffffff';
+        btnGeneral.style.boxShadow = '0 2px 8px rgba(37, 99, 235, 0.15)';
+        btnContextual.style.border = '2px solid transparent';
+        btnContextual.style.background = 'transparent';
+        btnContextual.style.boxShadow = 'none';
+      } else {
+        btnContextual.style.border = '2px solid #16a34a';
+        btnContextual.style.background = '#ffffff';
+        btnContextual.style.boxShadow = '0 2px 8px rgba(22, 163, 74, 0.18)';
+        btnGeneral.style.border = '2px solid transparent';
+        btnGeneral.style.background = 'transparent';
+        btnGeneral.style.boxShadow = 'none';
+      }
+    }
+
+    if (this.activeAssistantSubtab === 'contextual') {
+      this.updateContextualAssistantUI();
+      const input = document.getElementById('quimiContextualInput');
+      if (input) setTimeout(() => input.focus(), 60);
+    }
+  },
+
+  updateContextualAssistantUI() {
+    const pIndex = this.state.currentPracticeIndex || 0;
+    const p = this.practices[pIndex] || this.practices[0];
+    const user = this.state.currentUser;
+    const salonName = (user && user.classroom) ? user.classroom : '4to "A" Secundaria';
+
+    const titleEl = document.getElementById('quimiActiveLabBannerTitle');
+    if (titleEl) {
+      titleEl.innerText = `Práctica ${pIndex + 1}: ${p.title}`;
+    }
+
+    const subEl = document.getElementById('quimiActiveLabBannerSub');
+    if (subEl) {
+      const stepObj = p.steps[this.state.currentStepIndex] || p.steps[p.steps.length - 1];
+      subEl.innerHTML = `Salón: <strong>${salonName}</strong> • Ecuación: <strong>${p.equation}</strong> • Paso actual: <strong>${stepObj ? stepObj.name : 'Completado'}</strong> • Fuente: <strong>Libro Guía Digital (${this.guideEntries.length} capítulos)</strong>`;
+    }
+
+    const selEl = document.getElementById('quimiContextLabSelector');
+    if (selEl) {
+      selEl.value = String(pIndex);
+    }
+
+    // Renderizar chips dinámicos propios del laboratorio asignado actual
+    const chipsBox = document.getElementById('quimiLabDynamicChips');
+    if (chipsBox) {
+      const labQuestionsByPractice = {
+        0: [
+          '¿En qué consiste mi laboratorio asignado de Síntesis de NaCl y cuáles son sus pasos?',
+          '¿Cuál es la ecuación, reactivos y diferencia ΔEN en el laboratorio de NaCl?',
+          '¿Qué explica el Libro Guía Digital sobre el Enlace Iónico y la estructura de Lewis?',
+          '¿Qué instrumentos virtuales utilizo en esta práctica y cómo funcionan?'
+        ],
+        1: [
+          '¿En qué consiste mi laboratorio asignado de Formación de Agua (2H₂ + O₂ → 2H₂O)?',
+          '¿Por qué la molécula de agua tiene enlace Covalente Polar (ΔEN = 1.24) y dipolos?',
+          '¿Cuáles son los 4 pasos experimentales del laboratorio de síntesis de H₂O?',
+          '¿Cómo actúa la energía de activación y el Mechero en esta reacción?'
+        ],
+        2: [
+          '¿En qué consiste mi laboratorio asignado de Neutralización Ácido-Base (HCl + NaOH)?',
+          '¿Qué dice el Libro Guía Digital sobre la escala de pH, Molaridad y neutralización?',
+          '¿Cómo se realiza la titulación con la Pipeta Graduada y el Matraz Erlenmeyer?',
+          '¿Por qué al reaccionar HCl con NaOH se obtiene pH 7 neutro y sal NaCl?'
+        ]
+      };
+      const qs = labQuestionsByPractice[pIndex] || labQuestionsByPractice[0];
+      chipsBox.innerHTML = qs.map(q => `
+        <button type="button" class="btn btn-outline" style="font-size: 0.75rem; padding: 0.3rem 0.65rem; background: #f0fdf4; border-color: #86efac; color: #166534; font-weight: 600;" onclick="App.askContextualQuestion('${q.replace(/'/g, "\\'")}')">
+          🧪 ${q}
+        </button>
+      `).join('');
+    }
+
+    if (!this.contextualInitialized) {
+      this.contextualInitialized = true;
+      this.clearContextualChat();
+    }
+  },
+
+  changeContextualLabPractice(val) {
+    const idx = parseInt(val, 10);
+    if (!isNaN(idx) && this.practices[idx]) {
+      this.selectPractice(idx);
+      const mainSelector = document.getElementById('practiceSelector');
+      if (mainSelector) mainSelector.value = String(idx);
+      this.updateContextualAssistantUI();
+
+      const p = this.practices[idx];
+      const chatBox = document.getElementById('quimiContextualChatHistory');
+      if (chatBox) {
+        const botBubble = document.createElement('div');
+        botBubble.className = 'chat-bubble bot';
+        botBubble.innerHTML = `
+          🔄 <strong>Contexto de Laboratorio actualizado:</strong> Ahora estoy sincronizado con <strong>${p.title}</strong> (Ecuación: <code>${p.equation}</code>) y con los <strong>${this.guideEntries.length} capítulos del Libro Guía Digital</strong>. Escribe cualquier pregunta o selecciona un tema abajo.
+        `;
+        chatBox.appendChild(botBubble);
+        chatBox.scrollTop = chatBox.scrollHeight;
+      }
+    }
+  },
+
+  clearContextualChat() {
+    const chatBox = document.getElementById('quimiContextualChatHistory');
+    if (!chatBox) return;
+    const pIndex = this.state.currentPracticeIndex || 0;
+    const p = this.practices[pIndex] || this.practices[0];
+
+    chatBox.innerHTML = `
+      <div class="chat-bubble bot" style="max-width: 94%;">
+        <div style="display: flex; align-items: center; gap: 0.45rem; margin-bottom: 0.35rem;">
+          <span style="background: #dcfce7; color: #166534; font-size: 0.72rem; font-weight: 800; padding: 0.15rem 0.55rem; border-radius: 999px;">🧠 MODO RESPUESTAS CONTEXTUALES ACTIVO</span>
+          <span style="background: #dbeafe; color: #1e40af; font-size: 0.72rem; font-weight: 700; padding: 0.15rem 0.55rem; border-radius: 999px;">📖 Conectado al Libro Guía Digital</span>
+        </div>
+        ¡Hola! Estoy en el apartado de <strong>Respuestas Contextuales</strong>. Aquí puedo absolver <strong>cualquier pregunta que escribas</strong> sobre tu laboratorio asignado actual (<strong>${p.title}</strong> • <code>${p.equation}</code>), sobre los <strong>8 instrumentos virtuales</strong> o sobre todos los temas del sistema.<br><br>
+        Toda mi información proviene directamente del <strong>Libro Guía Digital</strong> (explicaciones simples de conceptos, fórmulas científicas y procedimientos de laboratorio). <strong>Escribe tu consulta abajo o pulsa uno de los botones sugeridos:</strong>
+      </div>
+    `;
+  },
+
+  handleContextualQuestionSubmit(event) {
+    if (event) event.preventDefault();
+    const input = document.getElementById('quimiContextualInput');
+    if (!input) return;
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = '';
+    this.askContextualQuestion(text);
+  },
+
+  askContextualQuestion(questionText) {
+    const chatBox = document.getElementById('quimiContextualChatHistory');
+    if (!chatBox) return;
+
+    // Asegurar que la sub-pestaña contextual esté visible
+    if (this.activeAssistantSubtab !== 'contextual') {
+      this.switchAssistantSubtab('contextual');
+    }
+
+    const userBubble = document.createElement('div');
+    userBubble.className = 'chat-bubble user';
+    userBubble.innerText = questionText;
+    chatBox.appendChild(userBubble);
+    chatBox.scrollTop = chatBox.scrollHeight;
+
+    setTimeout(() => {
+      const botBubble = document.createElement('div');
+      botBubble.className = 'chat-bubble bot';
+      botBubble.style.maxWidth = '95%';
+      botBubble.innerHTML = this.buildContextualAnswerFromGuideAndLab(questionText);
+      chatBox.appendChild(botBubble);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }, 280);
+  },
+
+  normalizeQueryText(str) {
+    return (str || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[¿?¡!.,;:()]/g, ' ')
+      .trim();
+  },
+
+  buildContextualAnswerFromGuideAndLab(rawQuestion) {
+    const qNorm = this.normalizeQueryText(rawQuestion);
+    const tokens = qNorm.split(/\s+/).filter(w => w.length >= 2);
+
+    const pIndex = this.state.currentPracticeIndex || 0;
+    const activePractice = this.practices[pIndex] || this.practices[0];
+    const currentStep = activePractice.steps[this.state.currentStepIndex] || activePractice.steps[0];
+
+    // 1. Mapa de palabras clave hacia los capítulos del Libro Guía Digital (this.guideEntries)
+    const guideKeywordMap = {
+      'g-quimica-medicion': ['quimica', 'ramas', 'organica', 'inorganica', 'analitica', 'fisicoquimica', 'bioquimica', 'metodo cientifico', 'sistema internacional', 'medicion', 'unidades', 'kelvin', 'kilogramo', 'incertidumbre'],
+      'g-materia-estados': ['materia', 'estados', 'solido', 'liquido', 'gaseoso', 'plasma', 'cambios de fase', 'fusion', 'ebullicion', 'evaporacion', 'sublimacion', 'condensacion', 'solidificacion', 'densidad', 'presion', 'extensivas', 'intensivas'],
+      'g-clasificacion-materia': ['clasificacion', 'sustancias puras', 'elementos', 'compuestos', 'mezclas', 'homogenea', 'heterogenea', 'separacion', 'filtracion', 'decantacion', 'destilacion', 'centrifugacion', 'coloide', 'disolucion'],
+      'g-atomo-modelos': ['atomo', 'modelos atomicos', 'dalton', 'thomson', 'rutherford', 'bohr', 'schrodinger', 'particulas', 'proton', 'protones', 'neutron', 'neutrones', 'electron', 'electrones', 'nucleo', 'isotopos', 'isobaros', 'isotonos', 'numero atomico', 'masa atomica'],
+      'g-configuracion-cuantica': ['numeros cuanticos', 'cuantico', 'cuanticos', 'configuracion electronica', 'serrucho', 'aufbau', 'pauli', 'hund', 'orbital', 'orbitales', 'espin', 'azimutal', 'valencia', 'subnivel'],
+      'g-tabla-periodica': ['tabla periodica', 'moseley', 'periodos', 'grupos', 'metales', 'alcalinos', 'halogenos', 'gases nobles', 'radio atomico', 'energia de ionizacion', 'afinidad electronica', 'propiedades periodicas'],
+      'g-enlace-quimico': ['enlace', 'enlaces', 'ionico', 'covalente', 'polar', 'apolar', 'metalico', 'lewis', 'octeto', 'pauling', 'electronegatividad', 'delta', 'den', 'transferencia', 'dipolo', 'nacl', 'cloruro de sodio', 'sodio', 'cloro'],
+      'g-nomenclatura-inorganica': ['nomenclatura', 'funciones inorganicas', 'oxidos', 'anhidridos', 'hidroxidos', 'acidos', 'hidracidos', 'oxacidos', 'sales', 'haloideas', 'oxisales', 'iupac', 'stock', 'tradicional', 'clasica'],
+      'g-reacciones-balanceo': ['reaccion', 'reacciones', 'transformaciones', 'balanceo', 'tanteo', 'redox', 'sintesis', 'adicion', 'descomposicion', 'desplazamiento', 'metatesis', 'combustion', 'exotermica', 'endotermica', 'precipitado'],
+      'g-estequiometria-mol': ['mol', 'moles', 'estequiometria', 'avogadro', 'masa molar', 'lavoisier', 'proust', 'reactivo limitante', 'rendimiento', 'volumen molar', 'gramos', 'conservacion de la masa'],
+      'g-soluciones-ph': ['soluciones', 'disoluciones', 'soluto', 'solvente', 'concentracion', 'molaridad', 'ph', 'poh', 'acido', 'base', 'alcalino', 'neutralizacion', 'titulacion', 'arrhenius', 'bronsted', 'fenolftaleina', 'hcl', 'naoh', 'hidroxido de sodio', 'acido clorhidrico'],
+      'g-carbono-propiedades': ['carbono', 'concatenacion', 'tetravalencia', 'autosaturacion', 'hibridacion', 'sp3', 'sp2', 'sp', 'sigma', 'pi', 'tetraedrico', 'cadenas carbonadas', 'aromaticos', 'benceno'],
+      'g-hidrocarburos-funciones': ['hidrocarburos', 'alcanos', 'alquenos', 'alquinos', 'parafinas', 'olefinas', 'metano', 'etano', 'propano', 'butano', 'grupos funcionales', 'alcoholes', 'aldehidos', 'cetonas', 'acidos carboxilicos', 'esteres', 'aminas', 'amidas', 'etanol'],
+      'g-lab-instrumentos-pipeta': ['pipeta', 'pipeteo', 'menisco', 'aforo', 'enrase', 'enrasar', 'propipeta', 'volumetrico', 'volumen', 'paralaje', 'alicuota', 'probeta', 'erlenmeyer', 'matraz'],
+      'g-lab-mechero-bunsen': ['mechero', 'bunsen', 'llama', 'azul', 'amarilla', 'luminosa', 'collarin', 'virola', 'hollin', 'calentamiento', '1500', 'oxidante', 'reductor', 'encendido'],
+      'g-lab-bioseguridad-sga': ['bioseguridad', 'seguridad', 'sga', 'pictogramas', 'epp', 'bata', 'gafas', 'guantes', 'peligro', 'corrosivo', 'inflamable', 'toxico', 'emergencia', 'normas', 'cuidado']
+    };
+
+    // Puntuar cada capítulo del Libro Guía Digital
+    const scoredEntries = this.guideEntries.map(entry => {
+      let score = 0;
+      const termNorm = this.normalizeQueryText(entry.term);
+      const catNorm = this.normalizeQueryText(entry.category);
+      const descNorm = this.normalizeQueryText(entry.desc);
+      const formNorm = this.normalizeQueryText(entry.formula || '');
+      const procNorm = this.normalizeQueryText(entry.procedure || '');
+      const fullNorm = this.normalizeQueryText(entry.fullContent || '');
+      const kwList = guideKeywordMap[entry.id] || [];
+
+      kwList.forEach(kw => {
+        if (qNorm.includes(kw)) {
+          score += kw.includes(' ') ? 18 : 12;
+        }
+      });
+
+      tokens.forEach(tk => {
+        if (tk.length < 3 && tk !== 'ph' && tk !== 'si' && tk !== 'na' && tk !== 'cl') return;
+        if (termNorm.includes(tk)) score += 10;
+        if (formNorm.includes(tk)) score += 8;
+        if (catNorm.includes(tk)) score += 5;
+        if (descNorm.includes(tk)) score += 4;
+        if (procNorm.includes(tk)) score += 4;
+        if (fullNorm.includes(tk)) score += 2;
+      });
+
+      return { entry, score };
+    }).sort((a, b) => b.score - a.score);
+
+    // 2. Detectar si pregunta por un instrumento específico de this.toolsDatabase
+    const toolKeywords = {
+      pipeta: ['pipeta', 'pipetear', 'pipeteo', 'menisco', 'aforo', 'enrasar', 'propipeta', 'aspirar', 'dispensar'],
+      matraz: ['matraz', 'erlenmeyer', 'vortice', 'agitar', 'agitacion'],
+      tubo: ['tubo de ensayo', 'tubo', 'gradilla', 'precipitado'],
+      mechero: ['mechero', 'bunsen', 'llama', 'collarin', 'calentar', 'fuego'],
+      balanza: ['balanza', 'pesar', 'tare', 'tara', 'gramos', 'gravimetrico'],
+      termometro: ['termometro', 'temperatura', 'celsius', 'sonda', 'termico'],
+      phmetro: ['phmetro', 'sensor de ph', 'papel tornasol', 'electrodo', 'potencial de hidrogeno'],
+      espatula: ['espatula', 'vidrio de reloj', 'cristales', 'muestreo', 'polvo']
+    };
+
+    let matchedTool = null;
+    for (const [tKey, kws] of Object.entries(toolKeywords)) {
+      if (kws.some(k => qNorm.includes(k))) {
+        matchedTool = this.toolsDatabase[tKey];
+        break;
+      }
+    }
+
+    // 3. Detectar si pregunta específicamente por el laboratorio asignado / práctica / pasos / experimento
+    let targetPracticeIndex = pIndex;
+    if (qNorm.includes('practica 1') || qNorm.includes('lab 1') || qNorm.includes('sodio') || qNorm.includes('cloro') || qNorm.includes('nacl')) {
+      targetPracticeIndex = 0;
+    } else if (qNorm.includes('practica 2') || qNorm.includes('lab 2') || qNorm.includes('agua') || qNorm.includes('h2o') || qNorm.includes('hidrogeno') || qNorm.includes('oxigeno') || qNorm.includes('molécula polar') || qNorm.includes('molecula polar')) {
+      targetPracticeIndex = 1;
+    } else if (qNorm.includes('practica 3') || qNorm.includes('lab 3') || qNorm.includes('neutralizacion') || qNorm.includes('hcl') || qNorm.includes('naoh') || qNorm.includes('titulacion') || qNorm.includes('acido')) {
+      targetPracticeIndex = 2;
+    }
+
+    const targetPractice = this.practices[targetPracticeIndex] || activePractice;
+    const asksAboutAssignedLab =
+      qNorm.includes('laboratorio') ||
+      qNorm.includes('asignad') ||
+      qNorm.includes('practica') ||
+      qNorm.includes('experimento') ||
+      qNorm.includes('paso') ||
+      qNorm.includes('ecuacion') ||
+      qNorm.includes('reactivo') ||
+      qNorm.includes('consiste') ||
+      qNorm.includes('hacer');
+
+    // Si no hubo match fuerte en el Libro Guía, vincular el capítulo principal del laboratorio asignado
+    const defaultGuideByPractice = {
+      0: 'g-enlace-quimico',
+      1: 'g-enlace-quimico',
+      2: 'g-soluciones-ph'
+    };
+
+    let bestGuideEntry = scoredEntries[0] && scoredEntries[0].score > 0
+      ? scoredEntries[0].entry
+      : this.guideEntries.find(e => e.id === defaultGuideByPractice[targetPracticeIndex]) || this.guideEntries[0];
+
+    const secondGuideEntry = (scoredEntries[1] && scoredEntries[1].score >= 8 && scoredEntries[1].entry.id !== bestGuideEntry.id)
+      ? scoredEntries[1].entry
+      : null;
+
+    // Calcular datos del motor de reacciones para la práctica consultada
+    const el1 = ReactionEngine.elements[targetPractice.reactant1] || ReactionEngine.elements['Na'];
+    const el2 = ReactionEngine.elements[targetPractice.reactant2] || ReactionEngine.elements['Cl'];
+    const bondEval = ReactionEngine.evaluateBond(el1, el2);
+
+    // Construir bloque de explicación contextual del Laboratorio Asignado
+    let labContextHtml = '';
+    if (asksAboutAssignedLab || scoredEntries[0].score < 12) {
+      const stepsListHtml = targetPractice.steps.map(s =>
+        `<li style="margin-bottom: 0.2rem;"><strong>Paso ${s.step} (${s.name}):</strong> ${s.desc} <em style="color:#0369a1;">(${s.hint})</em></li>`
+      ).join('');
+
+      labContextHtml = `
+        <div style="background: #f0fdf4; border: 1px solid #86efac; border-left: 4px solid #16a34a; border-radius: 10px; padding: 0.85rem 1rem; margin-bottom: 0.75rem;">
+          <div style="font-size: 0.76rem; font-weight: 800; color: #15803d; text-transform: uppercase; margin-bottom: 0.25rem;">
+            🔬 Respuesta Referida al Laboratorio Asignado (${targetPractice.title})
+          </div>
+          <div style="font-size: 0.86rem; color: #1e293b; line-height: 1.5;">
+            • <strong>Objetivo Experimental:</strong> ${targetPractice.subtext}.<br>
+            • <strong>Ecuación Química Balanceada:</strong> <code style="background:#dcfce7; padding: 0.1rem 0.4rem; border-radius: 4px; font-weight: 700; color: #166534;">${targetPractice.equation}</code><br>
+            • <strong>Análisis de Electronegatividad (Pauling):</strong> Entre <strong>${el1.name} (${el1.symbol}, EN=${el1.en})</strong> y <strong>${el2.name} (${el2.symbol}, EN=${el2.en})</strong> se obtiene <strong>ΔEN = ${bondEval ? bondEval.deltaEN : '2.23'}</strong> → Clasificado como <strong>Enlace ${bondEval ? bondEval.bondType : 'Iónico'}</strong>.<br>
+            • <strong>Procedimiento Paso a Paso en el Laboratorio Asignado:</strong>
+            <ul style="margin: 0.35rem 0 0.2rem 1.1rem; padding: 0;">
+              ${stepsListHtml}
+            </ul>
+          </div>
+        </div>
+      `;
+    } else {
+      labContextHtml = `
+        <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 0.55rem 0.85rem; margin-bottom: 0.75rem; font-size: 0.8rem; color: #334155;">
+          🔗 <strong>Relación con tu Laboratorio Asignado (${activePractice.title}):</strong> En tu experimento activo (<code>${activePractice.equation}</code>, Paso actual: <em>${currentStep.name}</em>), este concepto del Libro Guía Digital se aplica directamente para fundamentar la reacción y el manejo seguro del instrumental.
+        </div>
+      `;
+    }
+
+    // Construir bloque si se detectó un instrumento virtual
+    let toolHtml = '';
+    if (matchedTool) {
+      const toolSteps = matchedTool.steps.map(s => `<li><strong>${s.title}:</strong> ${s.desc}</li>`).join('');
+      toolHtml = `
+        <div style="background: #eff6ff; border: 1px solid #93c5fd; border-left: 4px solid #2563eb; border-radius: 10px; padding: 0.85rem 1rem; margin-bottom: 0.75rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.35rem;">
+            <span style="font-size: 0.78rem; font-weight: 800; color: #1d4ed8; text-transform: uppercase;">
+              ${matchedTool.icon} Instrumento Virtual del Laboratorio: ${matchedTool.title}
+            </span>
+            <button type="button" class="btn btn-primary" style="font-size: 0.74rem; padding: 0.25rem 0.65rem;" onclick="App.openToolGuide('${matchedTool.id}')">
+              ✋ Interactuar en Mesa 2D con ${matchedTool.title.split('(')[0].trim()}
+            </button>
+          </div>
+          <p style="font-size: 0.84rem; color: #1e293b; margin: 0 0 0.4rem 0;">${matchedTool.desc}</p>
+          <ul style="font-size: 0.8rem; color: #334155; margin: 0 0 0.4rem 1.1rem; padding: 0;">
+            ${toolSteps}
+          </ul>
+          <div style="font-size: 0.78rem; color: #b91c1c; background: #fef2f2; padding: 0.35rem 0.6rem; border-radius: 6px; border: 1px solid #fecaca;">
+            ⚠️ <strong>Bioseguridad:</strong> ${matchedTool.safety}
+          </div>
+        </div>
+      `;
+    }
+
+    // Construir bloque principal extraído del LIBRO GUÍA DIGITAL (this.guideEntries)
+    const renderGuideCard = (entry, isPrimary = true) => `
+      <div style="background: #ffffff; border: 1px solid ${isPrimary ? '#7dd3fc' : '#e2e8f0'}; border-left: 4px solid ${isPrimary ? '#0284c7' : '#64748b'}; border-radius: 10px; padding: 0.9rem 1rem; margin-bottom: 0.65rem; box-shadow: 0 1px 4px rgba(15, 23, 42, 0.05);">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.4rem;">
+          <div>
+            <span style="font-size: 0.7rem; font-weight: 800; text-transform: uppercase; background: #e0f2fe; color: #0369a1; padding: 0.15rem 0.5rem; border-radius: 999px;">
+              📖 Extraído del Libro Guía Digital • ${entry.category}
+            </span>
+            <h4 style="font-size: 0.95rem; font-weight: 800; color: #0f172a; margin: 0.25rem 0 0 0;">${entry.term}</h4>
+          </div>
+          <button type="button" class="guide-read-btn" style="font-size: 0.76rem; padding: 0.3rem 0.7rem; background: #0284c7; color: #ffffff; border-radius: 6px; border: none; cursor: pointer; font-weight: 700;" onclick="App.openGuideModal('${entry.id}')">
+            📖 Abrir Capítulo en Libro Digital →
+          </button>
+        </div>
+
+        ${entry.formula ? `
+          <div style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 6px; padding: 0.4rem 0.7rem; margin: 0.4rem 0; font-family: monospace; font-size: 0.85rem; font-weight: 700; color: #065f46;">
+            📐 Fórmula del Libro Digital: ${entry.formula}
+          </div>
+        ` : ''}
+
+        <div style="font-size: 0.84rem; color: #334155; line-height: 1.5; margin-top: 0.35rem;">
+          <strong>💡 Explicación Simple del Concepto:</strong> ${entry.desc}
+        </div>
+
+        ${entry.procedure ? `
+          <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 6px; padding: 0.45rem 0.7rem; margin-top: 0.45rem; font-size: 0.8rem; color: #0369a1;">
+            <strong>🔬 Procedimiento de Laboratorio:</strong> ${entry.procedure}
+          </div>
+        ` : ''}
+
+        <details style="margin-top: 0.55rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.45rem 0.75rem;">
+          <summary style="font-size: 0.79rem; font-weight: 700; color: #0f172a; cursor: pointer;">
+            📄 Ver desarrollo teórico completo de "${entry.term}" aquí mismo
+          </summary>
+          <div style="font-size: 0.81rem; color: #334155; line-height: 1.5; margin-top: 0.5rem; border-top: 1px solid #e2e8f0; padding-top: 0.5rem;">
+            ${entry.fullContent}
+          </div>
+        </details>
+      </div>
+    `;
+
+    return `
+      <div>
+        <div style="margin-bottom: 0.55rem; font-size: 0.88rem; color: #0f172a;">
+          🤖 <strong>Quimi (Respuesta Contextual):</strong> He analizado tu consulta <em>"${rawQuestion}"</em> cruzando los datos de tu <strong>Laboratorio Asignado</strong> y el <strong>Libro Guía Digital</strong> del sistema:
+        </div>
+        ${labContextHtml}
+        ${toolHtml}
+        ${renderGuideCard(bestGuideEntry, true)}
+        ${secondGuideEntry ? renderGuideCard(secondGuideEntry, false) : ''}
+      </div>
+    `;
   },
 
   // ================= RF014 & RF015: LIBRO GUÍA Y ENCICLOPEDIA CIENTÍFICA =================

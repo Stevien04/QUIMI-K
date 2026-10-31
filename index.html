@@ -454,17 +454,37 @@
     <!-- ================= PESTAÑA 2: ASISTENTE VIRTUAL "QUIMI" ================= -->
     <section id="tab-assistant" class="tab-pane">
       <div class="section-banner">
-        <strong>Tutor Virtual de Laboratorio:</strong>
-        Orientación guiada en tiempo real para resolver dudas sobre los experimentos, uso de instrumentos y conceptos científicos sin riesgos.
+        <strong>Tutor Virtual de Laboratorio "Quimi":</strong>
+        Seleccione entre <strong>1) Interacción con el Asistente</strong> (consultas guiadas rápidas) o <strong>2) Respuestas Contextuales</strong> (absolución de preguntas abiertas referidas al laboratorio asignado y conectadas directamente con los conceptos, fórmulas y procedimientos del <strong>Libro Guía Digital</strong>).
       </div>
 
-      <div style="max-width: 800px; margin: 0 auto;">
-        <div class="card quimi-assistant-card">
+      <div style="max-width: 960px; margin: 0 auto;">
+        <!-- Barra selectora de los 2 apartados requeridos -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1.15rem; background: #f1f5f9; padding: 0.45rem; border-radius: 14px; border: 1px solid #cbd5e1;">
+          <button type="button" id="btnQuimiModeGeneral" onclick="App.switchAssistantSubtab('general')" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.85rem 1rem; border-radius: 10px; border: 2px solid #2563eb; background: #ffffff; color: #0f172a; cursor: pointer; text-align: left; box-shadow: 0 2px 8px rgba(37, 99, 235, 0.15); transition: all 0.2s;">
+            <div style="width: 40px; height: 40px; border-radius: 10px; background: #dbeafe; color: #2563eb; display: flex; align-items: center; justify-content: center; font-size: 1.35rem; flex-shrink: 0;">💬</div>
+            <div>
+              <div style="font-size: 0.92rem; font-weight: 800; color: #1e40af;">1. Interacción con el Asistente</div>
+              <div style="font-size: 0.75rem; color: #64748b;">Realizar consultas frecuentes al asistente virtual "Quimi"</div>
+            </div>
+          </button>
+
+          <button type="button" id="btnQuimiModeContextual" onclick="App.switchAssistantSubtab('contextual')" style="display: flex; align-items: center; gap: 0.75rem; padding: 0.85rem 1rem; border-radius: 10px; border: 2px solid transparent; background: transparent; color: #475569; cursor: pointer; text-align: left; transition: all 0.2s;">
+            <div style="width: 40px; height: 40px; border-radius: 10px; background: #dcfce7; color: #16a34a; display: flex; align-items: center; justify-content: center; font-size: 1.35rem; flex-shrink: 0;">🧠</div>
+            <div>
+              <div style="font-size: 0.92rem; font-weight: 800; color: #0f172a;">2. Respuestas Contextuales (Lab + Libro Digital)</div>
+              <div style="font-size: 0.75rem; color: #64748b;">Absuelve cualquier pregunta del laboratorio asignado y del Libro Guía</div>
+            </div>
+          </button>
+        </div>
+
+        <!-- ================= OPCIÓN 1: INTERACCIÓN CON EL ASISTENTE (ORIGINAL) ================= -->
+        <div id="quimiSubtabGeneral" class="card quimi-assistant-card">
           <div class="quimi-header">
             <div class="quimi-avatar">🤖</div>
             <div>
-              <h3 style="font-size: 1.1rem; color: #0f172a; font-weight: 700;">Quimi - Tutor Virtual de Laboratorio</h3>
-              <p style="font-size: 0.8rem; color: #64748b;">Orientador en tiempo real para el Colegio Alexander Fleming</p>
+              <h3 style="font-size: 1.1rem; color: #0f172a; font-weight: 700;">Quimi - Interacción con el Asistente Virtual</h3>
+              <p style="font-size: 0.8rem; color: #64748b;">Consultas guiadas rápidas para el Colegio Alexander Fleming</p>
             </div>
           </div>
 
@@ -479,6 +499,9 @@
           <div style="margin-top: 1rem;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
               <span style="font-size: 0.8rem; font-weight: 700; color: #334155;">Selecciona una consulta sobre la práctica:</span>
+              <button type="button" class="btn btn-outline" style="font-size: 0.76rem; padding: 0.25rem 0.65rem;" onclick="App.switchAssistantSubtab('contextual')">
+                ✍️ ¿Tienes otra pregunta? Ir a Respuestas Contextuales →
+              </button>
             </div>
             <div class="quimi-select-group">
               <button class="quimi-opt-btn" onclick="App.askQuimiPreset('¿Por qué reacciona el Sodio con el Cloro en la Práctica 1?')">
@@ -496,6 +519,117 @@
               <button class="quimi-opt-btn" onclick="App.askQuimiPreset('¿Cómo funciona la regla del octeto de Lewis en esta formación?')">
                 ❓ ¿Cómo funciona la regla del octeto de Lewis en esta formación?
               </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ================= OPCIÓN 2: RESPUESTAS CONTEXTUALES (LABORATORIO ASIGNADO + LIBRO GUÍA DIGITAL) ================= -->
+        <div id="quimiSubtabContextual" class="card quimi-assistant-card" style="display: none; border-top: 4px solid #16a34a;">
+          <div class="quimi-header" style="justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
+            <div style="display: flex; align-items: center; gap: 0.85rem;">
+              <div class="quimi-avatar" style="background: linear-gradient(135deg, #16a34a, #0284c7);">🧠</div>
+              <div>
+                <div style="display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap;">
+                  <h3 style="font-size: 1.1rem; color: #0f172a; font-weight: 800; margin: 0;">Quimi Contextual • Laboratorio Asignado & Libro Digital</h3>
+                  <span style="font-size: 0.7rem; background: #dcfce7; color: #166534; padding: 0.15rem 0.55rem; border-radius: 999px; font-weight: 700; border: 1px solid #86efac;">Conectado al Libro Guía Digital</span>
+                </div>
+                <p style="font-size: 0.8rem; color: #64748b; margin: 0.15rem 0 0 0;">
+                  Absuelve cualquier pregunta sobre el laboratorio asignado extrayendo conceptos, fórmulas y procedimientos del <strong>Libro Guía Digital</strong>.
+                </p>
+              </div>
+            </div>
+            <button type="button" class="btn btn-outline" style="font-size: 0.78rem; padding: 0.38rem 0.75rem;" onclick="App.clearContextualChat()">
+              🧹 Limpiar Consultas
+            </button>
+          </div>
+
+          <!-- Panel de Contexto Activo: Laboratorio Asignado + Libro Guía Digital -->
+          <div style="background: linear-gradient(135deg, #f0fdf4 0%, #eff6ff 100%); border: 1px solid #bbf7d0; border-radius: 12px; padding: 0.9rem 1.1rem; margin-bottom: 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+              <div>
+                <div style="font-size: 0.73rem; font-weight: 800; text-transform: uppercase; color: #15803d; letter-spacing: 0.03em;">
+                  📌 Contexto del Laboratorio Asignado al Estudiante
+                </div>
+                <div id="quimiActiveLabBannerTitle" style="font-size: 0.98rem; font-weight: 800; color: #0f172a; margin-top: 0.15rem;">
+                  Práctica 1: Síntesis de Cloruro de Sodio (2Na + Cl₂ → 2NaCl)
+                </div>
+                <div id="quimiActiveLabBannerSub" style="font-size: 0.78rem; color: #334155; margin-top: 0.15rem;">
+                  Salón: 4to "A" Secundaria • Fuente de Conocimiento: 13 Capítulos del Libro Guía Digital + 8 Instrumentos de Laboratorio
+                </div>
+              </div>
+
+              <div style="display: flex; flex-direction: column; gap: 0.25rem; min-width: 250px;">
+                <label for="quimiContextLabSelector" style="font-size: 0.74rem; font-weight: 700; color: #1e293b;">Cambiar Laboratorio Asignado a Consultar:</label>
+                <select id="quimiContextLabSelector" class="select-control" style="font-size: 0.82rem; padding: 0.4rem 0.65rem; background: #ffffff;" onchange="App.changeContextualLabPractice(this.value)">
+                  <option value="0">🧪 Lab 1: Síntesis de NaCl (Enlace Iónico)</option>
+                  <option value="1">💧 Lab 2: Molécula Polar H₂O (Enlace Covalente)</option>
+                  <option value="2">⚖️ Lab 3: Neutralización Ácido-Base (HCl + NaOH)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Historial de Conversación Contextual -->
+          <div class="quimi-chat-box" id="quimiContextualChatHistory" style="min-height: 290px; max-height: 390px;">
+            <!-- Renderizado dinámicamente por App.initContextualAssistant() -->
+          </div>
+
+          <!-- Buscador / Formulario de Pregunta Libre Contextual -->
+          <form onsubmit="App.handleContextualQuestionSubmit(event)" style="margin-top: 0.9rem; display: flex; gap: 0.6rem; align-items: center;">
+            <input
+              type="text"
+              id="quimiContextualInput"
+              class="search-input"
+              style="flex: 1; margin: 0; padding: 0.75rem 1rem; font-size: 0.9rem; border: 2px solid #94a3b8; border-radius: 10px;"
+              placeholder="✍️ Escribe cualquier pregunta sobre el laboratorio asignado, fórmulas, conceptos o instrumentos (ej. ¿Qué pasa en mi laboratorio?, ¿Qué es el pH?, ¿Cómo uso la pipeta?, ¿Qué es un mol?)..."
+              autocomplete="off"
+            >
+            <button type="submit" class="btn btn-primary" style="padding: 0.78rem 1.25rem; font-weight: 800; font-size: 0.9rem; white-space: nowrap; background: #16a34a; border-color: #15803d;">
+              🔍 Consultar a Quimi
+            </button>
+          </form>
+
+          <!-- Sugerencias Contextuales Dinámicas (Del Laboratorio Asignado + Del Libro Guía Digital) -->
+          <div style="margin-top: 0.95rem; display: flex; flex-direction: column; gap: 0.65rem;">
+            <div>
+              <div style="font-size: 0.76rem; font-weight: 800; color: #0f172a; margin-bottom: 0.35rem;">
+                🔬 Preguntas Directas sobre tu Laboratorio Asignado Actual:
+              </div>
+              <div id="quimiLabDynamicChips" style="display: flex; flex-wrap: wrap; gap: 0.4rem;">
+                <!-- Chips dinámicos según la práctica asignada -->
+              </div>
+            </div>
+
+            <div style="border-top: 1px dashed #cbd5e1; padding-top: 0.6rem;">
+              <div style="font-size: 0.76rem; font-weight: 800; color: #0369a1; margin-bottom: 0.35rem;">
+                📖 Consultar Temas, Fórmulas y Procedimientos del Libro Guía Digital:
+              </div>
+              <div style="display: flex; flex-wrap: wrap; gap: 0.4rem;">
+                <button type="button" class="btn btn-outline" style="font-size: 0.74rem; padding: 0.28rem 0.6rem;" onclick="App.askContextualQuestion('¿Qué explica el Libro Digital sobre Enlace Químico, Lewis y Pauling (ΔEN)?')">
+                  📘 Enlaces, Lewis y Pauling (ΔEN)
+                </button>
+                <button type="button" class="btn btn-outline" style="font-size: 0.74rem; padding: 0.28rem 0.6rem;" onclick="App.askContextualQuestion('¿Cuál es la fórmula del pH, molaridad y cómo funciona la neutralización ácido-base?')">
+                  📘 Disoluciones, Molaridad y pH
+                </button>
+                <button type="button" class="btn btn-outline" style="font-size: 0.74rem; padding: 0.28rem 0.6rem;" onclick="App.askContextualQuestion('¿Qué es el mol, el número de Avogadro y la Ley de Lavoisier en estequiometría?')">
+                  📘 El Mol, Avogadro y Balanceo
+                </button>
+                <button type="button" class="btn btn-outline" style="font-size: 0.74rem; padding: 0.28rem 0.6rem;" onclick="App.askContextualQuestion('¿Cuál es el procedimiento de la técnica de pipeteo y lectura del menisco?')">
+                  📘 Técnica de Pipeteo y Menisco
+                </button>
+                <button type="button" class="btn btn-outline" style="font-size: 0.74rem; padding: 0.28rem 0.6rem;" onclick="App.askContextualQuestion('¿Cómo se opera el Mechero Bunsen y qué diferencia hay entre llama azul y amarilla?')">
+                  📘 Mechero Bunsen y Llamas
+                </button>
+                <button type="button" class="btn btn-outline" style="font-size: 0.74rem; padding: 0.28rem 0.6rem;" onclick="App.askContextualQuestion('¿Qué dice el Libro Digital sobre el Átomo, Números Cuánticos y Tabla Periódica?')">
+                  📘 Átomo, Cuánticos y Tabla Periódica
+                </button>
+                <button type="button" class="btn btn-outline" style="font-size: 0.74rem; padding: 0.28rem 0.6rem;" onclick="App.askContextualQuestion('¿Qué son los Hidrocarburos (alcanos, alquenos, alquinos) y la Química del Carbono?')">
+                  📘 Carbono e Hidrocarburos
+                </button>
+                <button type="button" class="btn btn-outline" style="font-size: 0.74rem; padding: 0.28rem 0.6rem;" onclick="App.askContextualQuestion('¿Cuáles son las normas de bioseguridad, EPP y pictogramas SGA del laboratorio?')">
+                  📘 Bioseguridad y Pictogramas SGA
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -2071,6 +2205,6 @@
   <!-- Scripts -->
   <script src="reaction_engine.js?v=0.9"></script>
   <script src="pubchem_service.js?v=0.9"></script>
-  <script src="app.js?v=2.8"></script>
+  <script src="app.js?v=2.9"></script>
 </body>
 </html>
