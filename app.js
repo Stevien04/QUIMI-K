@@ -3858,6 +3858,16 @@ const App = {
     this.askQuimiPreset(`¿Cuál es el objetivo científico del paso actual ("${step.name}")?`);
   },
 
+  handleGeneralQuimiSubmit(event) {
+    if (event) event.preventDefault();
+    const input = document.getElementById('quimiGeneralInput');
+    if (!input) return;
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = '';
+    this.askQuimiPreset(text);
+  },
+
   askQuimiPreset(questionText) {
     const chatBox = document.getElementById('quimiChatHistory');
     if (!chatBox) return;
@@ -3873,7 +3883,7 @@ const App = {
       botBubble.innerHTML = this.getQuimiResponse(questionText);
       chatBox.appendChild(botBubble);
       chatBox.scrollTop = chatBox.scrollHeight;
-    }, 350);
+    }, 300);
 
     chatBox.scrollTop = chatBox.scrollHeight;
   },
@@ -3900,7 +3910,241 @@ const App = {
       return `Los átomos buscan completar <strong>8 electrones</strong> en su último nivel para adquirir la configuración estable de un gas noble (como el Argón o Neón).`;
     }
 
-    return `En la práctica activa (<strong>${p.title}</strong>), tu meta es observar cómo la interacción atómica modelada por el motor de reacciones sigue leyes físicas y químicas exactas. Puedes continuar avanzando con el botón "Ejecutar Siguiente Paso".`;
+    // Si es una pregunta abierta o de conocimientos básicos, usar el motor inteligente de conocimientos básicos + contextual
+    return this.buildContextualAnswerFromGuideAndLab(question);
+  },
+
+  // ================= MOTOR DE CONOCIMIENTOS BÁSICOS, CONVERSACIONALES Y DEL SISTEMA =================
+  getBasicAndConversationalAnswer(rawQuestion, qNorm) {
+    const pIndex = this.state.currentPracticeIndex || 0;
+    const activePractice = this.practices[pIndex] || this.practices[0];
+
+    // 1. Preguntas sobre AGREGAR / INGRESAR / MODIFICAR información en el LIBRO DIGITAL
+    if (
+      (qNorm.includes('libro') || qNorm.includes('guia') || qNorm.includes('enciclopedia') || qNorm.includes('informacion') || qNorm.includes('tema')) &&
+      (qNorm.includes('ingresar') || qNorm.includes('agregar') || qNorm.includes('anadir') || qNorm.includes('meter') || qNorm.includes('subir') || qNorm.includes('crear') || qNorm.includes('nuevo') || qNorm.includes('mas informacion') || qNorm.includes('modificar') || qNorm.includes('editar') || qNorm.includes('puedo'))
+    ) {
+      return {
+        isDirectComplete: true,
+        html: `
+          <div>
+            ¡<strong>Sí, por supuesto</strong>! 😊 Puedes ingresar más información, nuevos conceptos, fórmulas y procedimientos directamente en el <strong>Libro Guía Digital</strong> del sistema.<br><br>
+            <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-left: 4px solid #0284c7; border-radius: 10px; padding: 0.85rem 1rem; margin-bottom: 0.65rem;">
+              <strong>📖 ¿Cómo funciona?</strong><br>
+              1. Haz clic en el botón <strong>"➕ Agregar Nuevo Tema al Libro Digital"</strong> (aquí abajo o dentro de la pestaña <em>Libro Guía Digital</em>).<br>
+              2. Completa el <strong>Título del Tema</strong>, la <strong>Categoría</strong>, la <strong>Fórmula Científica</strong> y el <strong>Procedimiento de Laboratorio</strong>.<br>
+              3. Al guardarlo, el nuevo capítulo aparecerá en el Libro Digital y <strong>yo (Quimi) aprenderé esa información al instante</strong> para responder cualquier pregunta que me hagas sobre ese nuevo tema.
+            </div>
+            <div style="display: flex; gap: 0.6rem; flex-wrap: wrap;">
+              <button type="button" class="btn btn-primary" style="font-size: 0.82rem; padding: 0.45rem 0.9rem; background: #0284c7; border-color: #0369a1; font-weight: 700;" onclick="App.openAddGuideModal()">
+                ➕ Agregar Nuevo Tema al Libro Digital Ahora
+              </button>
+              <button type="button" class="btn btn-outline" style="font-size: 0.82rem; padding: 0.45rem 0.9rem;" onclick="document.querySelector('[data-tab=\\'tab-guide\\']').click()">
+                📖 Ir al Libro Guía Digital (${this.guideEntries.length} temas actuales)
+              </button>
+            </div>
+          </div>
+        `
+      };
+    }
+
+    // 2. Saludos, presentación, agradecimientos y conversación básica cotidiana
+    const greetingsRegex = /^(hola|buenos dias|buenas tardes|buenas noches|buen dia|que tal|como estas|hey|saludos|hola quimi|buenas)\b/;
+    if (greetingsRegex.test(qNorm) && qNorm.split(/\s+/).length <= 6) {
+      return {
+        isDirectComplete: true,
+        html: `
+          ¡Hola! 👋 Soy <strong>Quimi</strong>, tu tutor virtual de ciencias del <strong>Colegio Alexander Fleming</strong>.<br><br>
+          Estoy listo para ayudarte con:
+          <ul style="margin: 0.4rem 0 0.5rem 1.2rem; padding: 0;">
+            <li><strong>Conocimientos básicos de Química y Ciencias:</strong> átomos, elementos de la tabla periódica, enlaces, pH, estados de la materia, fórmulas y conversiones.</li>
+            <li><strong>Tu Laboratorio Asignado actual:</strong> <em>${activePractice.title}</em> (<code>${activePractice.equation}</code>).</li>
+            <li><strong>Instrumentos 2D y Libro Guía Digital:</strong> cómo usar la pipeta, el mechero, la balanza o incluso agregar más temas al Libro Digital.</li>
+          </ul>
+          ¿Qué te gustaría saber o experimentar hoy? 😊
+        `
+      };
+    }
+
+    if (qNorm.includes('como estas') || qNorm.includes('que tal estas') || qNorm.includes('como te encuentras')) {
+      return {
+        isDirectComplete: true,
+        html: `¡Estoy excelente y con mis circuitos listos para experimentar en el laboratorio! 🤖⚗️ Actualmente tengo cargado tu laboratorio asignado (<strong>${activePractice.title}</strong>) y los <strong>${this.guideEntries.length} capítulos del Libro Guía Digital</strong>. ¿En qué te puedo ayudar hoy?`
+      };
+    }
+
+    if (qNorm.includes('quien eres') || qNorm.includes('como te llamas') || qNorm.includes('que eres') || qNorm.includes('que puedes hacer') || qNorm.includes('para que sirves')) {
+      return {
+        isDirectComplete: true,
+        html: `
+          Soy <strong>Quimi 🤖</strong>, el asistente virtual inteligente del simulador de laboratorio <strong>QUIMI-K</strong> de la <strong>I.E. Alexander Fleming (Tacna)</strong>.<br><br>
+          <strong>Mis funciones principales son:</strong>
+          <ul style="margin: 0.4rem 0 0.4rem 1.2rem; padding: 0;">
+            <li>Responder <strong>preguntas básicas y generales de química</strong> (elementos, fórmulas, definiciones simples, cálculos).</li>
+            <li>Absolver <strong>consultas contextuales sobre tu laboratorio asignado</strong> (${activePractice.title}).</li>
+            <li>Extraer <strong>conceptos, fórmulas y procedimientos</strong> directamente del <strong>Libro Guía Digital</strong>.</li>
+            <li>Guiarte en la manipulación de los <strong>8 instrumentos virtuales 2D</strong> (pipeta graduada, matraz, mechero Bunsen, balanza, etc.).</li>
+          </ul>
+        `
+      };
+    }
+
+    if (qNorm === 'gracias' || qNorm.includes('muchas gracias') || qNorm.includes('te lo agradezco') || qNorm === 'ok gracias') {
+      return {
+        isDirectComplete: true,
+        html: `¡Con mucho gusto! 😊 Recuerda que en la ciencia preguntar es el primer paso para descubrir. Si tienes cualquier otra duda sobre química, tu laboratorio o el Libro Digital, escríbeme cuando quieras.`
+      };
+    }
+
+    if (qNorm === 'una duda' || qNorm === 'tengo una duda' || qNorm === 'tengo una pregunta' || qNorm === 'ayuda' || qNorm === 'ayudame') {
+      return {
+        isDirectComplete: true,
+        html: `¡Claro! Dime cuál es tu duda 😊. Puedes preguntarme sobre <strong>conceptos básicos de química</strong> (ej. <em>¿qué es un átomo?, ¿qué es el agua?, ¿qué es el pH?</em>), sobre <strong>tu laboratorio asignado</strong> (<em>${activePractice.title}</em>), sobre <strong>cómo usar un instrumento</strong> o sobre el <strong>funcionamiento del sistema y del Libro Digital</strong>.`
+      };
+    }
+
+    // 3. Preguntas sobre el sistema QUIMI-K (roles, salones, evaluaciones, notas)
+    if (qNorm.includes('rol') || qNorm.includes('roles') || qNorm.includes('administrador') || qNorm.includes('cambiar rol') || (qNorm.includes('docente') && qNorm.includes('estudiante'))) {
+      return {
+        isDirectComplete: true,
+        html: `
+          <strong>🛡️ Gestión de Roles en QUIMI-K:</strong><br>
+          • <strong>Ingreso por defecto como Estudiante:</strong> Todo nuevo usuario que se registra o cuya solicitud es aceptada ingresa inicialmente con el rol de <strong>Estudiante</strong>.<br>
+          • <strong>Cambio de Rol por el Administrador:</strong> El <strong>Administrador</strong> tiene en su padrón de usuarios un selector directo en la columna <em>Rol</em> para designar si un usuario es <strong>👨‍🎓 Estudiante</strong> o <strong>👩‍🏫 Docente</strong>, mostrando siempre una <strong>ventana emergente de confirmación</strong> antes de aplicar el cambio.
+        `
+      };
+    }
+
+    if (qNorm.includes('nota') || qNorm.includes('calificacion') || qNorm.includes('examen') || qNorm.includes('evaluacion') || qNorm.includes('reporte pdf')) {
+      return {
+        isDirectComplete: true,
+        html: `
+          <strong>📝 Evaluaciones y Calificaciones en QUIMI-K:</strong><br>
+          En la pestaña <strong>Evaluación & Reporte</strong> puedes resolver el cuestionario de tu práctica de laboratorio o las evaluaciones publicadas por tu docente. El sistema califica en escala vigesimal (<strong>0 a 20</strong>, nota aprobatoria ≥ 14), registra tu nota en tu salón de clases y te permite descargar tu <strong>Reporte Oficial en PDF</strong>.
+        `
+      };
+    }
+
+    // 4. Calculadora rápida y conversiones de unidades (ej. Celsius a Kelvin, mL a Litros, operaciones)
+    const tempMatch = qNorm.match(/(\d+(?:\.\d+)?)\s*(?:grados|c|celsius)\s*a\s*(?:kelvin|k)/);
+    if (tempMatch) {
+      const cVal = parseFloat(tempMatch[1]);
+      const kVal = (cVal + 273.15).toFixed(2);
+      return {
+        isDirectComplete: true,
+        html: `🌡️ <strong>Conversión de Temperatura (SI):</strong><br>Aplicando la fórmula del Libro Guía Digital <code>K = °C + 273.15</code>:<br>• <strong>${cVal} °C</strong> equivalen exactamente a <strong>${kVal} K (Kelvin)</strong>.`
+      };
+    }
+
+    // 5. Diccionario de Elementos Químicos Básicos de la Tabla Periódica
+    const basicElements = {
+      hidrogeno: { sym: 'H', z: 1, mass: '1.008 u', en: 2.20, group: 'No metal (Grupo 1)', info: 'Es el elemento más ligero y abundante del universo. Forma el agua (H₂O) al unirse con el oxígeno y está presente en todos los ácidos (iones H⁺).' },
+      helio: { sym: 'He', z: 2, mass: '4.0026 u', en: '—', group: 'Gas Noble (Grupo 18)', info: 'Gas noble inerte e incoloro con su capa de valencia completa (2 electrones).' },
+      carbono: { sym: 'C', z: 6, mass: '12.011 u', en: 2.55, group: 'No metal tetravalente (Grupo 14)', info: 'Base de toda la Química Orgánica y de la vida. Posee tetravalencia (forma 4 enlaces covalentes) y autosaturación (forma cadenas y anillos).' },
+      nitrogeno: { sym: 'N', z: 7, mass: '14.007 u', en: 3.04, group: 'No metal (Grupo 15)', info: 'Constituye el 78% del aire atmosférico (N₂) y es esencial en aminoácidos, proteínas y ácidos nucleicos.' },
+      oxigeno: { sym: 'O', z: 8, mass: '15.999 u', en: 3.44, group: 'No metal calcógeno (Grupo 16)', info: 'Indispensable para la respiración celular y las reacciones de combustión. Forma óxidos y moléculas polares como el agua (H₂O).' },
+      sodio: { sym: 'Na', z: 11, mass: '22.990 u', en: 0.93, group: 'Metal Alcalino (Grupo 1)', info: 'Metal blando, plateado y muy reactivo con el agua. Posee 1 electrón de valencia que cede fácilmente formando el catión Na⁺ (presente en la sal NaCl).' },
+      magnesio: { sym: 'Mg', z: 12, mass: '24.305 u', en: 1.31, group: 'Metal Alcalinotérreo (Grupo 2)', info: 'Metal ligero que arde con una llama blanca brillante formando óxido de magnesio (MgO).' },
+      cloro: { sym: 'Cl', z: 17, mass: '35.45 u', en: 3.16, group: 'Halógeno (Grupo 17)', info: 'Gas amarillo-verdoso de alta electronegatividad (3.16) con 7 electrones de valencia. Gana 1 electrón formando el anión cloruro (Cl⁻).' },
+      potasio: { sym: 'K', z: 19, mass: '39.098 u', en: 0.82, group: 'Metal Alcalino (Grupo 1)', info: 'Metal alcalino muy activo químicamente y electrolito esencial para la transmisión nerviosa.' },
+      calcio: { sym: 'Ca', z: 20, mass: '40.078 u', en: 1.00, group: 'Metal Alcalinotérreo (Grupo 2)', info: 'Elemento estructural clave de huesos, dientes y minerales como la piedra caliza (CaCO₃).' },
+      hierro: { sym: 'Fe', z: 26, mass: '55.845 u', en: 1.83, group: 'Metal de Transición (Grupo 8)', info: 'Metal ferromagnético fundamental en la industria (acero) y en la hemoglobina de la sangre para transportar oxígeno (estados +2 y +3).' },
+      cobre: { sym: 'Cu', z: 29, mass: '63.546 u', en: 1.90, group: 'Metal de Transición (Grupo 11)', info: 'Excelente conductor de la electricidad y el calor, de característico color rojizo.' },
+      oro: { sym: 'Au', z: 79, mass: '196.97 u', en: 2.54, group: 'Metal de Transición Noble (Grupo 11)', info: 'Metal precioso amarillo, sumamente dúctil, maleable y resistente a la oxidación y corrosión.' },
+      plata: { sym: 'Ag', z: 47, mass: '107.87 u', en: 1.93, group: 'Metal de Transición (Grupo 11)', info: 'Metal blanco brillante con la mayor conductividad eléctrica y térmica de todos los metales.' }
+    };
+
+    for (const [elKey, elData] of Object.entries(basicElements)) {
+      if (
+        qNorm === elKey ||
+        qNorm === `que es el ${elKey}` ||
+        qNorm === `que es ${elKey}` ||
+        qNorm.includes(`elemento ${elKey}`) ||
+        qNorm.includes(`sobre el ${elKey}`) ||
+        qNorm.includes(`datos del ${elKey}`)
+      ) {
+        return {
+          isDirectComplete: false,
+          html: `
+            <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-left: 4px solid #2563eb; border-radius: 10px; padding: 0.8rem 1rem; margin-bottom: 0.65rem;">
+              <div style="font-size: 0.76rem; font-weight: 800; color: #1d4ed8; text-transform: uppercase;">⚛️ Conocimiento Básico de Elemento Químico</div>
+              <div style="font-size: 0.92rem; font-weight: 800; color: #0f172a; margin-top: 0.15rem;">
+                ${elKey.charAt(0).toUpperCase() + elKey.slice(1)} (${elData.sym}) — Número Atómico Z = ${elData.z}
+              </div>
+              <div style="font-size: 0.83rem; color: #334155; margin-top: 0.3rem; line-height: 1.45;">
+                • <strong>Masa Atómica:</strong> ${elData.mass} | <strong>Electronegatividad (Pauling):</strong> ${elData.en} | <strong>Familia:</strong> ${elData.group}<br>
+                • <strong>Descripción:</strong> ${elData.info}
+              </div>
+            </div>
+          `
+        };
+      }
+    }
+
+    // 6. Conceptos básicos fundamentales explicados en lenguaje sencillo
+    const basicConcepts = [
+      {
+        triggers: ['que es la quimica', 'definicion de quimica', 'para que sirve la quimica'],
+        title: '🧪 ¿Qué es la Química?',
+        text: 'La <strong>Química</strong> es la ciencia natural y experimental que estudia la <strong>materia</strong>, su composición interna (átomos y moléculas), sus propiedades físicas y químicas, y las transformaciones o reacciones que experimenta junto con los cambios de energía.'
+      },
+      {
+        triggers: ['que es el agua', 'formula del agua', 'molecula de agua'],
+        title: '💧 ¿Qué es el Agua (H₂O)?',
+        text: 'El <strong>agua (H₂O)</strong> es un compuesto químico vital formado por <strong>2 átomos de Hidrógeno</strong> unidos a <strong>1 átomo de Oxígeno</strong> mediante <strong>enlaces covalentes polares</strong> (ΔEN = 1.24). Es conocida como el <em>disolvente universal</em>, tiene pH neutro (7.0) a 25 °C, punto de fusión de 0 °C y punto de ebullición de 100 °C.'
+      },
+      {
+        triggers: ['que es la sal', 'formula de la sal', 'que es nacl', 'cloruro de sodio'],
+        title: '🧂 ¿Qué es la Sal Común (Cloruro de Sodio - NaCl)?',
+        text: 'El <strong>Cloruro de Sodio (NaCl)</strong> es un compuesto iónico cristalino formado por el catión <strong>Sodio (Na⁺)</strong> y el anión <strong>Cloruro (Cl⁻)</strong> con una diferencia de electronegatividad <strong>ΔEN = 2.23</strong>. En el simulador QUIMI-K se obtiene tanto por síntesis directa (<code>2Na + Cl₂ → 2NaCl</code>) como por neutralización ácido-base (<code>HCl + NaOH → NaCl + H₂O</code>).'
+      },
+      {
+        triggers: ['que es un atomo', 'definicion de atomo', 'partes del atomo'],
+        title: '⚛️ ¿Qué es un Átomo?',
+        text: 'El <strong>átomo</strong> es la unidad más pequeña y fundamental de la materia que conserva las propiedades de un elemento químico. Tiene dos zonas: el <strong>núcleo central</strong> (que contiene <strong>protones p⁺</strong> con carga positiva y <strong>neutrones n°</strong> sin carga) y la <strong>nube electrónica exterior</strong> (donde giran los <strong>electrones e⁻</strong> con carga negativa).'
+      },
+      {
+        triggers: ['que es una molecula', 'definicion de molecula'],
+        title: '🔗 ¿Qué es una Molécula?',
+        text: 'Una <strong>molécula</strong> es un conjunto eléctricamente neutro y estable de dos o más átomos unidos entre sí mediante enlaces químicos covalentes, como el oxígeno que respiramos (<code>O₂</code>), el agua (<code>H₂O</code>) o el dióxido de carbono (<code>CO₂</code>).'
+      },
+      {
+        triggers: ['que es el ph', 'escala de ph', 'para que sirve el ph'],
+        title: '📊 ¿Qué es el pH?',
+        text: 'El <strong>pH (Potencial de Hidrógeno)</strong> es una escala numérica del <strong>0 al 14</strong> que mide qué tan ácida o básica (alcalina) es una disolución acuosa según su concentración de iones hidrógeno (<code>pH = -log[H⁺]</code>):<br>• <strong>pH menor a 7:</strong> Sustancia Ácida (ej. jugo de limón, ácido clorhídrico HCl).<br>• <strong>pH igual a 7:</strong> Sustancia Neutra (ej. agua pura destilada).<br>• <strong>pH mayor a 7:</strong> Sustancia Básica o Alcalina (ej. jabón, hidróxido de sodio NaOH).'
+      },
+      {
+        triggers: ['que es un acido', 'que es una base', 'diferencia entre acido y base'],
+        title: '⚗️ ¿Qué es un Ácido y qué es una Base?',
+        text: 'Según Arrhenius y Brønsted-Lowry:<br>• Un <strong>Ácido</strong> es toda sustancia que en agua libera protones o iones hidrógeno (<strong>H⁺</strong>), tiene sabor agrio, pH < 7 y enrojece el papel tornasol (ej. <code>HCl</code>, <code>H₂SO₄</code>).<br>• Una <strong>Base (o Hidróxido)</strong> es toda sustancia que libera iones hidroxilo (<strong>OH⁻</strong>) o acepta protones, tiene tacto jabonoso, pH > 7 y azulea el papel tornasol (ej. <code>NaOH</code>, <code>Ca(OH)₂</code>).'
+      },
+      {
+        triggers: ['que es la materia', 'estados de la materia'],
+        title: '🧊 ¿Qué es la Materia y cuáles son sus Estados?',
+        text: 'La <strong>materia</strong> es todo aquello que tiene <strong>masa</strong> y ocupa un <strong>volumen</strong> en el espacio. Sus estados fundamentales son:<br>• <strong>Sólido:</strong> Forma y volumen fijos (partículas muy unidas).<br>• <strong>Líquido:</strong> Volumen fijo pero forma variable (se adapta al recipiente).<br>• <strong>Gaseoso:</strong> Ni forma ni volumen fijos (las partículas se expanden libremente).<br>• <strong>Plasma:</strong> Gas ionizado a alta temperatura (como en el Sol).'
+      },
+      {
+        triggers: ['que es un mol', 'numero de avogadro'],
+        title: '⚖️ ¿Qué es el Mol y el Número de Avogadro?',
+        text: 'El <strong>mol</strong> es la unidad del Sistema Internacional para medir la cantidad de sustancia. <strong>1 mol</strong> de cualquier sustancia contiene exactamente <strong>6.022 × 10²³ partículas</strong> (átomos, moléculas o iones), cifra conocida como el <strong>Número de Avogadro</strong>. Se calcula dividiendo la masa en gramos entre la masa molar: <code>n = m / M</code>.'
+      }
+    ];
+
+    for (const item of basicConcepts) {
+      if (item.triggers.some(t => qNorm.includes(t))) {
+        return {
+          isDirectComplete: false,
+          html: `
+            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-left: 4px solid #16a34a; border-radius: 10px; padding: 0.8rem 1rem; margin-bottom: 0.65rem;">
+              <div style="font-size: 0.88rem; font-weight: 800; color: #166534; margin-bottom: 0.25rem;">${item.title}</div>
+              <div style="font-size: 0.85rem; color: #1e293b; line-height: 1.5;">${item.text}</div>
+            </div>
+          `
+        };
+      }
+    }
+
+    return null;
   },
 
   // ================= OPCIÓN 2: RESPUESTAS CONTEXTUALES (LABORATORIO ASIGNADO + LIBRO GUÍA DIGITAL) =================
@@ -4087,8 +4331,24 @@ const App = {
   },
 
   buildContextualAnswerFromGuideAndLab(rawQuestion) {
+    this.loadCustomGuideEntries();
     const qNorm = this.normalizeQueryText(rawQuestion);
-    const tokens = qNorm.split(/\s+/).filter(w => w.length >= 2);
+
+    // 0. Verificar primero Conocimientos Básicos, Conversacionales y del Sistema
+    const basicAns = this.getBasicAndConversationalAnswer(rawQuestion, qNorm);
+    if (basicAns && basicAns.isDirectComplete) {
+      return basicAns.html;
+    }
+
+    const stopWords = new Set([
+      'una', 'uno', 'unos', 'unas', 'los', 'las', 'del', 'por', 'para', 'con', 'sin', 'sobre', 'entre',
+      'como', 'cual', 'cuales', 'que', 'quien', 'donde', 'cuando', 'cuanto', 'mas', 'menos', 'muy',
+      'este', 'esta', 'estos', 'estas', 'ese', 'esa', 'eso', 'tiene', 'tienen', 'puedo', 'puede',
+      'hacer', 'hace', 'dice', 'duda', 'pregunta', 'consulta', 'favor', 'quiero', 'saber', 'explica',
+      'explicame', 'dime', 'son', 'sea', 'hay', 'ser', 'esta'
+    ]);
+
+    const tokens = qNorm.split(/\s+/).filter(w => (w.length >= 3 || w === 'ph' || w === 'si' || w === 'na' || w === 'cl') && !stopWords.has(w));
 
     const pIndex = this.state.currentPracticeIndex || 0;
     const activePractice = this.practices[pIndex] || this.practices[0];
@@ -4111,7 +4371,7 @@ const App = {
       'g-hidrocarburos-funciones': ['hidrocarburos', 'alcanos', 'alquenos', 'alquinos', 'parafinas', 'olefinas', 'metano', 'etano', 'propano', 'butano', 'grupos funcionales', 'alcoholes', 'aldehidos', 'cetonas', 'acidos carboxilicos', 'esteres', 'aminas', 'amidas', 'etanol'],
       'g-lab-instrumentos-pipeta': ['pipeta', 'pipeteo', 'menisco', 'aforo', 'enrase', 'enrasar', 'propipeta', 'volumetrico', 'volumen', 'paralaje', 'alicuota', 'probeta', 'erlenmeyer', 'matraz'],
       'g-lab-mechero-bunsen': ['mechero', 'bunsen', 'llama', 'azul', 'amarilla', 'luminosa', 'collarin', 'virola', 'hollin', 'calentamiento', '1500', 'oxidante', 'reductor', 'encendido'],
-      'g-lab-bioseguridad-sga': ['bioseguridad', 'seguridad', 'sga', 'pictogramas', 'epp', 'bata', 'gafas', 'guantes', 'peligro', 'corrosivo', 'inflamable', 'toxico', 'emergencia', 'normas', 'cuidado']
+      'g-lab-bioseguridad-sga': ['bioseguridad', 'seguridad', 'sga', 'pictogramas', 'epp', 'bata', 'gafas', 'guantes', 'peligro', 'corrosivo', 'inflamable', 'toxico', 'emergencia']
     };
 
     // Puntuar cada capítulo del Libro Guía Digital
@@ -4132,11 +4392,10 @@ const App = {
       });
 
       tokens.forEach(tk => {
-        if (tk.length < 3 && tk !== 'ph' && tk !== 'si' && tk !== 'na' && tk !== 'cl') return;
-        if (termNorm.includes(tk)) score += 10;
-        if (formNorm.includes(tk)) score += 8;
+        if (termNorm.includes(tk)) score += 12;
+        if (formNorm.includes(tk)) score += 9;
         if (catNorm.includes(tk)) score += 5;
-        if (descNorm.includes(tk)) score += 4;
+        if (descNorm.includes(tk)) score += 5;
         if (procNorm.includes(tk)) score += 4;
         if (fullNorm.includes(tk)) score += 2;
       });
@@ -4168,9 +4427,9 @@ const App = {
     let targetPracticeIndex = pIndex;
     if (qNorm.includes('practica 1') || qNorm.includes('lab 1') || qNorm.includes('sodio') || qNorm.includes('cloro') || qNorm.includes('nacl')) {
       targetPracticeIndex = 0;
-    } else if (qNorm.includes('practica 2') || qNorm.includes('lab 2') || qNorm.includes('agua') || qNorm.includes('h2o') || qNorm.includes('hidrogeno') || qNorm.includes('oxigeno') || qNorm.includes('molécula polar') || qNorm.includes('molecula polar')) {
+    } else if (qNorm.includes('practica 2') || qNorm.includes('lab 2') || qNorm.includes('agua') || qNorm.includes('h2o') || qNorm.includes('hidrogeno') || qNorm.includes('oxigeno') || qNorm.includes('molecula polar')) {
       targetPracticeIndex = 1;
-    } else if (qNorm.includes('practica 3') || qNorm.includes('lab 3') || qNorm.includes('neutralizacion') || qNorm.includes('hcl') || qNorm.includes('naoh') || qNorm.includes('titulacion') || qNorm.includes('acido')) {
+    } else if (qNorm.includes('practica 3') || qNorm.includes('lab 3') || qNorm.includes('neutralizacion') || qNorm.includes('hcl') || qNorm.includes('naoh') || qNorm.includes('titulacion')) {
       targetPracticeIndex = 2;
     }
 
@@ -4183,21 +4442,44 @@ const App = {
       qNorm.includes('paso') ||
       qNorm.includes('ecuacion') ||
       qNorm.includes('reactivo') ||
-      qNorm.includes('consiste') ||
-      qNorm.includes('hacer');
+      qNorm.includes('consiste');
 
-    // Si no hubo match fuerte en el Libro Guía, vincular el capítulo principal del laboratorio asignado
+    // Si no hubo match ni en conceptos básicos, ni en el Libro Guía, ni en instrumentos, ni en el laboratorio asignado,
+    // dar una respuesta orientadora amigable con conocimientos generales sin forzar un capítulo no relacionado
+    const topScore = scoredEntries[0] ? scoredEntries[0].score : 0;
+    if (!basicAns && topScore === 0 && !matchedTool && !asksAboutAssignedLab) {
+      return `
+        <div>
+          🤖 <strong>Quimi:</strong> He recibido tu consulta <em>"${rawQuestion}"</em>.<br><br>
+          Puedo responderte de forma directa sobre:
+          <ul style="margin: 0.4rem 0 0.6rem 1.2rem; padding: 0; font-size: 0.85rem;">
+            <li><strong>Conocimientos Básicos de Química:</strong> Pregúntame por ej. <em>"¿Qué es la química?"</em>, <em>"¿Qué es un átomo?"</em>, <em>"¿Qué es el pH?"</em>, <em>"¿Qué es el agua?"</em>, <em>"¿Qué es un ácido o una base?"</em> o por cualquier elemento (<em>Sodio, Cloro, Carbono, Oxígeno, Hierro, Oro...</em>).</li>
+            <li><strong>Tu Laboratorio Asignado (${activePractice.title}):</strong> Pregúntame <em>"¿En qué consiste mi laboratorio asignado?"</em> o <em>"¿Cuáles son los pasos de la práctica?"</em>.</li>
+            <li><strong>El Libro Guía Digital (${this.guideEntries.length} capítulos):</strong> Conceptos, fórmulas y procedimientos, o haz clic en <strong>➕ Agregar Nuevo Tema al Libro Digital</strong> si deseas enseñarme un tema nuevo.</li>
+          </ul>
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <button type="button" class="btn btn-outline" style="font-size: 0.76rem; padding: 0.3rem 0.65rem;" onclick="App.askContextualQuestion('¿En qué consiste mi laboratorio asignado y cuáles son sus pasos?')">
+              🔬 Explicar mi Laboratorio Asignado
+            </button>
+            <button type="button" class="btn btn-outline" style="font-size: 0.76rem; padding: 0.3rem 0.65rem;" onclick="App.openAddGuideModal()">
+              ➕ Agregar Tema al Libro Digital
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
     const defaultGuideByPractice = {
       0: 'g-enlace-quimico',
       1: 'g-enlace-quimico',
       2: 'g-soluciones-ph'
     };
 
-    let bestGuideEntry = scoredEntries[0] && scoredEntries[0].score > 0
+    let bestGuideEntry = topScore > 0
       ? scoredEntries[0].entry
       : this.guideEntries.find(e => e.id === defaultGuideByPractice[targetPracticeIndex]) || this.guideEntries[0];
 
-    const secondGuideEntry = (scoredEntries[1] && scoredEntries[1].score >= 8 && scoredEntries[1].entry.id !== bestGuideEntry.id)
+    const secondGuideEntry = (scoredEntries[1] && scoredEntries[1].score >= 12 && scoredEntries[1].entry.id !== bestGuideEntry.id)
       ? scoredEntries[1].entry
       : null;
 
@@ -4208,7 +4490,7 @@ const App = {
 
     // Construir bloque de explicación contextual del Laboratorio Asignado
     let labContextHtml = '';
-    if (asksAboutAssignedLab || scoredEntries[0].score < 12) {
+    if (asksAboutAssignedLab) {
       const stepsListHtml = targetPractice.steps.map(s =>
         `<li style="margin-bottom: 0.2rem;"><strong>Paso ${s.step} (${s.name}):</strong> ${s.desc} <em style="color:#0369a1;">(${s.hint})</em></li>`
       ).join('');
@@ -4229,10 +4511,10 @@ const App = {
           </div>
         </div>
       `;
-    } else {
+    } else if (!basicAns) {
       labContextHtml = `
         <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 0.55rem 0.85rem; margin-bottom: 0.75rem; font-size: 0.8rem; color: #334155;">
-          🔗 <strong>Relación con tu Laboratorio Asignado (${activePractice.title}):</strong> En tu experimento activo (<code>${activePractice.equation}</code>, Paso actual: <em>${currentStep.name}</em>), este concepto del Libro Guía Digital se aplica directamente para fundamentar la reacción y el manejo seguro del instrumental.
+          🔗 <strong>Aplicación en tu Laboratorio Asignado (${activePractice.title}):</strong> En tu práctica activa (<code>${activePractice.equation}</code>, Paso actual: <em>${currentStep.name}</em>), este fundamento científico del Libro Guía Digital permite comprender la reacción y el manejo del instrumental.
         </div>
       `;
     }
@@ -4306,9 +4588,11 @@ const App = {
 
     return `
       <div>
-        <div style="margin-bottom: 0.55rem; font-size: 0.88rem; color: #0f172a;">
-          🤖 <strong>Quimi (Respuesta Contextual):</strong> He analizado tu consulta <em>"${rawQuestion}"</em> cruzando los datos de tu <strong>Laboratorio Asignado</strong> y el <strong>Libro Guía Digital</strong> del sistema:
-        </div>
+        ${basicAns ? basicAns.html : `
+          <div style="margin-bottom: 0.55rem; font-size: 0.88rem; color: #0f172a;">
+            🤖 <strong>Quimi (Respuesta Contextual):</strong> Aquí tienes la respuesta a tu consulta <em>"${rawQuestion}"</em> basada en tu <strong>Laboratorio Asignado</strong> y el <strong>Libro Guía Digital</strong>:
+          </div>
+        `}
         ${labContextHtml}
         ${toolHtml}
         ${renderGuideCard(bestGuideEntry, true)}
@@ -4317,8 +4601,107 @@ const App = {
     `;
   },
 
+  // ================= AGREGAR NUEVOS TEMAS AL LIBRO GUÍA DIGITAL (Y ENSEÑAR A QUIMI) =================
+  customGuideLoaded: false,
+
+  loadCustomGuideEntries() {
+    if (this.customGuideLoaded) return;
+    this.customGuideLoaded = true;
+    try {
+      const raw = localStorage.getItem('quimik_custom_guide_entries');
+      if (raw) {
+        const saved = JSON.parse(raw);
+        if (Array.isArray(saved)) {
+          saved.forEach(item => {
+            if (item && item.id && !this.guideEntries.some(e => e.id === item.id)) {
+              this.guideEntries.unshift(item);
+            }
+          });
+        }
+      }
+    } catch (e) {
+      console.warn('No se pudieron cargar temas personalizados del Libro Guía:', e);
+    }
+  },
+
+  openAddGuideModal() {
+    const modal = document.getElementById('modalAddGuideEntry');
+    if (modal) modal.style.display = 'flex';
+  },
+
+  closeAddGuideModal() {
+    const modal = document.getElementById('modalAddGuideEntry');
+    if (modal) modal.style.display = 'none';
+  },
+
+  handleSaveNewGuideEntry(event) {
+    if (event) event.preventDefault();
+    const term = (document.getElementById('newGuideTerm')?.value || '').trim();
+    const catKey = document.getElementById('newGuideCatKey')?.value || 'materia';
+    const formula = (document.getElementById('newGuideFormula')?.value || '').trim();
+    const desc = (document.getElementById('newGuideDesc')?.value || '').trim();
+    const procedure = (document.getElementById('newGuideProcedure')?.value || '').trim();
+
+    if (!term || !desc) return;
+
+    const catLabels = {
+      materia: 'Materia y Medición',
+      atomo: 'Estructura Atómica y Tabla',
+      enlaces: 'Enlaces y Nomenclatura',
+      reacciones: 'Reacciones y Estequiometría',
+      organica: 'Química Orgánica',
+      laboratorio: 'Procedimientos de Laboratorio'
+    };
+
+    const newEntry = {
+      id: 'g-custom-' + Date.now(),
+      term,
+      category: catLabels[catKey] || 'Materia y Medición',
+      catKey,
+      formula: formula || 'Concepto Teórico-Experimental',
+      desc,
+      procedure: procedure || 'Aplicable en las prácticas de laboratorio virtual QUIMI-K.',
+      fullContent: `
+        <h4>1. Explicación del Concepto (${term})</h4>
+        <p>${desc}</p>
+        <h4>2. Expresión / Fórmula Científica</h4>
+        <p><code>${formula || 'N/A'}</code></p>
+        <h4>3. Aplicación y Procedimiento de Laboratorio</h4>
+        <p>${procedure}</p>
+      `
+    };
+
+    this.guideEntries.unshift(newEntry);
+
+    try {
+      const raw = localStorage.getItem('quimik_custom_guide_entries');
+      const arr = raw ? JSON.parse(raw) : [];
+      arr.unshift(newEntry);
+      localStorage.setItem('quimik_custom_guide_entries', JSON.stringify(arr));
+    } catch (e) {
+      console.warn('Error al guardar en localStorage:', e);
+    }
+
+    // Limpiar formulario y cerrar modal
+    document.getElementById('newGuideTerm').value = '';
+    document.getElementById('newGuideFormula').value = '';
+    document.getElementById('newGuideDesc').value = '';
+    document.getElementById('newGuideProcedure').value = '';
+    this.closeAddGuideModal();
+
+    this.renderGuideEntries();
+    this.updateContextualAssistantUI();
+
+    this.showDialog(
+      `¡El tema "${term}" se agregó con éxito al Libro Guía Digital!\n\nAhora cuenta con ${this.guideEntries.length} capítulos disponibles y el Asistente Quimi ya puede responder cualquier consulta sobre "${term}".`,
+      'Nuevo Tema Agregado al Libro Digital',
+      '📖'
+    );
+  },
+
   // ================= RF014 & RF015: LIBRO GUÍA Y ENCICLOPEDIA CIENTÍFICA =================
   renderGuideEntries() {
+    this.loadCustomGuideEntries();
     const container = document.getElementById('guideEntriesContainer');
     if (!container) return;
 

@@ -495,12 +495,26 @@
             </div>
           </div>
 
+          <!-- Entrada libre de consulta general + Selector de Preguntas Predefinidas -->
+          <form onsubmit="App.handleGeneralQuimiSubmit(event)" style="margin-top: 0.85rem; display: flex; gap: 0.6rem; align-items: center; width: 100%;">
+            <input
+              type="text"
+              id="quimiGeneralInput"
+              style="flex: 1; width: 100%; max-width: 100%; margin: 0; padding: 0.72rem 1rem; font-size: 0.88rem; border: 2px solid #cbd5e1; border-radius: 10px; outline: none;"
+              placeholder="💬 Escribe una consulta rápida o saludo a Quimi (ej. Hola, ¿qué es la química?, ¿qué es un átomo?, ¿cómo funciona el sistema?)..."
+              autocomplete="off"
+            >
+            <button type="submit" class="btn btn-primary" style="padding: 0.74rem 1.15rem; font-weight: 700; font-size: 0.86rem; white-space: nowrap;">
+              Enviar a Quimi
+            </button>
+          </form>
+
           <!-- Selector de Preguntas Predefinidas -->
-          <div style="margin-top: 1rem;">
+          <div style="margin-top: 0.9rem;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
-              <span style="font-size: 0.8rem; font-weight: 700; color: #334155;">Selecciona una consulta sobre la práctica:</span>
+              <span style="font-size: 0.8rem; font-weight: 700; color: #334155;">O selecciona una consulta frecuente sobre la práctica:</span>
               <button type="button" class="btn btn-outline" style="font-size: 0.76rem; padding: 0.25rem 0.65rem;" onclick="App.switchAssistantSubtab('contextual')">
-                ✍️ ¿Tienes otra pregunta? Ir a Respuestas Contextuales →
+                ✍️ Ir a Respuestas Contextuales (Lab + Libro Digital) →
               </button>
             </div>
             <div class="quimi-select-group">
@@ -575,13 +589,12 @@
           </div>
 
           <!-- Buscador / Formulario de Pregunta Libre Contextual -->
-          <form onsubmit="App.handleContextualQuestionSubmit(event)" style="margin-top: 0.9rem; display: flex; gap: 0.6rem; align-items: center;">
+          <form onsubmit="App.handleContextualQuestionSubmit(event)" style="margin-top: 0.9rem; display: flex; gap: 0.6rem; align-items: center; width: 100%;">
             <input
               type="text"
               id="quimiContextualInput"
-              class="search-input"
-              style="flex: 1; margin: 0; padding: 0.75rem 1rem; font-size: 0.9rem; border: 2px solid #94a3b8; border-radius: 10px;"
-              placeholder="✍️ Escribe cualquier pregunta sobre el laboratorio asignado, fórmulas, conceptos o instrumentos (ej. ¿Qué pasa en mi laboratorio?, ¿Qué es el pH?, ¿Cómo uso la pipeta?, ¿Qué es un mol?)..."
+              style="flex: 1; width: 100%; max-width: 100%; margin: 0; padding: 0.78rem 1rem; font-size: 0.9rem; border: 2px solid #94a3b8; border-radius: 10px; outline: none;"
+              placeholder="✍️ Escribe cualquier pregunta básica, del laboratorio asignado o del Libro Digital (ej. Hola, ¿qué es la química?, ¿puedo agregar más temas al libro?, ¿qué es el pH?)..."
               autocomplete="off"
             >
             <button type="submit" class="btn btn-primary" style="padding: 0.78rem 1.25rem; font-weight: 800; font-size: 0.9rem; white-space: nowrap; background: #16a34a; border-color: #15803d;">
@@ -675,10 +688,15 @@
           </button>
         </div>
 
-        <!-- Contador de Resultados -->
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; font-size: 0.8rem; color: #64748b;">
-          <div>Resultados: <strong id="guideResultsCount" style="color: #2563eb;">0</strong> temas encontrados</div>
-          <div>Colegio Alexander Fleming • Tacna</div>
+        <!-- Contador de Resultados + Botón para Agregar Nuevo Tema al Libro Digital -->
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem; font-size: 0.8rem; color: #64748b;">
+          <div>Resultados: <strong id="guideResultsCount" style="color: #2563eb;">0</strong> temas encontrados en el Libro Guía Digital</div>
+          <div style="display: flex; align-items: center; gap: 0.65rem;">
+            <button type="button" class="btn btn-primary" style="font-size: 0.78rem; padding: 0.4rem 0.85rem; background: #0284c7; border-color: #0369a1; font-weight: 700;" onclick="App.openAddGuideModal()">
+              ➕ Agregar Nuevo Tema al Libro Digital
+            </button>
+            <span>Colegio Alexander Fleming • Tacna</span>
+          </div>
         </div>
 
         <!-- Grilla de Temas del Libro Guía -->
@@ -2190,6 +2208,63 @@
     </div>
   </div>
 
+  <!-- ================= MODAL AGREGAR NUEVO TEMA AL LIBRO GUÍA DIGITAL ================= -->
+  <div class="eval-modal-backdrop" id="modalAddGuideEntry" style="display: none; z-index: 9500;">
+    <div class="eval-modal-card" style="max-width: 580px; width: 94%; border-top: 5px solid #0284c7;">
+      <div class="eval-modal-header">
+        <div>
+          <span class="badge-role badge-role-teacher" style="margin-bottom: 0.35rem; display: inline-block; background: #e0f2fe; color: #0369a1;">📖 Libro Guía Digital & Base de Conocimiento de Quimi</span>
+          <h3 style="font-size: 1.15rem; font-weight: 800; color: #0f172a; margin: 0;">➕ Agregar Nuevo Tema al Libro Digital</h3>
+        </div>
+        <button class="eval-modal-close" onclick="App.closeAddGuideModal()">✕</button>
+      </div>
+
+      <form onsubmit="App.handleSaveNewGuideEntry(event)">
+        <div class="eval-modal-body" style="padding: 1.15rem 1.35rem; display: flex; flex-direction: column; gap: 0.8rem;">
+          <div>
+            <label style="font-size: 0.78rem; font-weight: 700; color: #334155; display: block; margin-bottom: 0.25rem;">Título del Tema o Concepto:</label>
+            <input type="text" id="newGuideTerm" class="form-input" placeholder="Ej. Ley de los Gases Ideales (PV = nRT)" required>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+            <div>
+              <label style="font-size: 0.78rem; font-weight: 700; color: #334155; display: block; margin-bottom: 0.25rem;">Unidad / Categoría:</label>
+              <select id="newGuideCatKey" class="select-control" style="width: 100%;">
+                <option value="materia">🧪 Materia y Medición</option>
+                <option value="atomo">⚛️ Estructura Atómica y Tabla</option>
+                <option value="enlaces">🤝 Enlaces y Nomenclatura</option>
+                <option value="reacciones">⚗️ Reacciones y Estequiometría</option>
+                <option value="organica">🛢️ Química Orgánica</option>
+                <option value="laboratorio">🔬 Procedimientos de Lab</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size: 0.78rem; font-weight: 700; color: #334155; display: block; margin-bottom: 0.25rem;">Fórmula Científica:</label>
+              <input type="text" id="newGuideFormula" class="form-input" placeholder="Ej. P · V = n · R · T" required>
+            </div>
+          </div>
+
+          <div>
+            <label style="font-size: 0.78rem; font-weight: 700; color: #334155; display: block; margin-bottom: 0.25rem;">Explicación Simple del Concepto:</label>
+            <textarea id="newGuideDesc" class="form-input" rows="2" placeholder="Explicación pedagógica clara del concepto químico..." required></textarea>
+          </div>
+
+          <div>
+            <label style="font-size: 0.78rem; font-weight: 700; color: #334155; display: block; margin-bottom: 0.25rem;">Procedimiento de Laboratorio:</label>
+            <textarea id="newGuideProcedure" class="form-input" rows="2" placeholder="Cómo se aplica o verifica experimentalmente en el laboratorio..." required></textarea>
+          </div>
+        </div>
+
+        <div class="eval-modal-footer" style="display: flex; justify-content: flex-end; gap: 0.65rem; padding: 0.85rem 1.25rem;">
+          <button type="button" class="btn btn-outline" onclick="App.closeAddGuideModal()">Cancelar</button>
+          <button type="submit" class="btn btn-primary" style="background: #0284c7; border-color: #0369a1; font-weight: 700;">
+            💾 Guardar en Libro Digital y Enseñar a Quimi
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- ================= CUADRO DE MENSAJE CENTRADO (REEMPLAZA ALERTS) ================= -->
   <div class="custom-dialog-backdrop" id="customDialogBackdrop">
     <div class="custom-dialog-card">
@@ -2205,6 +2280,6 @@
   <!-- Scripts -->
   <script src="reaction_engine.js?v=0.9"></script>
   <script src="pubchem_service.js?v=0.9"></script>
-  <script src="app.js?v=2.9"></script>
+  <script src="app.js?v=3.0"></script>
 </body>
 </html>
