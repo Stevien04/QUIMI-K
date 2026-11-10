@@ -279,21 +279,38 @@
         <!-- Columna Izquierda: Práctica y Herramientas -->
         <div class="steps-column">
           <div class="card">
-            <div class="card-title">
-              <span>📋 Guía de Práctica</span>
+            <div class="card-title" style="display: flex; justify-content: space-between; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
+              <span>📋 Procedimiento Paso a Paso</span>
+              <button type="button" class="btn btn-outline" style="font-size: 0.7rem; padding: 0.22rem 0.55rem; color: #0284c7; border-color: #7dd3fc; background: #f0f9ff; font-weight: 700;" onclick="App.openFullProcedureModal()" title="Abrir protocolo detallado paso a paso de cada laboratorio">
+                📖 Ver Guía Completa
+              </button>
             </div>
 
             <!-- Selector de Práctica Curada -->
-            <div style="margin-bottom: 0.85rem;">
-              <label style="font-size: 0.78rem; font-weight: 700; color: #475569;">Seleccionar Práctica:</label>
-              <select id="practiceSelect" style="width: 100%; padding: 0.4rem; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 0.82rem;" onchange="App.selectPractice(this.value)">
-                <option value="0">Práctica 1: Síntesis de Enlace Iónico (Na + Cl → NaCl)</option>
-                <option value="1">Práctica 2: Formación de Molécula Polar (H₂ + O → H₂O)</option>
-                <option value="2">Práctica 3: Neutralización Ácido-Base (HCl + NaOH)</option>
+            <div style="margin-bottom: 0.65rem;">
+              <label style="font-size: 0.76rem; font-weight: 700; color: #475569; display: block; margin-bottom: 0.25rem;">Seleccionar Laboratorio:</label>
+              <select id="practiceSelect" style="width: 100%; padding: 0.42rem; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 0.81rem; font-weight: 600; color: #0f172a;" onchange="App.selectPractice(this.value)">
+                <option value="0">Lab 1: Síntesis de Enlace Iónico (Na + Cl → NaCl)</option>
+                <option value="1">Lab 2: Formación de Molécula Polar (2H₂ + O₂ → 2H₂O)</option>
+                <option value="2">Lab 3: Neutralización Ácido-Base (HCl + NaOH)</option>
               </select>
             </div>
 
-            <!-- Pasos Guiados -->
+            <!-- Barra de Progreso del Procedimiento Paso a Paso -->
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.5rem 0.65rem; margin-bottom: 0.75rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.73rem; margin-bottom: 0.3rem;">
+                <span id="practiceProgressSummary" style="font-weight: 700; color: #1e293b;">Progreso: Paso 1 de 4</span>
+                <span id="practiceProgressPercent" style="font-weight: 800; color: #0284c7;">0%</span>
+              </div>
+              <div style="width: 100%; height: 7px; background: #e2e8f0; border-radius: 999px; overflow: hidden;">
+                <div id="practiceProgressBarFill" style="width: 0%; height: 100%; background: linear-gradient(90deg, #0284c7, #16a34a); border-radius: 999px; transition: width 0.3s ease;"></div>
+              </div>
+              <div style="font-size: 0.68rem; color: #64748b; margin-top: 0.3rem;">
+                💡 Haga clic en cualquier paso para desplegar su procedimiento detallado, reactivos e instrumentos.
+              </div>
+            </div>
+
+            <!-- Pasos Guiados Detallados -->
             <div class="steps-container" id="stepsList">
               <!-- Renderizado dinámico desde JS -->
             </div>
@@ -2331,6 +2348,55 @@
           </button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- ================= MODAL VISOR DEL PROCEDIMIENTO DETALLADO PASO A PASO DE CADA LABORATORIO ================= -->
+  <div class="eval-modal-backdrop" id="modalStepByStepProcedure" style="display: none; z-index: 9600;">
+    <div class="eval-modal-card" style="max-width: 920px; width: 95%; border-top: 5px solid #0284c7;">
+      <div class="eval-modal-header" style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);">
+        <div>
+          <span class="badge-role badge-role-student" style="margin-bottom: 0.3rem; display: inline-block; background: #0284c7; color: #ffffff; font-weight: 700;">
+            📋 Protocolo Experimental Oficial • I.E. Alexander Fleming
+          </span>
+          <h3 id="modalProcedureMainTitle" style="font-size: 1.2rem; font-weight: 800; color: #0f172a; margin: 0;">
+            Procedimiento Detallado Paso a Paso del Laboratorio
+          </h3>
+        </div>
+        <button class="eval-modal-close" onclick="App.closeFullProcedureModal()">✕</button>
+      </div>
+
+      <div class="eval-modal-body" style="padding: 1.2rem 1.4rem; max-height: 76vh; overflow-y: auto;">
+        <!-- Selector de los 3 Laboratorios dentro del Modal -->
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem; margin-bottom: 1rem;">
+          <button type="button" id="btnProcModalLab0" class="btn btn-primary" style="justify-content: center; font-size: 0.78rem; padding: 0.55rem 0.65rem;" onclick="App.renderFullProcedureModalContent(0)">
+            🧪 Lab 1: Síntesis de NaCl (Iónico)
+          </button>
+          <button type="button" id="btnProcModalLab1" class="btn btn-outline" style="justify-content: center; font-size: 0.78rem; padding: 0.55rem 0.65rem;" onclick="App.renderFullProcedureModalContent(1)">
+            💧 Lab 2: Molécula de Agua (H₂O)
+          </button>
+          <button type="button" id="btnProcModalLab2" class="btn btn-outline" style="justify-content: center; font-size: 0.78rem; padding: 0.55rem 0.65rem;" onclick="App.renderFullProcedureModalContent(2)">
+            ⚖️ Lab 3: Neutralización (HCl + NaOH)
+          </button>
+        </div>
+
+        <!-- Contenido Dinámico Detallado de los Pasos del Laboratorio Seleccionado -->
+        <div id="modalProcedureContentBody">
+          <!-- Poblado dinámicamente desde App.renderFullProcedureModalContent() -->
+        </div>
+      </div>
+
+      <div class="eval-modal-footer" style="display: flex; justify-content: space-between; align-items: center; padding: 0.85rem 1.4rem; flex-wrap: wrap; gap: 0.5rem;">
+        <div style="font-size: 0.78rem; color: #475569;">
+          🔬 Puede ejecutar cualquier paso directamente en la cámara molecular desde este protocolo.
+        </div>
+        <div style="display: flex; gap: 0.6rem;">
+          <button type="button" class="btn btn-outline" onclick="App.closeFullProcedureModal()">Cerrar Guía</button>
+          <button type="button" class="btn btn-primary" id="btnProcModalStartLab" onclick="App.startLabFromProcedureModal()">
+            🚀 Ir a Simular este Laboratorio Ahora
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 

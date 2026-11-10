@@ -391,31 +391,71 @@ const App = {
       steps: [
         {
           step: 1,
-          name: 'Disponer Matraz y Reactivo A',
+          name: 'Disponer Matraz y Reactivo A (Sodio)',
           desc: 'Seleccionar el matraz Erlenmeyer y verter una muestra de Sodio metálico (Na).',
-          hint: 'Utilice la pipeta o matraz para añadir Sodio a la cámara de reacción.',
-          action: 'add_reagent_1'
+          hint: 'Utilice la balanza digital o espátula para añadir Sodio a la cámara de reacción.',
+          action: 'add_reagent_1',
+          instrument: '⚖️ Balanza Digital & Espátula',
+          instrumentId: 'balanza',
+          reagentSpec: '2.300 g de Sodio metálico Na(s) (0.10 mol)',
+          substeps: [
+            '1.1. Tarar el vidrio de reloj en la balanza analítica digital a 0.000 g.',
+            '1.2. Extraer con espátula seca una muestra de 2.300 g de Sodio metálico (Na⁰).',
+            '1.3. Transferir el Sodio al interior del matraz Erlenmeyer seco en la cámara.'
+          ],
+          molecularObservation: 'Ingresan átomos neutros de Sodio (Z=11, configuración [Ne] 3s¹) con 1 electrón de valencia débilmente retenido (EN = 0.93).',
+          safetyRule: 'Manipular el Sodio en ambiente anhidro con pinzas/espátula; reacciona exotérmicamente con la humedad.'
         },
         {
           step: 2,
           name: 'Inyectar Reactivo B (Gas Cloro)',
           desc: 'Insuflar Gas Cloro (Cl₂) dentro del matraz con el Sodio.',
           hint: 'Observe la difusión de los átomos de Cloro dentro de la cámara.',
-          action: 'add_reagent_2'
+          action: 'add_reagent_2',
+          instrument: '🧪 Matraz Erlenmeyer (250 mL)',
+          instrumentId: 'matraz',
+          reagentSpec: '3.545 g de Gas Cloro Cl₂(g) (0.05 mol diatómico)',
+          substeps: [
+            '2.1. Acoplar el conducto de alimentación de gas Cloro (Cl₂) al cuello del matraz.',
+            '2.2. Inyectar de forma controlada el gas amarillo-verdoso dentro de la cámara.',
+            '2.3. Verificar la difusión homogénea de las partículas de Cloro junto al Sodio.'
+          ],
+          molecularObservation: 'Se incorporan átomos de Cloro (Z=17, configuración [Ne] 3s² 3p⁵) con 7 electrones de valencia y alta electronegatividad (EN = 3.16).',
+          safetyRule: 'Realizar la inyección en cámara cerrada; el gas Cl₂ es corrosivo e irritante para las vías respiratorias.'
         },
         {
           step: 3,
           name: 'Aplicar Calor con Mechero Bunsen',
           desc: 'Encender el mechero Bunsen para alcanzar la energía de activación.',
           hint: 'El calor acelera la agitación de los átomos hasta provocar la colisión reactiva.',
-          action: 'apply_heat'
+          action: 'apply_heat',
+          instrument: '🔥 Mechero Bunsen & Termómetro',
+          instrumentId: 'mechero',
+          reagentSpec: 'Llama azul oxidante (≈ 850 °C – 1500 °C)',
+          substeps: [
+            '3.1. Encender el Mechero Bunsen y abrir el collarín de aire hasta obtener llama azul no luminosa.',
+            '3.2. Calentar la base del matraz para suministrar la energía de activación (Ea).',
+            '3.3. Monitorear el incremento de velocidad cinética y la frecuencia de choques interatómicos.'
+          ],
+          molecularObservation: 'El aumento térmico incrementa la energía cinética media; las colisiones superan la barrera de activación e inician el salto de electrones.',
+          safetyRule: 'No tocar el cañón metálico del mechero ni acercar materiales inflamables a la zona de llama.'
         },
         {
           step: 4,
-          name: 'Formación de Cristales de Sal',
+          name: 'Formación de Cristales de Sal (NaCl)',
           desc: 'Validar la transferencia de electrones y formación de la red iónica NaCl.',
           hint: 'ΔEN = 2.23 confirma la formación de un enlace iónico estable.',
-          action: 'form_product'
+          action: 'form_product',
+          instrument: '🥄 Espátula & Vidrio de Reloj',
+          instrumentId: 'espatula',
+          reagentSpec: '5.844 g de Cloruro de Sodio cristalino NaCl(s)',
+          substeps: [
+            '4.1. Observar el destello de síntesis y la transferencia neta de 1e⁻ desde cada Na hacia cada Cl.',
+            '4.2. Dejar enfriar el matraz y recolectar con espátula los cristales blancos cúbicos de NaCl.',
+            '4.3. Comprobar en el Motor de Reacciones que ΔEN = |3.16 - 0.93| = 2.23 (Enlace Iónico).'
+          ],
+          molecularObservation: 'El Sodio queda como catión Na⁺ ([Ne]) y el Cloro como anión Cl⁻ ([Ne] 3s² 3p⁶ con octeto completo), unidos por fuerza electrostática.',
+          safetyRule: 'Esperar el enfriamiento térmico del vidrio Pyrex antes de retirar la muestra sólida.'
         }
       ],
       quiz: [
@@ -462,28 +502,68 @@ const App = {
           name: 'Alimentar Gas Hidrógeno (H₂)',
           desc: 'Cargar moléculas de Hidrógeno gaseoso en la cámara.',
           hint: 'El hidrógeno tiene electronegatividad 2.20.',
-          action: 'add_reagent_1'
+          action: 'add_reagent_1',
+          instrument: '🧪 Matraz / Cámara de Gases',
+          instrumentId: 'matraz',
+          reagentSpec: '2 volúmenes de Hidrógeno H₂(g) (Proporción estequiométrica 2:1)',
+          substeps: [
+            '1.1. Purgar la cámara de reacción y verificar hermeticidad.',
+            '1.2. Inyectar 2 volúmenes de gas Hidrógeno (H₂) ultraligero e incoloro.',
+            '1.3. Observar en la vista Lewis el electrón de valencia 1s¹ de cada átomo de Hidrógeno.'
+          ],
+          molecularObservation: 'Ingresan átomos de Hidrógeno (Z=1, 1s¹, EN = 2.20) que requieren compartir 1 electrón para alcanzar el dueto estable del Helio.',
+          safetyRule: 'El gas H₂ es altamente inflamable; mantener alejada cualquier fuente de ignición durante la carga inicial.'
         },
         {
           step: 2,
           name: 'Alimentar Gas Oxígeno (O₂)',
           desc: 'Introducir Oxígeno gaseoso en la cámara de reacción.',
           hint: 'El oxígeno tiene electronegatividad 3.44.',
-          action: 'add_reagent_2'
+          action: 'add_reagent_2',
+          instrument: '💧 Dosificador / Pipeta de Gases',
+          instrumentId: 'pipeta',
+          reagentSpec: '1 volumen de Oxígeno O₂(g) comburente',
+          substeps: [
+            '2.1. Dosificar exactamente 1 volumen de gas Oxígeno (O₂) para respetar la relación 2H₂ : 1O₂.',
+            '2.2. Permitir la mezcla por difusión gaseosa entre los átomos de H y O.',
+            '2.3. Identificar los 6 electrones de valencia ([He] 2s² 2p⁴) en la capa externa del Oxígeno.'
+          ],
+          molecularObservation: 'Se incorporan átomos de Oxígeno (Z=8, EN = 3.44) con 2 electrones desapareados listos para formar dos enlaces covalentes.',
+          safetyRule: 'Controlar la presión parcial de O₂ para garantizar una mezcla estequiométrica sin exceso comburente.'
         },
         {
           step: 3,
           name: 'Ignición / Chispa Energética',
           desc: 'Generar la colisión para romper los enlaces diatómicos iniciales.',
           hint: 'Los átomos se recombinan compartiendo electrones.',
-          action: 'apply_heat'
+          action: 'apply_heat',
+          instrument: '🔥 Mechero Bunsen / Chispa Térmica',
+          instrumentId: 'mechero',
+          reagentSpec: 'Energía de activación térmica controlada',
+          substeps: [
+            '3.1. Activar la fuente térmica para suministrar la energía de activación inicial.',
+            '3.2. Observar el incremento de velocidad de las partículas y las colisiones efectivas entre H y O.',
+            '3.3. Verificar con el termómetro digital la liberación de energía (reacción exotérmica).'
+          ],
+          molecularObservation: 'Los choques energéticos vencen la repulsión electrónica inicial y permiten el solapamiento de los orbitales 1s del H con los 2p del O.',
+          safetyRule: 'Realizar la ignición únicamente dentro de la cámara de simulación blindada.'
         },
         {
           step: 4,
-          name: 'Síntesis Molecular de Agua',
+          name: 'Síntesis Molecular de Agua (H₂O)',
           desc: 'Verificar la formación de moléculas de agua con ángulo dipolar.',
           hint: 'ΔEN = 1.24 clasifica el enlace como Covalente Polar.',
-          action: 'form_product'
+          action: 'form_product',
+          instrument: '🌡️ Termómetro & Sensor de pH',
+          instrumentId: 'termometro',
+          reagentSpec: 'Moléculas triatómicas H₂O(l) (Ángulo 104.5° • pH = 7.0)',
+          substeps: [
+            '4.1. Observar cómo cada átomo de Oxígeno se enlaza simultáneamente con 2 átomos de Hidrógeno.',
+            '4.2. Activar la vista "⚡ Cargas & Dipolos" para visualizar las cargas parciales δ⁻ en el Oxígeno y δ⁺ en los Hidrógenos.',
+            '4.3. Comprobar el ángulo de enlace de 104.5° y el valor ΔEN = |3.44 - 2.20| = 1.24 (Covalente Polar).'
+          ],
+          molecularObservation: 'Se sintetizan moléculas angulares de H₂O donde los pares de electrones compartidos se desplazan más cerca del núcleo de Oxígeno.',
+          safetyRule: 'El producto final obtenido es agua pura neutra (pH = 7.00), completamente inocua.'
         }
       ],
       quiz: [
@@ -530,28 +610,68 @@ const App = {
           name: 'Colocar Ácido Clorhídrico (HCl)',
           desc: 'Añadir 20 mL de solución ácida en el matraz Erlenmeyer.',
           hint: 'Solución ácida con indicador de pH.',
-          action: 'add_reagent_1'
+          action: 'add_reagent_1',
+          instrument: '🧪 Matraz Erlenmeyer & Sensor pH',
+          instrumentId: 'phmetro',
+          reagentSpec: '20.0 mL de HCl(ac) 0.1 M (pH inicial = 1.50 Ácido)',
+          substeps: [
+            '1.1. Verter 20.0 mL de disolución de Ácido Clorhídrico (HCl 0.1 M) en el matraz Erlenmeyer.',
+            '1.2. Introducir el electrodo del Sensor de pH digital y verificar la lectura ácida inicial (pH ≈ 1.50).',
+            '1.3. Observar en la cámara la disociación completa del ácido fuerte en iones H⁺ y Cl⁻.'
+          ],
+          molecularObservation: 'El HCl se disocia totalmente en agua liberando protones libres H⁺ (responsables de la acidez) y aniones cloruro Cl⁻.',
+          safetyRule: 'El HCl es corrosivo; usar guantes de nitrilo, gafas de seguridad y nunca pipetear con la boca.'
         },
         {
           step: 2,
-          name: 'Titular con Pipeta Hidróxido de Sodio',
+          name: 'Titular con Pipeta Hidróxido de Sodio (NaOH)',
           desc: 'Gota a gota añadir NaOH hasta llegar al punto de neutralización.',
           hint: 'Observe el viraje de color hacia pH neutro.',
-          action: 'add_reagent_2'
+          action: 'add_reagent_2',
+          instrument: '💧 Pipeta Graduada (10 mL)',
+          instrumentId: 'pipeta',
+          reagentSpec: '20.0 mL de NaOH(ac) 0.1 M (Volumen equimolar)',
+          substeps: [
+            '2.1. Succionar la solución valorante de Hidróxido de Sodio (NaOH 0.1 M) con la pipeta graduada y enrasar el menisco.',
+            '2.2. Dosificar gota a gota el NaOH sobre el matraz que contiene el ácido HCl.',
+            '2.3. Observar el ingreso de los iones sodio (Na⁺) e hidroxilo (OH⁻) a la cámara.'
+          ],
+          molecularObservation: 'La base fuerte NaOH aporta iones hidroxilo OH⁻ (aceptores de protones) y cationes espectadores Na⁺ en proporción 1:1.',
+          safetyRule: 'El NaOH es cáustico e irritante para la piel; descargar apoyando la punta de la pipeta a 45° sin salpicar.'
         },
         {
           step: 3,
-          name: 'Homogeneizar la Solución',
+          name: 'Homogeneizar y Neutralizar la Solución',
           desc: 'Agitar suavemente el matraz para permitir la interacción molecular.',
           hint: 'Los iones H⁺ y OH⁻ forman agua inmediatamente.',
-          action: 'apply_heat'
+          action: 'apply_heat',
+          instrument: '🧪 Matraz Erlenmeyer (Agitación Orbital)',
+          instrumentId: 'matraz',
+          reagentSpec: 'Agitación orbital continua • Entalpía de neutralización',
+          substeps: [
+            '3.1. Imprimir un movimiento circular suave al matraz Erlenmeyer para formar un vórtice homogéneo.',
+            '3.2. Promover el encuentro y choque efectivo entre todos los iones H⁺ y OH⁻ en el seno del líquido.',
+            '3.3. Verificar el ligero incremento térmico propio del calor de neutralización ácido-base.'
+          ],
+          molecularObservation: 'Los protones H⁺ colisionan de forma inmediata con los iones hidroxilo OH⁻ para combinarse covalentemente.',
+          safetyRule: 'Agitar en el plano horizontal sobre la mesa sin golpear las paredes del matraz.'
         },
         {
           step: 4,
-          name: 'Evaporación y Cristalización',
-          desc: 'Separar el agua para observar los cristales de sal NaCl residuales.',
+          name: 'Punto de Equivalencia y Cristalización (pH 7.0)',
+          desc: 'Verificar pH neutro (7.00) y formación de NaCl + H₂O.',
           hint: 'Se obtiene salmuera neutra.',
-          action: 'form_product'
+          action: 'form_product',
+          instrument: '📊 Sensor de pH & Espátula',
+          instrumentId: 'phmetro',
+          reagentSpec: 'NaCl(ac) + H₂O(l) en equilibrio neutro (pH = 7.00)',
+          substeps: [
+            '4.1. Confirmar en el Sensor de pH Digital que la solución alcanzó exactamente pH = 7.00 (Punto de Equivalencia).',
+            '4.2. Observar en la cámara las moléculas de agua neutra (H₂O) formadas junto a los pares iónicos Na⁺Cl⁻.',
+            '4.3. Evaporar una alícuota para inspeccionar con espátula los cristales de sal común (NaCl) resultantes.'
+          ],
+          molecularObservation: 'Cada par H⁺ + OH⁻ se ha transformado en una molécula neutra de H₂O ([H⁺] = [OH⁻] = 10⁻⁷ M) y los iones Na⁺ y Cl⁻ forman sal disuelta.',
+          safetyRule: 'La solución neutralizada a pH 7.0 carece de peligrosidad corrosiva.'
         }
       ],
       quiz: [
@@ -1921,31 +2041,113 @@ const App = {
     this.updateMolecularTelemetry();
   },
 
-  // Renderizar pasos de la práctica
+  // Estado de inspección de paso desplegado en la columna izquierda
+  inspectedStepIndex: null,
+  activeProcedureModalLabIndex: 0,
+
+  // Renderizar procedimiento detallado paso a paso en la columna de Guía de Práctica
   renderCurrentPracticeSteps() {
     const p = this.practices[this.state.currentPracticeIndex];
     const container = document.getElementById('stepsList');
-    if (!container) return;
+    if (!container || !p) return;
+
+    const totalSteps = p.steps.length;
+    const completedCount = Math.min(this.state.currentStepIndex, totalSteps);
+    const pct = Math.round((completedCount / totalSteps) * 100);
+
+    // Actualizar barra de progreso superior
+    const summaryEl = document.getElementById('practiceProgressSummary');
+    const pctEl = document.getElementById('practiceProgressPercent');
+    const fillEl = document.getElementById('practiceProgressBarFill');
+
+    if (summaryEl) {
+      summaryEl.innerText = completedCount >= totalSteps
+        ? `¡Procedimiento Completado! (${totalSteps}/${totalSteps} pasos)`
+        : `Progreso: Paso ${this.state.currentStepIndex + 1} de ${totalSteps}`;
+    }
+    if (pctEl) pctEl.innerText = `${pct}%`;
+    if (fillEl) fillEl.style.width = `${pct}%`;
+
+    // Por defecto mostrar expandido el paso activo (o el que el usuario haya abierto manualmente)
+    const expandedIdx = this.inspectedStepIndex !== null
+      ? this.inspectedStepIndex
+      : Math.min(this.state.currentStepIndex, totalSteps - 1);
 
     container.innerHTML = '';
     p.steps.forEach((step, idx) => {
       const isCompleted = idx < this.state.currentStepIndex;
       const isActive = idx === this.state.currentStepIndex;
+      const isExpanded = idx === expandedIdx;
 
       const item = document.createElement('div');
       item.className = `step-item ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''}`;
-      item.onclick = () => {
-        if (idx <= this.state.currentStepIndex) {
-          App.showStepDetails(idx);
-        }
-      };
+      item.style.padding = '0.65rem 0.75rem';
+
+      const substepsHtml = (step.substeps || []).map(sub =>
+        `<li style="margin-bottom: 0.22rem; line-height: 1.38;">${sub}</li>`
+      ).join('');
 
       item.innerHTML = `
-        <div class="step-header">
-          <span>Paso ${step.step}: ${step.name}</span>
-          <span>${isCompleted ? '✅ Listo' : (isActive ? '👉 Actual' : '🔒')}</span>
+        <div class="step-header" onclick="App.toggleInspectStep(${idx})" style="display: flex; justify-content: space-between; align-items: center; gap: 0.4rem; cursor: pointer;">
+          <div style="display: flex; align-items: center; gap: 0.35rem;">
+            <span style="background: ${isCompleted ? '#16a34a' : (isActive ? '#2563eb' : '#64748b')}; color: #ffffff; font-size: 0.68rem; font-weight: 800; padding: 0.1rem 0.42rem; border-radius: 999px;">
+              Paso ${step.step}
+            </span>
+            <span style="font-size: 0.8rem; font-weight: 800; color: #0f172a;">${step.name}</span>
+          </div>
+          <span style="font-size: 0.7rem; font-weight: 700; white-space: nowrap; color: ${isCompleted ? '#15803d' : (isActive ? '#1d4ed8' : '#64748b')};">
+            ${isCompleted ? '✅ Listo' : (isActive ? '👉 En Curso' : '📖 Ver')} ${isExpanded ? '▴' : '▾'}
+          </span>
         </div>
-        <div class="step-desc">${step.desc}</div>
+
+        <div class="step-desc" onclick="App.toggleInspectStep(${idx})" style="margin-top: 0.2rem; font-size: 0.76rem; color: #334155;">
+          ${step.desc}
+        </div>
+
+        <!-- Chips de Instrumento y Reactivo/Condición -->
+        <div style="display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.4rem;">
+          ${step.instrument ? `
+            <span style="font-size: 0.68rem; font-weight: 700; background: #e0f2fe; color: #0369a1; padding: 0.12rem 0.45rem; border-radius: 5px; border: 1px solid #bae6fd;">
+              ${step.instrument}
+            </span>
+          ` : ''}
+          ${step.reagentSpec ? `
+            <span style="font-size: 0.68rem; font-weight: 600; background: #f1f5f9; color: #334155; padding: 0.12rem 0.45rem; border-radius: 5px; border: 1px solid #cbd5e1;">
+              ⚗️ ${step.reagentSpec}
+            </span>
+          ` : ''}
+        </div>
+
+        <!-- Bloque Desplegable con el Procedimiento Detallado Paso a Paso -->
+        <div style="display: ${isExpanded ? 'block' : 'none'}; margin-top: 0.55rem; padding-top: 0.5rem; border-top: 1px dashed #cbd5e1; font-size: 0.74rem; color: #1e293b;">
+          <div style="font-weight: 800; color: #0369a1; margin-bottom: 0.25rem;">📋 Instrucciones Detalladas del Paso ${step.step}:</div>
+          <ul style="margin: 0 0 0.45rem 1rem; padding: 0; color: #334155;">
+            ${substepsHtml}
+          </ul>
+
+          ${step.molecularObservation ? `
+            <div style="background: #f0f9ff; border-left: 3px solid #0284c7; padding: 0.35rem 0.5rem; border-radius: 4px; margin-bottom: 0.4rem; font-size: 0.71rem; color: #0c4a6e; line-height: 1.35;">
+              <strong>⚛️ Nivel Molecular:</strong> ${step.molecularObservation}
+            </div>
+          ` : ''}
+
+          ${step.safetyRule ? `
+            <div style="background: #fef2f2; border-left: 3px solid #ef4444; padding: 0.3rem 0.5rem; border-radius: 4px; margin-bottom: 0.45rem; font-size: 0.7rem; color: #991b1b; line-height: 1.35;">
+              <strong>⚠️ Bioseguridad:</strong> ${step.safetyRule}
+            </div>
+          ` : ''}
+
+          <div style="display: flex; gap: 0.35rem; flex-wrap: wrap; margin-top: 0.35rem;">
+            <button type="button" class="btn ${isCompleted ? 'btn-outline' : 'btn-primary'}" style="font-size: 0.71rem; padding: 0.28rem 0.6rem; flex: 1; justify-content: center;" onclick="App.executeSpecificStep(${idx})">
+              ${isCompleted ? '🔄 Repetir Paso ' + step.step : '▶️ Ejecutar Paso ' + step.step}
+            </button>
+            ${step.instrumentId ? `
+              <button type="button" class="btn btn-outline" style="font-size: 0.71rem; padding: 0.28rem 0.55rem;" onclick="App.openToolGuide('${step.instrumentId}')" title="Interactuar con el instrumento de este paso">
+                ✋ Usar Instrumento
+              </button>
+            ` : ''}
+          </div>
+        </div>
       `;
       container.appendChild(item);
     });
@@ -1962,10 +2164,220 @@ const App = {
     }
   },
 
+  toggleInspectStep(idx) {
+    if (this.inspectedStepIndex === idx) {
+      this.inspectedStepIndex = -1;
+    } else {
+      this.inspectedStepIndex = idx;
+    }
+    this.renderCurrentPracticeSteps();
+  },
+
+  // Ejecutar un paso específico seleccionado por el usuario (o avanzar hasta ese paso)
+  executeSpecificStep(idx) {
+    const p = this.practices[this.state.currentPracticeIndex];
+    if (!p || !p.steps[idx]) return;
+
+    // Si elige un paso posterior sin haber ejecutado los previos, ejecutar secuencialmente hasta idx
+    if (idx > this.state.currentStepIndex) {
+      for (let i = this.state.currentStepIndex; i <= idx; i++) {
+        this.executeAction(p.steps[i].action, p.steps[i]);
+      }
+      this.state.currentStepIndex = idx + 1;
+    } else {
+      // Ejecutar la acción de ese paso directamente
+      this.executeAction(p.steps[idx].action, p.steps[idx]);
+      if (idx === this.state.currentStepIndex) {
+        this.state.currentStepIndex++;
+      }
+    }
+
+    this.inspectedStepIndex = Math.min(this.state.currentStepIndex, p.steps.length - 1);
+    this.renderCurrentPracticeSteps();
+    this.renderMolecularMechanismStages();
+    this.updateMolecularTelemetry();
+
+    const step = p.steps[idx];
+    const logEl = document.getElementById('labLogText');
+    const badgeEl = document.getElementById('experimentStatusBadge');
+
+    if (this.state.currentStepIndex >= p.steps.length) {
+      if (badgeEl) {
+        badgeEl.className = 'status-tag status-passed';
+        badgeEl.innerText = 'Práctica Culminada';
+      }
+      if (logEl) {
+        logEl.innerHTML = `<strong>¡Reacción molecular finalizada!</strong> Se completó el Paso ${step.step} (${step.name}) y se obtuvo <strong>${p.equation}</strong>. Ya puede rendir su evaluación.`;
+      }
+    } else {
+      if (badgeEl) {
+        badgeEl.className = 'status-tag status-pending';
+        badgeEl.innerText = `Paso ${this.state.currentStepIndex + 1} en curso`;
+      }
+      if (logEl) {
+        logEl.innerHTML = `<strong>Paso ${step.step} ejecutado (${step.name}):</strong> ${step.molecularObservation || step.desc}`;
+      }
+    }
+  },
+
   // Mostrar mensaje didáctico de un paso
   showStepDetails(idx) {
-    const step = this.practices[this.state.currentPracticeIndex].steps[idx];
-    this.showDialog(`Detalle: ${step.desc}\n\nOrientación técnica: ${step.hint}`, `Paso ${step.step}: ${step.name}`, '📋');
+    this.toggleInspectStep(idx);
+  },
+
+  // ================= VISOR COMPLETO DEL PROCEDIMIENTO DETALLADO PASO A PASO DE CADA LABORATORIO =================
+  openFullProcedureModal(labIdx) {
+    const targetIdx = (labIdx !== undefined && labIdx !== null)
+      ? parseInt(labIdx, 10)
+      : (this.state.currentPracticeIndex || 0);
+    this.activeProcedureModalLabIndex = targetIdx;
+    this.renderFullProcedureModalContent(targetIdx);
+    const modal = document.getElementById('modalStepByStepProcedure');
+    if (modal) modal.style.display = 'flex';
+  },
+
+  closeFullProcedureModal() {
+    const modal = document.getElementById('modalStepByStepProcedure');
+    if (modal) modal.style.display = 'none';
+  },
+
+  renderFullProcedureModalContent(labIdx) {
+    const idx = parseInt(labIdx, 10) || 0;
+    this.activeProcedureModalLabIndex = idx;
+    const p = this.practices[idx] || this.practices[0];
+
+    // Actualizar estado de pestañas superiores del modal
+    [0, 1, 2].forEach(i => {
+      const btn = document.getElementById(`btnProcModalLab${i}`);
+      if (btn) {
+        btn.className = i === idx ? 'btn btn-primary' : 'btn btn-outline';
+      }
+    });
+
+    const titleEl = document.getElementById('modalProcedureMainTitle');
+    if (titleEl) {
+      titleEl.innerText = `Laboratorio ${idx + 1}: ${p.title}`;
+    }
+
+    const bodyEl = document.getElementById('modalProcedureContentBody');
+    if (!bodyEl) return;
+
+    const el1 = ReactionEngine.elements[p.reactant1] || ReactionEngine.elements['Na'];
+    const el2 = ReactionEngine.elements[p.reactant2] || ReactionEngine.elements['Cl'];
+    const bondEval = ReactionEngine.evaluateBond(el1, el2);
+
+    const stepsCardsHtml = p.steps.map((st, sIdx) => {
+      const isDoneInCurrentLab = (this.state.currentPracticeIndex === idx && sIdx < this.state.currentStepIndex);
+      const substepsHtml = (st.substeps || []).map(sub =>
+        `<li style="margin-bottom: 0.25rem; color: #1e293b; font-size: 0.82rem;">${sub}</li>`
+      ).join('');
+
+      return `
+        <div style="background: #ffffff; border: 1.5px solid ${isDoneInCurrentLab ? '#86efac' : '#cbd5e1'}; border-left: 5px solid ${isDoneInCurrentLab ? '#16a34a' : '#0284c7'}; border-radius: 10px; padding: 1rem 1.15rem; box-shadow: 0 2px 6px rgba(15,23,42,0.04);">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.55rem;">
+            <div>
+              <div style="display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap;">
+                <span style="background: #0284c7; color: #ffffff; font-size: 0.74rem; font-weight: 800; padding: 0.18rem 0.6rem; border-radius: 999px;">
+                  PASO ${st.step} DE ${p.steps.length}
+                </span>
+                <h4 style="font-size: 0.98rem; font-weight: 800; color: #0f172a; margin: 0;">${st.name}</h4>
+              </div>
+              <p style="font-size: 0.82rem; color: #475569; margin: 0.25rem 0 0 0;">${st.desc}</p>
+            </div>
+
+            <div style="display: flex; gap: 0.4rem; align-items: center;">
+              <button type="button" class="btn btn-primary" style="font-size: 0.75rem; padding: 0.35rem 0.75rem;" onclick="App.runStepFromProcedureModal(${idx}, ${sIdx})">
+                ▶️ Ejecutar Paso ${st.step} en Simulador
+              </button>
+            </div>
+          </div>
+
+          <!-- Metadatos de Instrumento y Reactivo/Medición -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-bottom: 0.65rem;">
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.45rem 0.65rem; font-size: 0.78rem;">
+              <strong style="color: #0369a1; display: block; font-size: 0.7rem; text-transform: uppercase;">Instrumento Virtual Empleado:</strong>
+              <span style="color: #0f172a; font-weight: 700;">${st.instrument || 'Instrumental de mesa'}</span>
+            </div>
+            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.45rem 0.65rem; font-size: 0.78rem;">
+              <strong style="color: #0369a1; display: block; font-size: 0.7rem; text-transform: uppercase;">Reactivo / Condición Estequiométrica:</strong>
+              <span style="color: #0f172a; font-weight: 700;">⚗️ ${st.reagentSpec || st.hint}</span>
+            </div>
+          </div>
+
+          <!-- Sub-pasos Operativos Detallados -->
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.65rem 0.85rem; margin-bottom: 0.55rem;">
+            <div style="font-size: 0.75rem; font-weight: 800; color: #0f172a; margin-bottom: 0.3rem;">
+              📋 Procedimiento Operativo Paso a Paso:
+            </div>
+            <ul style="margin: 0 0 0 1.1rem; padding: 0; line-height: 1.45;">
+              ${substepsHtml}
+            </ul>
+          </div>
+
+          <!-- Explicación a Nivel Molecular y Norma de Bioseguridad -->
+          <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 0.6rem;">
+            <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 0.5rem 0.7rem; font-size: 0.76rem; color: #0c4a6e; line-height: 1.4;">
+              <strong>⚛️ ¿Qué ocurre a nivel molecular?</strong><br>
+              ${st.molecularObservation || st.hint}
+            </div>
+            <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 0.5rem 0.7rem; font-size: 0.76rem; color: #991b1b; line-height: 1.4;">
+              <strong>⚠️ Norma de Bioseguridad:</strong><br>
+              ${st.safetyRule || 'Utilizar EPP completo (bata, guantes y gafas de protección).'}
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    bodyEl.innerHTML = `
+      <!-- Resumen General del Laboratorio -->
+      <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #f8fafc; border-radius: 10px; padding: 0.9rem 1.15rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+        <div>
+          <div style="font-size: 0.72rem; color: #38bdf8; font-weight: 800; text-transform: uppercase;">Objetivo Científico del Laboratorio ${idx + 1}</div>
+          <div style="font-size: 0.92rem; font-weight: 700; margin-top: 0.15rem;">${p.subtext}</div>
+        </div>
+        <div style="display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap;">
+          <span style="background: rgba(56,189,248,0.18); border: 1px solid rgba(56,189,248,0.4); color: #bae6fd; font-family: monospace; font-size: 0.85rem; font-weight: 800; padding: 0.3rem 0.7rem; border-radius: 8px;">
+            ${p.equation}
+          </span>
+          <span style="background: rgba(34,197,94,0.2); border: 1px solid rgba(34,197,94,0.4); color: #86efac; font-size: 0.78rem; font-weight: 700; padding: 0.3rem 0.65rem; border-radius: 8px;">
+            ΔEN = ${bondEval ? bondEval.deltaEN : '2.23'} (${bondEval ? bondEval.bondType : 'Iónico'})
+          </span>
+        </div>
+      </div>
+
+      <!-- Lista Secuencial de los 4 Pasos Detallados -->
+      <div style="display: flex; flex-direction: column; gap: 0.85rem;">
+        ${stepsCardsHtml}
+      </div>
+    `;
+  },
+
+  runStepFromProcedureModal(labIdx, stepIdx) {
+    this.closeFullProcedureModal();
+    const simTab = document.querySelector('[data-tab="tab-simulator"]');
+    if (simTab) simTab.click();
+
+    if (this.state.currentPracticeIndex !== labIdx) {
+      const sel = document.getElementById('practiceSelect');
+      if (sel) sel.value = String(labIdx);
+      this.selectPractice(labIdx);
+    }
+
+    setTimeout(() => {
+      this.executeSpecificStep(stepIdx);
+    }, 80);
+  },
+
+  startLabFromProcedureModal() {
+    const idx = this.activeProcedureModalLabIndex || 0;
+    this.closeFullProcedureModal();
+    const simTab = document.querySelector('[data-tab="tab-simulator"]');
+    if (simTab) simTab.click();
+
+    const sel = document.getElementById('practiceSelect');
+    if (sel) sel.value = String(idx);
+    this.selectPractice(idx);
   },
 
   // Ejecución interactiva del paso actual
@@ -1976,27 +2388,7 @@ const App = {
       return;
     }
 
-    const currentStep = p.steps[this.state.currentStepIndex];
-    this.executeAction(currentStep.action, currentStep);
-
-    this.state.currentStepIndex++;
-    this.renderCurrentPracticeSteps();
-    this.renderMolecularMechanismStages();
-    this.updateMolecularTelemetry();
-
-    // Actualizar bitácora
-    const logEl = document.getElementById('labLogText');
-    const badgeEl = document.getElementById('experimentStatusBadge');
-
-    if (this.state.currentStepIndex >= p.steps.length) {
-      badgeEl.className = 'status-tag status-passed';
-      badgeEl.innerText = 'Práctica Culminada';
-      logEl.innerHTML = `<strong>¡Reacción molecular finalizada!</strong> Se ha formado con éxito el producto esperado (<strong>${p.equation}</strong>). Observe en la cámara las moléculas sintetizadas, sus electrones de valencia y cargas eléctricas. Ya puede rendir su evaluación.`;
-    } else {
-      badgeEl.className = 'status-tag status-pending';
-      badgeEl.innerText = `Paso ${this.state.currentStepIndex + 1} en curso`;
-      logEl.innerText = `Completado: ${currentStep.name}. Siguiente acción requerida: ${p.steps[this.state.currentStepIndex].name}.`;
-    }
+    this.executeSpecificStep(this.state.currentStepIndex);
   },
 
   // Ejecutar lógica física/química de la acción a nivel molecular según la práctica activa
@@ -6277,20 +6669,28 @@ const App = {
 
               <!-- PRÁCTICA ASIGNADA POR LA PROFESORA -->
               <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 1.15rem; margin-bottom: 1.25rem;">
-                <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: #64748b; letter-spacing: 0.5px; margin-bottom: 0.35rem;">
-                  🧪 Práctica de Laboratorio Asignada por la Docente
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.35rem;">
+                  <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: #64748b; letter-spacing: 0.5px;">
+                    🧪 Práctica de Laboratorio Asignada por la Docente
+                  </div>
+                  <button type="button" class="btn btn-outline" style="font-size: 0.72rem; padding: 0.25rem 0.65rem; background: #e0f2fe; color: #0369a1; border-color: #7dd3fc; font-weight: 700;" onclick="App.openFullProcedureModal(${practiceName.includes('Agua') || practiceName.includes('H₂O') ? 1 : (practiceName.includes('Neutralización') || practiceName.includes('HCl') ? 2 : 0)})">
+                    📋 Ver Procedimiento Detallado Paso a Paso
+                  </button>
                 </div>
                 <div style="font-size: 1.05rem; font-weight: 800; color: #0f172a; margin-bottom: 0.5rem;">
                   ${practiceName}
                 </div>
                 <p style="font-size: 0.82rem; color: #475569; margin: 0; line-height: 1.45;">
-                  Esta es la práctica obligatoria programada para tu aula. Puedes ingresar a la <strong>Mesa de Laboratorio</strong> (sub-módulo ubicado abajo) para experimentar en la cámara molecular y luego validar tu aprendizaje.
+                  Esta es la práctica obligatoria programada para tu aula. Puedes consultar el <strong>Procedimiento Detallado Paso a Paso</strong> o ingresar a la <strong>Mesa de Laboratorio</strong> para experimentar en la cámara molecular.
                 </p>
               </div>
 
-              <div style="display: flex; gap: 0.75rem;">
+              <div style="display: flex; gap: 0.65rem; flex-wrap: wrap;">
                 <button class="btn btn-primary" style="flex: 1; justify-content: center;" onclick="App.goToSimulatorFromSalon('${practiceName}')">
                   🔬 Ir a Mesa de Laboratorio
+                </button>
+                <button class="btn btn-outline" style="justify-content: center; border-color: #0284c7; color: #0284c7; font-weight: 700;" onclick="App.openFullProcedureModal(${practiceName.includes('Agua') || practiceName.includes('H₂O') ? 1 : (practiceName.includes('Neutralización') || practiceName.includes('HCl') ? 2 : 0)})">
+                  📖 Guía Paso a Paso
                 </button>
                 <button class="btn btn-secondary" onclick="App.goToQuizFromSalon()">
                   📝 Ir a Evaluación
