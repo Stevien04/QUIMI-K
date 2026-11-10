@@ -80,7 +80,7 @@
             </div>
             <div class="form-group">
               <label>Contraseña:</label>
-              <input type="password" id="loginPassword" class="form-input" placeholder="••••••••" required value="123456">
+              <input type="password" id="loginPassword" class="form-input" placeholder="••••••••" required value="123">
             </div>
 
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; font-size: 0.8rem;">
@@ -348,38 +348,107 @@
         <div class="workbench-area">
           <div class="card" style="padding: 0; overflow: hidden;">
             <div class="lab-table-isometric">
-              <!-- Overlay Superior de la Mesa -->
-              <div class="lab-status-overlay">
-                <div>
-                  <span style="color: #38bdf8; font-weight: 700;">Cámara de Reacción Molecular</span>
-                  <span id="chamberSubtext" style="color: #94a3b8; font-size: 0.75rem; margin-left: 0.5rem;">• Esperando reactivos</span>
+              <!-- Overlay Superior de la Mesa: Estado y Modos de Visualización Molecular -->
+              <div class="lab-status-overlay" style="flex-direction: column; align-items: stretch; gap: 0.45rem; padding: 0.65rem 0.9rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                  <div style="display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap;">
+                    <span style="color: #38bdf8; font-weight: 800; font-size: 0.85rem;">⚛️ Cámara de Simulación Molecular</span>
+                    <span id="chamberEquationPill" style="background: rgba(56, 189, 248, 0.16); border: 1px solid rgba(56, 189, 248, 0.35); color: #bae6fd; font-family: monospace; font-size: 0.75rem; font-weight: 700; padding: 0.12rem 0.5rem; border-radius: 999px;">2Na(s) + Cl₂(g) → 2NaCl(s)</span>
+                    <span id="chamberSubtext" style="color: #94a3b8; font-size: 0.74rem;">• Esperando reactivos</span>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <div id="particleCounter" style="font-family: monospace; font-size: 0.75rem; color: #a5f3fc; background: rgba(15, 23, 42, 0.75); padding: 0.18rem 0.55rem; border-radius: 6px; border: 1px solid rgba(165, 243, 252, 0.25);">
+                      Partículas activas: 0
+                    </div>
+                  </div>
                 </div>
-                <div id="particleCounter" style="font-family: monospace; color: #a5f3fc;">
-                  Partículas activas: 0
+
+                <!-- Barra de Modos de Vista Molecular y Telemetría en Vivo -->
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.45rem; padding-top: 0.35rem; border-top: 1px solid rgba(255, 255, 255, 0.08);">
+                  <div style="display: flex; align-items: center; gap: 0.3rem; flex-wrap: wrap;">
+                    <span style="font-size: 0.7rem; color: #94a3b8; font-weight: 700; margin-right: 0.15rem;">Vista:</span>
+                    <button type="button" id="btnMolViewLewis" class="mol-view-pill active" onclick="App.setMolecularViewMode('lewis')" title="Ver capas electrónicas y electrones de valencia (Lewis)">
+                      ⚛️ Electrones & Lewis
+                    </button>
+                    <button type="button" id="btnMolViewCharges" class="mol-view-pill" onclick="App.setMolecularViewMode('charges')" title="Ver cargas iónicas (+/-), dipolos (δ+/δ-) y vectores">
+                      ⚡ Cargas & Dipolos
+                    </button>
+                    <button type="button" id="btnMolViewCloud" class="mol-view-pill" onclick="App.setMolecularViewMode('cloud')" title="Ver nube de densidad electrónica y orbitales">
+                      🌐 Nube Electrónica
+                    </button>
+                  </div>
+
+                  <!-- Telemetría en Tiempo Real -->
+                  <div style="display: flex; align-items: center; gap: 0.55rem; font-size: 0.72rem; font-family: monospace;">
+                    <span id="molTelemetryTemp" style="color: #fde047;" title="Temperatura en cámara">🌡️ 21.5 °C</span>
+                    <span id="molTelemetryPh" style="color: #86efac;" title="pH del medio">📊 pH 7.0</span>
+                    <span id="molTelemetryYield" style="color: #38bdf8;" title="Moléculas de producto formadas">🧪 Productos: 0</span>
+                  </div>
                 </div>
               </div>
 
-              <!-- Canvas Molecular Interactivo -->
-              <div class="canvas-container">
-                <canvas id="molecularCanvas"></canvas>
+              <!-- Canvas Molecular Interactivo + Inspector Flotante -->
+              <div class="canvas-container" style="height: 330px; position: relative;">
+                <canvas id="molecularCanvas" style="cursor: grab;" title="Arrastre átomos para hacerlos colisionar o haga clic para inspeccionar su estructura subatómica"></canvas>
+
+                <!-- Inspector Subatómico Flotante (HUD al seleccionar/pasar sobre átomo o molécula) -->
+                <div id="molecularInspectorHud" style="display: none; position: absolute; top: 10px; right: 10px; width: 245px; background: rgba(15, 23, 42, 0.92); backdrop-filter: blur(6px); border: 1px solid rgba(56, 189, 248, 0.45); border-radius: 10px; padding: 0.65rem 0.75rem; color: #f8fafc; font-size: 0.74rem; z-index: 15; box-shadow: 0 8px 20px rgba(0,0,0,0.45); pointer-events: none;">
+                  <!-- Se actualiza dinámicamente -->
+                </div>
+
+                <!-- Leyenda Interactiva Inferior en el Canvas -->
+                <div id="molecularCanvasLegend" style="position: absolute; bottom: 8px; left: 10px; right: 10px; display: flex; justify-content: space-between; align-items: center; pointer-events: none; font-size: 0.7rem; color: rgba(226, 232, 240, 0.85); flex-wrap: wrap; gap: 0.35rem;">
+                  <span style="background: rgba(15, 23, 42, 0.75); padding: 0.15rem 0.5rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1);">
+                    💡 <strong>Interactivo:</strong> Arrastre un átomo hacia otro para colisionarlos o haga clic para inspeccionar sus electrones.
+                  </span>
+                  <span id="molecularPhaseStatusPill" style="background: rgba(15, 23, 42, 0.8); padding: 0.15rem 0.55rem; border-radius: 6px; border: 1px solid rgba(56, 189, 248, 0.3); color: #7dd3fc; font-weight: 700;">
+                    Fase: Reactivos en reposo
+                  </span>
+                </div>
               </div>
 
               <!-- Barra de Controles Inferiores -->
-              <div class="workbench-controls">
-                <div style="display: flex; gap: 0.5rem;">
-                  <button class="btn btn-primary" id="btnNextStep" onclick="App.executeCurrentStep()">
+              <div class="workbench-controls" style="gap: 0.45rem;">
+                <div style="display: flex; gap: 0.4rem; flex-wrap: wrap; align-items: center;">
+                  <button class="btn btn-primary" id="btnNextStep" onclick="App.executeCurrentStep()" style="padding: 0.45rem 0.8rem; font-size: 0.8rem;">
                     ▶️ Ejecutar Siguiente Paso
                   </button>
-                  <button class="btn btn-secondary" onclick="App.triggerHeat()">
+                  <button class="btn btn-secondary" id="btnHeatToggle" onclick="App.triggerHeat()" style="padding: 0.45rem 0.75rem; font-size: 0.8rem;">
                     🔥 Activar Calor
                   </button>
+                  <button class="btn btn-outline" onclick="App.triggerDirectMolecularReaction()" style="padding: 0.45rem 0.75rem; font-size: 0.78rem; color: #38bdf8; border-color: rgba(56, 189, 248, 0.4); background: rgba(56, 189, 248, 0.1);" title="Cargar reactivos y ejecutar colisión reactiva a nivel molecular inmediatamente">
+                    ⚡ Simular Reacción Molecular
+                  </button>
                 </div>
-                <div>
-                  <button class="btn btn-outline" onclick="App.resetSimulation()">
-                    🔄 Reiniciar Mesa
+
+                <!-- Controles de Velocidad Temporal (Cámara Lenta) y Reinicio -->
+                <div style="display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap;">
+                  <div style="display: flex; align-items: center; background: rgba(15, 23, 42, 0.9); border: 1px solid #334155; border-radius: 6px; padding: 0.15rem;">
+                    <button type="button" id="btnSpeedPause" class="mol-speed-btn" onclick="App.setSimulationSpeed(0)" title="Pausar movimiento molecular">⏸️</button>
+                    <button type="button" id="btnSpeedSlow" class="mol-speed-btn" onclick="App.setSimulationSpeed(0.3)" title="Cámara Lenta (0.3x) para observar salto de electrones">0.3x</button>
+                    <button type="button" id="btnSpeedNormal" class="mol-speed-btn active" onclick="App.setSimulationSpeed(1)" title="Velocidad Normal (1x)">1x</button>
+                    <button type="button" id="btnSpeedFast" class="mol-speed-btn" onclick="App.setSimulationSpeed(2)" title="Velocidad Rápida (2x)">2x</button>
+                  </div>
+                  <button class="btn btn-outline" onclick="App.resetSimulation()" style="padding: 0.42rem 0.7rem; font-size: 0.78rem; color: #cbd5e1; border-color: #475569;">
+                    🔄 Reiniciar
                   </button>
                 </div>
               </div>
+            </div>
+          </div>
+
+          <!-- Panel de Mecanismo de Reacción a Nivel Molecular (Etapa Reactivos -> Estado de Transición -> Producto) -->
+          <div class="card" style="padding: 0.8rem 1rem; border-left: 4px solid #0284c7; background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.55rem;">
+              <div style="display: flex; align-items: center; gap: 0.45rem;">
+                <span style="font-size: 0.84rem; font-weight: 800; color: #0f172a;">🔬 Mecanismo de Reacción a Nivel Molecular</span>
+                <span id="molMechanismSubBadge" style="font-size: 0.7rem; font-weight: 700; background: #e0f2fe; color: #0369a1; padding: 0.12rem 0.5rem; border-radius: 999px;">Transferencia Electrónica (Lewis)</span>
+              </div>
+              <span style="font-size: 0.72rem; color: #64748b;">Escala subatómica en vivo</span>
+            </div>
+
+            <div id="molecularMechanismStages" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem;">
+              <!-- Renderizado dinámico de las 3 fases moleculares: 1. Reactivos -> 2. Colisión y Electrones -> 3. Estructura del Producto -->
             </div>
           </div>
 

@@ -1179,6 +1179,8 @@ const App = {
     this.renderEvaluations();
     this.startCanvasAnimation();
     this.updateReactionAnalysis();
+    this.renderMolecularMechanismStages();
+    this.updateMolecularTelemetry();
     this.updateUserUI();
     // Exigir Login al entrar a la página
     this.openAuthModal('login');
@@ -1908,10 +1910,15 @@ const App = {
     this.updateReactionAnalysis();
 
     const p = this.practices[this.state.currentPracticeIndex];
-    document.getElementById('labLogText').innerText = `Se ha cargado la ${p.title}. Proceda a ejecutar el Paso 1: ${p.steps[0].name}.`;
+    const eqPill = document.getElementById('chamberEquationPill');
+    if (eqPill) eqPill.innerText = p.equation;
+
+    document.getElementById('labLogText').innerText = `Se ha cargado la ${p.title}. Proceda a ejecutar el Paso 1 (${p.steps[0].name}) o pulse "⚡ Simular Reacción Molecular" para observar la reacción completa a nivel subatómico.`;
     document.getElementById('experimentStatusBadge').className = 'status-tag status-pending';
     document.getElementById('experimentStatusBadge').innerText = 'Paso 1 Pendiente';
     this.updateContextualAssistantUI();
+    this.renderMolecularMechanismStages();
+    this.updateMolecularTelemetry();
   },
 
   // Renderizar pasos de la práctica
@@ -1965,7 +1972,7 @@ const App = {
   executeCurrentStep() {
     const p = this.practices[this.state.currentPracticeIndex];
     if (this.state.currentStepIndex >= p.steps.length) {
-      this.showDialog('La práctica actual ya ha sido completada. Puede reiniciarla con el botón "Reiniciar Mesa" o dirigirse a la pestaña de Evaluación para responder su cuestionario.', 'Práctica Culminada', '🎉');
+      this.showDialog('La práctica actual ya ha sido completada. Puede reiniciarla con el botón "Reiniciar" o dirigirse a la pestaña de Evaluación para responder su cuestionario.', 'Práctica Culminada', '🎉');
       return;
     }
 
@@ -1974,6 +1981,8 @@ const App = {
 
     this.state.currentStepIndex++;
     this.renderCurrentPracticeSteps();
+    this.renderMolecularMechanismStages();
+    this.updateMolecularTelemetry();
 
     // Actualizar bitácora
     const logEl = document.getElementById('labLogText');
@@ -1982,7 +1991,7 @@ const App = {
     if (this.state.currentStepIndex >= p.steps.length) {
       badgeEl.className = 'status-tag status-passed';
       badgeEl.innerText = 'Práctica Culminada';
-      logEl.innerHTML = `<strong>¡Reacción finalizada!</strong> Se ha formado con éxito el producto esperado (<strong>${p.equation}</strong>). Los resultados han sido validados científicamente por el motor de reacciones. Ya puede rendir su evaluación.`;
+      logEl.innerHTML = `<strong>¡Reacción molecular finalizada!</strong> Se ha formado con éxito el producto esperado (<strong>${p.equation}</strong>). Observe en la cámara las moléculas sintetizadas, sus electrones de valencia y cargas eléctricas. Ya puede rendir su evaluación.`;
     } else {
       badgeEl.className = 'status-tag status-pending';
       badgeEl.innerText = `Paso ${this.state.currentStepIndex + 1} en curso`;
@@ -1990,24 +1999,60 @@ const App = {
     }
   },
 
-  // Ejecutar lógica física/química de la acción
+  // Ejecutar lógica física/química de la acción a nivel molecular según la práctica activa
   executeAction(actionType, stepObj) {
-    const p = this.practices[this.state.currentPracticeIndex];
+    const pIdx = this.state.currentPracticeIndex || 0;
+    const p = this.practices[pIdx];
     const elem1 = ReactionEngine.elements[p.reactant1];
     const elem2 = ReactionEngine.elements[p.reactant2];
 
     if (actionType === 'add_reagent_1') {
-      this.spawnParticles(elem1, 8);
-      document.getElementById('chamberSubtext').innerText = `• Se añadieron átomos de ${elem1.name} (${elem1.symbol})`;
+      if (pIdx === 0) {
+        // Práctica 1: Sodio metálico (Na) con 1 electrón de valencia (3s¹)
+        this.spawnParticles(elem1, 6, { role: 'cation-candidate', valence: 1, charge: 0, config: '[Ne] 3s¹', side: 'left' });
+        document.getElementById('chamberSubtext').innerText = `• Incorporados 6 átomos de Sodio (Na⁰ • 1e⁻ de valencia)`;
+      } else if (pIdx === 1) {
+        // Práctica 2: Gas Hidrógeno (H) con 1 electrón de valencia (1s¹) - proporción 2:1
+        this.spawnParticles(elem1, 8, { role: 'covalent-h', valence: 1, charge: 0, config: '1s¹', side: 'left' });
+        document.getElementById('chamberSubtext').innerText = `• Incorporados 8 átomos de Hidrógeno (H • 1e⁻ de valencia)`;
+      } else if (pIdx === 2) {
+        // Práctica 3: Solución ácida HCl disociada en iones H⁺ y Cl⁻ (pH ácido = 1.5)
+        this.spawnParticles(ReactionEngine.elements['H'], 5, { role: 'acid-h', valence: 0, charge: +1, label: 'H⁺', config: '1s⁰ (Protón ácido)', side: 'left' });
+        this.spawnParticles(ReactionEngine.elements['Cl'], 5, { role: 'spectator-cl', valence: 8, charge: -1, label: 'Cl⁻', config: '[Ne] 3s² 3p⁶', side: 'left' });
+        this.molecularSim.currentPh = 1.5;
+        document.getElementById('chamberSubtext').innerText = `• Solución HCl(ac) disociada en iones H⁺ y Cl⁻ (pH = 1.50 Ácido)`;
+      }
+      this.setMolecularPhaseText('Reactivo A en cámara (Movimiento browniano)');
     } else if (actionType === 'add_reagent_2') {
-      this.spawnParticles(elem2, 8);
-      document.getElementById('chamberSubtext').innerText = `• Se incorporaron átomos de ${elem2.name} (${elem2.symbol})`;
+      if (pIdx === 0) {
+        // Práctica 1: Gas Cloro (Cl) con 7 electrones de valencia (3s² 3p⁵)
+        this.spawnParticles(elem2, 6, { role: 'anion-candidate', valence: 7, charge: 0, config: '[Ne] 3s² 3p⁵', side: 'right' });
+        document.getElementById('chamberSubtext').innerText = `• Incorporados 6 átomos de Cloro (Cl⁰ • 7e⁻ de valencia)`;
+      } else if (pIdx === 1) {
+        // Práctica 2: Gas Oxígeno (O) con 6 electrones de valencia (2s² 2p⁴)
+        this.spawnParticles(elem2, 4, { role: 'covalent-o', valence: 6, charge: 0, config: '[He] 2s² 2p⁴', side: 'right' });
+        document.getElementById('chamberSubtext').innerText = `• Incorporados 4 átomos de Oxígeno (O • 6e⁻ de valencia)`;
+      } else if (pIdx === 2) {
+        // Práctica 3: Titulación con NaOH disociado en iones Na⁺ y OH⁻
+        this.spawnParticles(ReactionEngine.elements['Na'], 5, { role: 'spectator-na', valence: 8, charge: +1, label: 'Na⁺', config: '[Ne] (Catión espectador)', side: 'right' });
+        this.spawnParticles({ symbol: 'OH', name: 'Ion Hidróxido', z: 9, en: 3.44, radius: 95, color: '#38bdf8' }, 5, { role: 'base-oh', valence: 8, charge: -1, label: 'OH⁻', config: 'Anión Hidroxilo Básico', side: 'right' });
+        this.molecularSim.currentPh = 4.2;
+        document.getElementById('chamberSubtext').innerText = `• Titulante NaOH(ac) incorporado: iones Na⁺ y OH⁻ en contacto`;
+      }
+      this.setMolecularPhaseText('Mezcla de reactivos lista para colisión');
     } else if (actionType === 'apply_heat') {
-      this.triggerHeat();
-      document.getElementById('chamberSubtext').innerText = `• Mechero activo: Energía cinética y colisiones incrementadas`;
+      if (!this.state.heatActive) {
+        this.triggerHeat();
+      }
+      this.setMolecularPhaseText('🔥 Superando Energía de Activación (Colisiones efectivas)');
+      document.getElementById('chamberSubtext').innerText = `• Energía térmica aplicada: Colisiones interatómicas activadas`;
     } else if (actionType === 'form_product') {
       this.synthesizeMolecules();
-      document.getElementById('chamberSubtext').innerText = `• Moléculas sintetizadas: ${p.equation}`;
+      if (pIdx === 2) {
+        this.molecularSim.currentPh = 7.0;
+      }
+      this.setMolecularPhaseText(`✅ Producto sintetizado: ${p.equation.split('→')[1]?.trim() || 'Completado'}`);
+      document.getElementById('chamberSubtext').innerText = `• Reacción molecular completada: ${p.equation}`;
     }
   },
 
@@ -3622,26 +3667,129 @@ const App = {
     this.openToolGuide(toolName);
   },
 
+  // ================= MOTOR AVANZADO DE SIMULACIÓN A NIVEL MOLECULAR =================
+  molecularSim: {
+    viewMode: 'lewis', // 'lewis' | 'charges' | 'cloud'
+    timeScale: 1.0,
+    electronTransfers: [], // [{ fromX, fromY, toParticle, progress, color, onDone }]
+    collisionWaves: [],    // [{ x, y, r, maxR, alpha, color, label }]
+    heatSparks: [],        // [{ x, y, vy, alpha, size, color }]
+    selectedParticle: null,
+    hoveredParticle: null,
+    draggingParticle: null,
+    currentTemp: 21.5,
+    currentPh: 7.0,
+    synthesizedCount: 0,
+    phaseText: 'Fase: Reactivos en reposo'
+  },
+
+  setMolecularPhaseText(text) {
+    this.molecularSim.phaseText = text;
+    const pill = document.getElementById('molecularPhaseStatusPill');
+    if (pill) pill.innerText = text;
+  },
+
+  setMolecularViewMode(mode) {
+    this.molecularSim.viewMode = mode;
+    const map = {
+      lewis: 'btnMolViewLewis',
+      charges: 'btnMolViewCharges',
+      cloud: 'btnMolViewCloud'
+    };
+    Object.entries(map).forEach(([k, btnId]) => {
+      const btn = document.getElementById(btnId);
+      if (btn) btn.className = `mol-view-pill ${k === mode ? 'active' : ''}`;
+    });
+  },
+
+  setSimulationSpeed(scale) {
+    this.molecularSim.timeScale = scale;
+    const map = {
+      0: 'btnSpeedPause',
+      0.3: 'btnSpeedSlow',
+      1: 'btnSpeedNormal',
+      2: 'btnSpeedFast'
+    };
+    Object.entries(map).forEach(([val, btnId]) => {
+      const btn = document.getElementById(btnId);
+      if (btn) btn.className = `mol-speed-btn ${parseFloat(val) === scale ? 'active' : ''}`;
+    });
+  },
+
+  // Ejecutar demostración directa completa de la reacción a nivel molecular
+  triggerDirectMolecularReaction() {
+    const pIdx = this.state.currentPracticeIndex || 0;
+    const p = this.practices[pIdx];
+
+    // Si no hay suficientes partículas de ambos reactivos, poblarlas automáticamente
+    if (this.state.particles.length < 4) {
+      this.state.particles = [];
+      this.executeAction('add_reagent_1');
+      this.executeAction('add_reagent_2');
+      this.state.currentStepIndex = 2;
+    }
+
+    // Activar calor / energía de activación si no está activo
+    if (!this.state.heatActive) {
+      this.triggerHeat();
+    }
+
+    // Avanzar al paso final después de que se observe la agitación y transferencia electrónica
+    setTimeout(() => {
+      this.synthesizeMolecules();
+      if (pIdx === 2) {
+        this.molecularSim.currentPh = 7.0;
+      }
+      this.state.currentStepIndex = p.steps.length;
+      this.renderCurrentPracticeSteps();
+      this.renderMolecularMechanismStages();
+      this.updateMolecularTelemetry();
+
+      const badgeEl = document.getElementById('experimentStatusBadge');
+      const logEl = document.getElementById('labLogText');
+      if (badgeEl) {
+        badgeEl.className = 'status-tag status-passed';
+        badgeEl.innerText = 'Reacción Molecular Completada';
+      }
+      if (logEl) {
+        logEl.innerHTML = `<strong>⚡ Simulación Molecular Completada:</strong> Se observó la colisión interatómica, redistribución de electrones de valencia y síntesis de <strong>${p.equation}</strong>. Use el botón <strong>0.3x</strong> para ver en cámara lenta o haga clic sobre cualquier molécula para inspeccionarla.`;
+      }
+      this.setMolecularPhaseText(`✅ Síntesis molecular: ${p.equation.split('→')[1]?.trim() || 'Producto'}`);
+    }, 650);
+  },
+
   // Activar o desactivar calor del mechero
   triggerHeat() {
     this.state.heatActive = !this.state.heatActive;
-    const factor = this.state.heatActive ? 2.5 : 1.0;
+    const factor = this.state.heatActive ? 2.4 : 1.0;
 
     this.state.particles.forEach(p => {
       p.speed = p.baseSpeed * factor;
     });
 
+    const btnHeat = document.getElementById('btnHeatToggle');
+    if (btnHeat) {
+      btnHeat.innerHTML = this.state.heatActive ? '🔥 Apagar Calor (Activo)' : '🔥 Activar Calor';
+      btnHeat.style.background = this.state.heatActive ? '#ea580c' : '';
+      btnHeat.style.color = this.state.heatActive ? '#ffffff' : '';
+    }
+
     const sub = document.getElementById('chamberSubtext');
     if (this.state.heatActive) {
-      sub.innerText = '🔥 Mechero encendido: Reacción activada térmicamente';
+      this.molecularSim.currentTemp = 845.0;
+      if (sub) sub.innerText = '🔥 Mechero encendido: Energía cinética y colisiones moleculares activadas';
+      this.setMolecularPhaseText('🔥 Energía de Activación (Colisiones reactivas)');
       setTimeout(() => {
-        if (this.state.particles.length >= 6) {
+        if (this.state.particles.length >= 4 && this.state.heatActive) {
           this.synthesizeMolecules();
         }
-      }, 1000);
+      }, 900);
     } else {
-      sub.innerText = '• Mechero apagado: Temperatura ambiente';
+      this.molecularSim.currentTemp = 21.5;
+      if (sub) sub.innerText = '• Mechero apagado: Temperatura ambiente';
     }
+    this.updateMolecularTelemetry();
+    this.renderMolecularMechanismStages();
   },
 
   // Reiniciar la simulación en la mesa
@@ -3649,66 +3797,614 @@ const App = {
     this.state.particles = [];
     this.state.currentStepIndex = 0;
     this.state.heatActive = false;
+    this.molecularSim.electronTransfers = [];
+    this.molecularSim.collisionWaves = [];
+    this.molecularSim.heatSparks = [];
+    this.molecularSim.selectedParticle = null;
+    this.molecularSim.hoveredParticle = null;
+    this.molecularSim.draggingParticle = null;
+    this.molecularSim.currentTemp = 21.5;
+    this.molecularSim.currentPh = 7.0;
+    this.molecularSim.synthesizedCount = 0;
+
+    const btnHeat = document.getElementById('btnHeatToggle');
+    if (btnHeat) {
+      btnHeat.innerHTML = '🔥 Activar Calor';
+      btnHeat.style.background = '';
+      btnHeat.style.color = '';
+    }
+
+    const hud = document.getElementById('molecularInspectorHud');
+    if (hud) hud.style.display = 'none';
+
+    const p = this.practices[this.state.currentPracticeIndex || 0];
+    const eqPill = document.getElementById('chamberEquationPill');
+    if (eqPill && p) eqPill.innerText = p.equation;
+
     document.getElementById('particleCounter').innerText = 'Partículas activas: 0';
-    document.getElementById('chamberSubtext').innerText = '• Cámara vacía y limpia';
-    document.getElementById('labLogText').innerText = 'Mesa de trabajo restablecida. Seleccione una práctica o ejecute el Paso 1.';
+    document.getElementById('chamberSubtext').innerText = '• Cámara limpia • Esperando reactivos';
+    document.getElementById('labLogText').innerText = 'Mesa de trabajo restablecida. Ejecute el Paso 1 o pulse "⚡ Simular Reacción Molecular" para ver la reacción a nivel molecular.';
     document.getElementById('experimentStatusBadge').className = 'status-tag status-pending';
     document.getElementById('experimentStatusBadge').innerText = 'Mesa Limpia';
+    this.setMolecularPhaseText('Fase: Reactivos en reposo');
+
     this.renderCurrentPracticeSteps();
     this.updateReactionAnalysis();
+    this.renderMolecularMechanismStages();
+    this.updateMolecularTelemetry();
   },
 
-  // Motor de física molecular Canvas
+  // Motor de física molecular Canvas con soporte interactivo de ratón
   setupCanvas() {
     this.canvas = document.getElementById('molecularCanvas');
     if (!this.canvas) return;
     this.ctx = this.canvas.getContext('2d');
     this.resizeCanvas();
     window.addEventListener('resize', () => this.resizeCanvas());
+
+    // Eventos interactivos en el Canvas Molecular (Arrastrar átomos e inspeccionar estructura subatómica)
+    this.canvas.addEventListener('pointerdown', (e) => this.onCanvasPointerDown(e));
+    this.canvas.addEventListener('pointermove', (e) => this.onCanvasPointerMove(e));
+    this.canvas.addEventListener('pointerup', (e) => this.onCanvasPointerUp(e));
+    this.canvas.addEventListener('pointerleave', () => {
+      this.molecularSim.hoveredParticle = null;
+      this.molecularSim.draggingParticle = null;
+      this.updateMolecularInspectorHud();
+    });
+  },
+
+  getCanvasCoords(e) {
+    const rect = this.canvas.getBoundingClientRect();
+    const scaleX = this.canvas.width / (rect.width || 1);
+    const scaleY = this.canvas.height / (rect.height || 1);
+    return {
+      x: (e.clientX - rect.left) * scaleX,
+      y: (e.clientY - rect.top) * scaleY
+    };
+  },
+
+  findParticleAt(x, y) {
+    const parts = this.state.particles;
+    for (let i = parts.length - 1; i >= 0; i--) {
+      const p = parts[i];
+      const dx = p.x - x;
+      const dy = p.y - y;
+      if (Math.sqrt(dx * dx + dy * dy) <= p.radius + 8) {
+        return p;
+      }
+    }
+    return null;
+  },
+
+  onCanvasPointerDown(e) {
+    const { x, y } = this.getCanvasCoords(e);
+    const hit = this.findParticleAt(x, y);
+    if (hit) {
+      this.molecularSim.selectedParticle = hit;
+      this.molecularSim.draggingParticle = hit;
+      this.canvas.style.cursor = 'grabbing';
+      this.updateMolecularInspectorHud();
+    } else {
+      this.molecularSim.selectedParticle = null;
+      this.updateMolecularInspectorHud();
+    }
+  },
+
+  onCanvasPointerMove(e) {
+    const { x, y } = this.getCanvasCoords(e);
+    if (this.molecularSim.draggingParticle) {
+      const dp = this.molecularSim.draggingParticle;
+      dp.x = Math.max(dp.radius + 4, Math.min(this.canvas.width - dp.radius - 4, x));
+      dp.y = Math.max(dp.radius + 4, Math.min(this.canvas.height - dp.radius - 4, y));
+      // Comprobar si al arrastrarlo choca con una partícula complementaria para reaccionar en vivo
+      this.checkPairCollisionReaction(dp, true);
+      this.updateMolecularInspectorHud();
+      return;
+    }
+
+    const hit = this.findParticleAt(x, y);
+    this.molecularSim.hoveredParticle = hit;
+    this.canvas.style.cursor = hit ? 'grab' : 'default';
+    this.updateMolecularInspectorHud();
+  },
+
+  onCanvasPointerUp() {
+    this.molecularSim.draggingParticle = null;
+    this.canvas.style.cursor = this.molecularSim.hoveredParticle ? 'grab' : 'default';
+  },
+
+  updateMolecularInspectorHud() {
+    const hud = document.getElementById('molecularInspectorHud');
+    if (!hud) return;
+    const p = this.molecularSim.selectedParticle || this.molecularSim.hoveredParticle;
+    if (!p) {
+      hud.style.display = 'none';
+      return;
+    }
+
+    const chargeStr = p.charge > 0 ? `+${p.charge} (Catión)` : (p.charge < 0 ? `${p.charge} (Anión)` : (p.partialCharge || '0 (Neutro)'));
+    const bondStatus = p.moleculeLabel
+      ? `Enlazado en <strong>${p.moleculeLabel}</strong> (${p.bondTypeLabel || 'Estable'})`
+      : 'Átomo / Ion libre sin enlazar';
+
+    hud.style.display = 'block';
+    hud.innerHTML = `
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(148,163,184,0.2); padding-bottom: 0.3rem; margin-bottom: 0.35rem;">
+        <span style="font-weight: 800; color: #38bdf8; font-size: 0.8rem;">🔬 Inspector Subatómico: ${p.displayLabel || p.symbol}</span>
+        <span style="background: rgba(56,189,248,0.2); color: #bae6fd; padding: 0.08rem 0.4rem; border-radius: 4px; font-family: monospace; font-size: 0.68rem;">Z = ${p.z || '-'}</span>
+      </div>
+      <div style="line-height: 1.45; color: #e2e8f0; font-size: 0.72rem;">
+        • <strong>Especie:</strong> ${p.name || p.symbol}<br>
+        • <strong>Configuración:</strong> <code style="color: #fde047;">${p.config || 'Capa de valencia'}</code><br>
+        • <strong>Electrones Valencia (Lewis):</strong> <strong>${p.valence} e⁻</strong><br>
+        • <strong>Carga Eléctrica:</strong> <span style="color: #86efac; font-weight: 700;">${chargeStr}</span><br>
+        • <strong>Electronegatividad:</strong> ${p.en} (Pauling)<br>
+        • <strong>Estado:</strong> ${bondStatus}
+      </div>
+    `;
   },
 
   resizeCanvas() {
     if (!this.canvas) return;
     const rect = this.canvas.parentElement.getBoundingClientRect();
-    this.canvas.width = rect.width || 600;
-    this.canvas.height = rect.height || 300;
+    const newW = rect.width > 100 ? rect.width : 640;
+    const newH = rect.height > 100 ? rect.height : 330;
+    this.canvas.width = newW;
+    this.canvas.height = newH;
+
+    // Mantener partículas dentro del área visible tras redimensionar
+    if (Array.isArray(this.state.particles)) {
+      this.state.particles.forEach(p => {
+        p.x = Math.max(p.radius + 10, Math.min(newW - p.radius - 10, p.x));
+        p.y = Math.max(p.radius + 10, Math.min(newH - p.radius - 10, p.y));
+      });
+    }
   },
 
-  spawnParticles(element, count) {
-    const w = this.canvas.width;
-    const h = this.canvas.height;
+  getDefaultValence(symbol) {
+    const map = { Na: 1, Cl: 7, H: 1, O: 6, C: 4, N: 5, OH: 8 };
+    return map[symbol] !== undefined ? map[symbol] : 4;
+  },
+
+  getDefaultConfig(symbol) {
+    const map = {
+      Na: '[Ne] 3s¹',
+      Cl: '[Ne] 3s² 3p⁵',
+      H: '1s¹',
+      O: '[He] 2s² 2p⁴',
+      C: '[He] 2s² 2p²',
+      N: '[He] 2s² 2p³',
+      OH: 'Anión Hidroxilo [OH]⁻'
+    };
+    return map[symbol] || 'Capa externa';
+  },
+
+  spawnParticles(element, count, options = {}) {
+    if (!element) return;
+    const w = this.canvas ? this.canvas.width : 640;
+    const h = this.canvas ? this.canvas.height : 330;
+
+    const baseValence = options.valence !== undefined ? options.valence : this.getDefaultValence(element.symbol);
+    const baseCharge = options.charge !== undefined ? options.charge : 0;
+    const role = options.role || 'generic';
+    const side = options.side || 'any';
 
     for (let i = 0; i < count; i++) {
+      let startX = Math.random() * (w - 90) + 45;
+      if (side === 'left') {
+        startX = 45 + Math.random() * (w * 0.42 - 45);
+      } else if (side === 'right') {
+        startX = w * 0.55 + Math.random() * (w * 0.42 - 45);
+      }
+      const startY = 45 + Math.random() * (h - 95);
+
+      const radius = element.symbol === 'H'
+        ? 14
+        : Math.max(17, Math.min(25, Math.round((element.radius || 100) / 6.2)));
+
       this.state.particles.push({
-        x: Math.random() * (w - 60) + 30,
-        y: Math.random() * (h - 60) + 30,
-        vx: (Math.random() - 0.5) * 1.8,
-        vy: (Math.random() - 0.5) * 1.8,
-        baseSpeed: 1.5,
-        speed: 1.5,
-        radius: Math.max(12, Math.min(22, element.radius / 7)),
+        id: 'pt-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+        x: startX,
+        y: startY,
+        vx: (Math.random() - 0.5) * 1.7,
+        vy: (Math.random() - 0.5) * 1.7,
+        baseSpeed: 1.35,
+        speed: this.state.heatActive ? 3.1 : 1.35,
+        radius,
         symbol: element.symbol,
-        color: element.color,
-        en: element.en,
-        bondedWith: null,
+        displayLabel: options.label || element.symbol,
+        name: element.name || element.symbol,
+        z: element.z || 1,
+        color: element.color || '#38bdf8',
+        en: element.en || 2.0,
+        valence: baseValence,
+        charge: baseCharge,
+        partialCharge: '',
+        config: options.config || this.getDefaultConfig(element.symbol),
+        role,
+        bondedWith: null,       // Para enlaces diatómicos / pares iónicos (Na-Cl)
+        bondedChildren: [],     // Para moléculas triatómicas como H2O (O tiene 2 H hijos)
+        bondedParent: null,     // Referencia al átomo central (O en H2O)
+        bondSlotAngle: 0,       // Ángulo en geometría V de H2O (104.5°)
+        moleculeLabel: null,
+        bondTypeLabel: null,
+        electronPhase: Math.random() * Math.PI * 2,
         pulse: Math.random() * Math.PI
       });
     }
 
-    document.getElementById('particleCounter').innerText = `Partículas activas: ${this.state.particles.length}`;
+    this.updateMolecularTelemetry();
+    this.renderMolecularMechanismStages();
   },
 
-  synthesizeMolecules() {
+  // Lanza una animación de transferencia de electrón (e⁻) entre dos átomos y ejecuta su enlace
+  triggerElectronTransferAnimation(donor, acceptor, onComplete) {
+    this.molecularSim.electronTransfers.push({
+      donor,
+      acceptor,
+      progress: 0,
+      onComplete
+    });
+
+    // Onda expansiva en el punto medio de colisión
+    this.molecularSim.collisionWaves.push({
+      x: (donor.x + acceptor.x) / 2,
+      y: (donor.y + acceptor.y) / 2,
+      r: 6,
+      maxR: 48,
+      alpha: 1.0,
+      color: '#fde047',
+      label: '⚡ Transferencia 1e⁻'
+    });
+  },
+
+  // Evalúa si una partícula puede reaccionar al chocar con otra en tiempo real
+  checkPairCollisionReaction(p1, forceReaction = false) {
+    if (p1.bondedWith || p1.bondedParent || (p1.bondedChildren && p1.bondedChildren.length > 0)) return;
+    const pIdx = this.state.currentPracticeIndex || 0;
     const parts = this.state.particles;
-    for (let i = 0; i < parts.length; i++) {
-      for (let j = i + 1; j < parts.length; j++) {
-        if (!parts[i].bondedWith && !parts[j].bondedWith && parts[i].symbol !== parts[j].symbol) {
-          parts[i].bondedWith = parts[j];
-          parts[j].bondedWith = parts[i];
-          break;
+
+    for (let j = 0; j < parts.length; j++) {
+      const p2 = parts[j];
+      if (p1 === p2 || p2.bondedWith || p2.bondedParent) continue;
+
+      const dx = p2.x - p1.x;
+      const dy = p2.y - p1.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const minDist = p1.radius + p2.radius + (forceReaction ? 22 : 10);
+
+      if (dist <= minDist) {
+        // Caso Práctica 1: Na + Cl -> Na⁺Cl⁻
+        if (pIdx === 0 && ((p1.symbol === 'Na' && p2.symbol === 'Cl') || (p1.symbol === 'Cl' && p2.symbol === 'Na'))) {
+          if (this.state.heatActive || forceReaction) {
+            const na = p1.symbol === 'Na' ? p1 : p2;
+            const cl = p1.symbol === 'Cl' ? p1 : p2;
+            this.formIonicPairNaCl(na, cl);
+            return;
+          }
+        }
+        // Caso Práctica 2: 2H + O -> H2O
+        if (pIdx === 1 && (p1.symbol === 'O' || p2.symbol === 'O')) {
+          if (this.state.heatActive || forceReaction) {
+            const oAtom = p1.symbol === 'O' ? p1 : p2;
+            if (!oAtom.bondedChildren || oAtom.bondedChildren.length === 0) {
+              const freeHs = parts.filter(h => h.symbol === 'H' && !h.bondedParent && !h.bondedWith);
+              if (freeHs.length >= 2) {
+                this.formWaterMolecule(oAtom, freeHs[0], freeHs[1]);
+                return;
+              }
+            }
+          }
+        }
+        // Caso Práctica 3: Neutralización H⁺ + OH⁻ -> H2O y Na⁺ + Cl⁻ -> NaCl
+        if (pIdx === 2) {
+          if ((p1.role === 'acid-h' && p2.role === 'base-oh') || (p1.role === 'base-oh' && p2.role === 'acid-h')) {
+            const hIon = p1.role === 'acid-h' ? p1 : p2;
+            const ohIon = p1.role === 'base-oh' ? p1 : p2;
+            this.formNeutralizedWater(hIon, ohIon);
+            return;
+          }
+          if ((p1.role === 'spectator-na' && p2.role === 'spectator-cl') || (p1.role === 'spectator-cl' && p2.role === 'spectator-na')) {
+            const naIon = p1.role === 'spectator-na' ? p1 : p2;
+            const clIon = p1.role === 'spectator-cl' ? p1 : p2;
+            this.formIonicPairNaCl(naIon, clIon, true);
+            return;
+          }
         }
       }
     }
+  },
+
+  formIonicPairNaCl(na, cl, alreadyIons = false) {
+    if (na.bondedWith || cl.bondedWith) return;
+    na.bondedWith = cl;
+    cl.bondedWith = na;
+
+    if (!alreadyIons) {
+      this.triggerElectronTransferAnimation(na, cl, () => {
+        na.valence = 8; // Capa interna [Ne] estable
+        na.charge = +1;
+        na.displayLabel = 'Na⁺';
+        na.config = '[Ne] (Catión Octeto Estable)';
+        na.radius = 18; // Contracción del radio catiónico
+
+        cl.valence = 8; // Completa el octeto 3s² 3p⁶
+        cl.charge = -1;
+        cl.displayLabel = 'Cl⁻';
+        cl.config = '[Ne] 3s² 3p⁶ (Anión Octeto)';
+        cl.radius = 23; // Expansión del radio aniónico
+      });
+    } else {
+      this.molecularSim.collisionWaves.push({
+        x: (na.x + cl.x) / 2,
+        y: (na.y + cl.y) / 2,
+        r: 5,
+        maxR: 35,
+        alpha: 0.9,
+        color: '#a855f7',
+        label: 'Par Iónico Na⁺Cl⁻'
+      });
+    }
+
+    na.moleculeLabel = 'NaCl (Cloruro de Sodio)';
+    cl.moleculeLabel = 'NaCl (Cloruro de Sodio)';
+    na.bondTypeLabel = 'Enlace Iónico (ΔEN = 2.23)';
+    cl.bondTypeLabel = 'Enlace Iónico (ΔEN = 2.23)';
+
+    this.molecularSim.synthesizedCount++;
+    this.updateMolecularTelemetry();
+  },
+
+  formWaterMolecule(oAtom, h1, h2) {
+    if (oAtom.bondedChildren.length > 0 || h1.bondedParent || h2.bondedParent) return;
+    oAtom.bondedChildren = [h1, h2];
+    h1.bondedParent = oAtom;
+    h2.bondedParent = oAtom;
+
+    // Ángulo real H-O-H de 104.5° (±52.25° respecto al eje de simetría)
+    const halfAngleRad = (52.25 * Math.PI) / 180;
+    h1.bondSlotAngle = -halfAngleRad;
+    h2.bondSlotAngle = halfAngleRad;
+
+    oAtom.valence = 8; // 2 pares compartidos + 2 pares libres = octeto
+    oAtom.partialCharge = '2δ⁻';
+    oAtom.displayLabel = 'O';
+    oAtom.config = '[He] 2s² 2p⁴ (2 pares compartidos)';
+    oAtom.moleculeLabel = 'H₂O (Molécula Polar Angular 104.5°)';
+    oAtom.bondTypeLabel = 'Covalente Polar (ΔEN = 1.24)';
+
+    [h1, h2].forEach(h => {
+      h.valence = 2; // Dueto de Helio completado por compartición
+      h.partialCharge = 'δ⁺';
+      h.displayLabel = 'H';
+      h.config = '1s² (Par electrónico compartido)';
+      h.moleculeLabel = 'H₂O (Molécula Polar Angular 104.5°)';
+      h.bondTypeLabel = 'Covalente Polar (ΔEN = 1.24)';
+    });
+
+    this.molecularSim.collisionWaves.push({
+      x: oAtom.x,
+      y: oAtom.y,
+      r: 8,
+      maxR: 52,
+      alpha: 1.0,
+      color: '#38bdf8',
+      label: '💧 H₂O (104.5° Covalente Polar)'
+    });
+
+    this.molecularSim.synthesizedCount++;
+    this.updateMolecularTelemetry();
+  },
+
+  formNeutralizedWater(hIon, ohIon) {
+    if (hIon.bondedWith || ohIon.bondedWith) return;
+    hIon.bondedWith = ohIon;
+    ohIon.bondedWith = hIon;
+
+    hIon.charge = 0;
+    ohIon.charge = 0;
+    hIon.partialCharge = 'δ⁺';
+    ohIon.partialCharge = 'δ⁻';
+    hIon.displayLabel = 'H';
+    ohIon.displayLabel = 'OH';
+    hIon.moleculeLabel = 'H₂O (Agua Neutra pH 7.0)';
+    ohIon.moleculeLabel = 'H₂O (Agua Neutra pH 7.0)';
+    hIon.bondTypeLabel = 'Neutralización H⁺ + OH⁻ → H₂O';
+    ohIon.bondTypeLabel = 'Neutralización H⁺ + OH⁻ → H₂O';
+
+    this.molecularSim.collisionWaves.push({
+      x: (hIon.x + ohIon.x) / 2,
+      y: (hIon.y + ohIon.y) / 2,
+      r: 8,
+      maxR: 50,
+      alpha: 1.0,
+      color: '#22c55e',
+      label: '💧 Neutralización H⁺ + OH⁻ → H₂O'
+    });
+
+    this.molecularSim.synthesizedCount++;
+    this.molecularSim.currentPh = 7.0;
+    this.updateMolecularTelemetry();
+  },
+
+  // Síntesis global de moléculas según la estequiometría de la práctica activa
+  synthesizeMolecules() {
+    const pIdx = this.state.currentPracticeIndex || 0;
+    const parts = this.state.particles;
+
+    if (pIdx === 0) {
+      // Práctica 1: 2Na + Cl2 -> 2NaCl
+      const freeNa = parts.filter(p => p.symbol === 'Na' && !p.bondedWith);
+      const freeCl = parts.filter(p => p.symbol === 'Cl' && !p.bondedWith);
+      const pairCount = Math.min(freeNa.length, freeCl.length);
+      for (let i = 0; i < pairCount; i++) {
+        this.formIonicPairNaCl(freeNa[i], freeCl[i], false);
+      }
+    } else if (pIdx === 1) {
+      // Práctica 2: 2H2 + O2 -> 2H2O (cada O se enlaza a 2 H a 104.5°)
+      const freeO = parts.filter(p => p.symbol === 'O' && (!p.bondedChildren || p.bondedChildren.length === 0));
+      const freeH = parts.filter(p => p.symbol === 'H' && !p.bondedParent && !p.bondedWith);
+      let hIdx = 0;
+      for (let i = 0; i < freeO.length; i++) {
+        if (hIdx + 1 < freeH.length) {
+          this.formWaterMolecule(freeO[i], freeH[hIdx], freeH[hIdx + 1]);
+          hIdx += 2;
+        }
+      }
+      // Si el usuario sólo había agregado un tipo de átomo antes de sintetizar, emparejar cualquier restante
+      if (freeO.length === 0 || freeH.length < 2) {
+        for (let i = 0; i < parts.length; i++) {
+          for (let j = i + 1; j < parts.length; j++) {
+            if (!parts[i].bondedWith && !parts[j].bondedWith && !parts[i].bondedParent && !parts[j].bondedParent && parts[i].symbol !== parts[j].symbol) {
+              parts[i].bondedWith = parts[j];
+              parts[j].bondedWith = parts[i];
+              this.molecularSim.synthesizedCount++;
+              break;
+            }
+          }
+        }
+      }
+    } else if (pIdx === 2) {
+      // Práctica 3: HCl + NaOH -> NaCl + H2O
+      const freeH = parts.filter(p => p.role === 'acid-h' && !p.bondedWith);
+      const freeOH = parts.filter(p => p.role === 'base-oh' && !p.bondedWith);
+      const wCount = Math.min(freeH.length, freeOH.length);
+      for (let i = 0; i < wCount; i++) {
+        this.formNeutralizedWater(freeH[i], freeOH[i]);
+      }
+
+      const freeNa = parts.filter(p => (p.role === 'spectator-na' || p.symbol === 'Na') && !p.bondedWith);
+      const freeCl = parts.filter(p => (p.role === 'spectator-cl' || p.symbol === 'Cl') && !p.bondedWith);
+      const sCount = Math.min(freeNa.length, freeCl.length);
+      for (let i = 0; i < sCount; i++) {
+        this.formIonicPairNaCl(freeNa[i], freeCl[i], true);
+      }
+    }
+
+    this.updateMolecularTelemetry();
+    this.renderMolecularMechanismStages();
+  },
+
+  updateMolecularTelemetry() {
+    const countEl = document.getElementById('particleCounter');
+    if (countEl) {
+      countEl.innerText = `Partículas: ${this.state.particles.length} | Moléculas: ${this.molecularSim.synthesizedCount}`;
+    }
+
+    const tempEl = document.getElementById('molTelemetryTemp');
+    if (tempEl) {
+      tempEl.innerText = `🌡️ ${this.molecularSim.currentTemp.toFixed(1)} °C`;
+      tempEl.style.color = this.state.heatActive ? '#fb923c' : '#fde047';
+    }
+
+    const phEl = document.getElementById('molTelemetryPh');
+    if (phEl) {
+      phEl.innerText = `📊 pH ${this.molecularSim.currentPh.toFixed(1)}`;
+      phEl.style.color = this.molecularSim.currentPh < 6.5 ? '#f87171' : (this.molecularSim.currentPh > 7.5 ? '#60a5fa' : '#86efac');
+    }
+
+    const yieldEl = document.getElementById('molTelemetryYield');
+    if (yieldEl) {
+      yieldEl.innerText = `🧪 Productos: ${this.molecularSim.synthesizedCount}`;
+    }
+  },
+
+  // Renderiza las 3 tarjetas de mecanismo subatómico debajo del Canvas
+  renderMolecularMechanismStages() {
+    const container = document.getElementById('molecularMechanismStages');
+    if (!container) return;
+
+    const pIdx = this.state.currentPracticeIndex || 0;
+    const stepIdx = this.state.currentStepIndex || 0;
+    const badge = document.getElementById('molMechanismSubBadge');
+
+    const stagesByPractice = {
+      0: {
+        badge: 'Transferencia Iónica de Electrones (ΔEN = 2.23)',
+        s1: {
+          title: '1. Átomos Neutros (Reactivos)',
+          formula: 'Na ([Ne] 3s¹) + Cl ([Ne] 3s² 3p⁵)',
+          desc: 'El Sodio tiene 1 electrón de valencia débilmente retenido (EN=0.93) y el Cloro posee 7 electrones buscando completar su octeto (EN=3.16).'
+        },
+        s2: {
+          title: '2. Colisión y Salto de 1e⁻',
+          formula: 'Na⁰ ──(cede 1e⁻)──► Cl⁰',
+          desc: 'Al aplicar calor con el Mechero Bunsen, los átomos chocan y el electrón 3s¹ del Sodio salta definitivamente a la capa 3p del Cloro.'
+        },
+        s3: {
+          title: '3. Enlace Iónico Cristalino',
+          formula: '[Na]⁺ + [:Cl:]⁻ → NaCl(s)',
+          desc: 'Se forman iones de carga opuesta (catión Na⁺ y anión Cl⁻ con 8e⁻) unidos por intensa fuerza electrostática de Coulomb.'
+        }
+      },
+      1: {
+        badge: 'Compartición Covalente Polar (ΔEN = 1.24)',
+        s1: {
+          title: '1. Gases Diatómicos Iniciales',
+          formula: '2H (1s¹) + O ([He] 2s² 2p⁴)',
+          desc: 'Cada átomo de Hidrógeno aporta 1 electrón de valencia y el Oxígeno central posee 6 electrones en su capa externa.'
+        },
+        s2: {
+          title: '2. Solapamiento de Orbitales',
+          formula: 'H • + • O • + • H (ΔEN = 1.24)',
+          desc: 'Tras la chispa de activación, el Oxígeno comparte 2 pares de electrones con dos átomos de Hidrógeno sin llegar a arrancarlos.'
+        },
+        s3: {
+          title: '3. Geometría Angular Dipolar (104.5°)',
+          formula: 'H(δ⁺) — O(2δ⁻) — H(δ⁺)',
+          desc: 'La mayor electronegatividad del Oxígeno (3.44) atrae la nube electrónica creando dipolos permanentes (δ⁻ y δ⁺) y un ángulo de 104.5°.'
+        }
+      },
+      2: {
+        badge: 'Neutralización Iónica Ácido-Base (pH → 7.0)',
+        s1: {
+          title: '1. Disociación Iónica en Agua',
+          formula: 'HCl → H⁺ + Cl⁻  |  NaOH → Na⁺ + OH⁻',
+          desc: 'En solución acuosa, el ácido fuerte libera protones H⁺ (pH 1.5) y la base fuerte aporta iones hidroxilo OH⁻.'
+        },
+        s2: {
+          title: '2. Choque Protónico H⁺ + OH⁻',
+          formula: 'H⁺(ac) + OH⁻(ac) ──► H₂O(l)',
+          desc: 'Durante la titulación, cada protón ácido H⁺ acepta un par electrónico del ion OH⁻ formando enlaces covalentes O-H.'
+        },
+        s3: {
+          title: '3. Equilibrio Neutro y Salmuera',
+          formula: 'Na⁺(ac) + Cl⁻(ac) + H₂O(l) (pH = 7.0)',
+          desc: 'El medio alcanza neutralidad estricta (pH = 7.0) mientras los iones espectadores Na⁺ y Cl⁻ permanecen como sal disuelta.'
+        }
+      }
+    };
+
+    const data = stagesByPractice[pIdx] || stagesByPractice[0];
+    if (badge) badge.innerText = data.badge;
+
+    const activeStage = stepIdx === 0 ? 1 : (stepIdx <= 2 ? 2 : 3);
+    const stages = [data.s1, data.s2, data.s3];
+
+    container.innerHTML = stages.map((st, idx) => {
+      const stageNum = idx + 1;
+      const isCurrent = stageNum === activeStage;
+      const isDone = stageNum < activeStage || stepIdx >= 4;
+      const borderCol = isCurrent ? '#0284c7' : (isDone ? '#16a34a' : '#cbd5e1');
+      const bgCol = isCurrent ? '#f0f9ff' : (isDone ? '#f0fdf4' : '#ffffff');
+      const badgeTxt = isDone ? '✅ Completado' : (isCurrent ? '⚡ Fase Activa' : '⏳ Pendiente');
+      const badgeCol = isDone ? '#15803d' : (isCurrent ? '#0369a1' : '#64748b');
+
+      return `
+        <div style="border: 1.5px solid ${borderCol}; background: ${bgCol}; border-radius: 8px; padding: 0.6rem 0.7rem; transition: all 0.2s;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+            <strong style="font-size: 0.75rem; color: #0f172a;">${st.title}</strong>
+            <span style="font-size: 0.65rem; font-weight: 800; color: ${badgeCol};">${badgeTxt}</span>
+          </div>
+          <div style="font-family: monospace; font-size: 0.73rem; font-weight: 700; color: #0369a1; background: rgba(255,255,255,0.85); padding: 0.2rem 0.45rem; border-radius: 4px; border: 1px solid #bae6fd; margin-bottom: 0.3rem;">
+            ${st.formula}
+          </div>
+          <div style="font-size: 0.72rem; color: #334155; line-height: 1.38;">
+            ${st.desc}
+          </div>
+        </div>
+      `;
+    }).join('');
   },
 
   startCanvasAnimation() {
@@ -3721,87 +4417,329 @@ const App = {
   },
 
   updateParticles() {
+    if (!this.canvas) return;
     const w = this.canvas.width;
     const h = this.canvas.height;
     const parts = this.state.particles;
+    const dt = this.molecularSim.timeScale;
+
+    // Actualizar chispas térmicas del mechero si el calor está activo
+    if (this.state.heatActive && dt > 0) {
+      if (Math.random() < 0.35 * dt) {
+        this.molecularSim.heatSparks.push({
+          x: w * 0.25 + Math.random() * (w * 0.5),
+          y: h - 6,
+          vy: -(1.2 + Math.random() * 1.8),
+          alpha: 0.9,
+          size: 2 + Math.random() * 2.5,
+          color: Math.random() > 0.4 ? '#38bdf8' : '#fb923c'
+        });
+      }
+    }
+
+    for (let i = this.molecularSim.heatSparks.length - 1; i >= 0; i--) {
+      const sp = this.molecularSim.heatSparks[i];
+      sp.y += sp.vy * dt;
+      sp.alpha -= 0.022 * dt;
+      if (sp.alpha <= 0 || sp.y < 0) {
+        this.molecularSim.heatSparks.splice(i, 1);
+      }
+    }
+
+    // Actualizar animaciones de salto de electrones (e⁻)
+    for (let i = this.molecularSim.electronTransfers.length - 1; i >= 0; i--) {
+      const tr = this.molecularSim.electronTransfers[i];
+      tr.progress += 0.035 * Math.max(0.25, dt);
+      if (tr.progress >= 1) {
+        if (typeof tr.onComplete === 'function') tr.onComplete();
+        this.molecularSim.electronTransfers.splice(i, 1);
+      }
+    }
+
+    // Actualizar ondas de choque de colisión
+    for (let i = this.molecularSim.collisionWaves.length - 1; i >= 0; i--) {
+      const cw = this.molecularSim.collisionWaves[i];
+      cw.r += 1.4 * Math.max(0.25, dt);
+      cw.alpha -= 0.025 * Math.max(0.25, dt);
+      if (cw.alpha <= 0 || cw.r >= cw.maxR) {
+        this.molecularSim.collisionWaves.splice(i, 1);
+      }
+    }
+
+    if (dt === 0) return;
 
     for (let i = 0; i < parts.length; i++) {
       const p = parts[i];
-      p.pulse += 0.05;
+      p.pulse += 0.05 * dt;
+      p.electronPhase += (this.state.heatActive ? 0.07 : 0.035) * dt;
 
-      if (p.bondedWith) {
-        const dx = p.bondedWith.x - p.x;
-        const dy = p.bondedWith.y - p.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        const targetDist = p.radius + p.bondedWith.radius + 6;
+      if (this.molecularSim.draggingParticle === p) continue;
 
-        if (dist > targetDist) {
-          p.x += (dx / dist) * 1.2;
-          p.y += (dy / dist) * 1.2;
-        }
+      // Si es un átomo de H enlazado a un O en una molécula angular H2O (104.5°)
+      if (p.bondedParent) {
+        const parent = p.bondedParent;
+        const bondDist = parent.radius + p.radius + 8;
+        const baseOrientation = Math.PI / 2 + Math.sin(parent.pulse * 0.4) * 0.25;
+        const targetAngle = baseOrientation + (p.bondSlotAngle || 0);
+        const targetX = parent.x + Math.cos(targetAngle) * bondDist;
+        const targetY = parent.y + Math.sin(targetAngle) * bondDist;
+        p.x += (targetX - p.x) * 0.25 * dt;
+        p.y += (targetY - p.y) * 0.25 * dt;
+        p.vx = parent.vx;
+        p.vy = parent.vy;
+        continue;
       }
 
-      p.x += p.vx * (p.speed || 1);
-      p.y += p.vy * (p.speed || 1);
+      // Si forma un par binario (ej. Na⁺Cl⁻ o H-OH)
+      if (p.bondedWith) {
+        const partner = p.bondedWith;
+        const dx = partner.x - p.x;
+        const dy = partner.y - p.y;
+        const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+        const targetDist = p.radius + partner.radius + 5;
 
-      if (p.x - p.radius < 0) { p.x = p.radius; p.vx *= -1; }
-      if (p.x + p.radius > w) { p.x = w - p.radius; p.vx *= -1; }
-      if (p.y - p.radius < 0) { p.y = p.radius; p.vy *= -1; }
-      if (p.y + p.radius > h) { p.y = h - p.radius; p.vy *= -1; }
+        if (Math.abs(dist - targetDist) > 1.5) {
+          const pull = ((dist - targetDist) / dist) * 0.18 * dt;
+          p.x += dx * pull;
+          p.y += dy * pull;
+        }
+      } else if (this.state.heatActive) {
+        // Si el calor está activo, comprobar colisiones reactivas espontáneas
+        this.checkPairCollisionReaction(p, false);
+      }
+
+      p.x += p.vx * (p.speed || 1) * dt;
+      p.y += p.vy * (p.speed || 1) * dt;
+
+      const margin = p.radius + 6;
+      if (p.x < margin) { p.x = margin; p.vx = Math.abs(p.vx); }
+      if (p.x > w - margin) { p.x = w - margin; p.vx = -Math.abs(p.vx); }
+      if (p.y < margin) { p.y = margin; p.vy = Math.abs(p.vy); }
+      if (p.y > h - margin - 18) { p.y = h - margin - 18; p.vy = -Math.abs(p.vy); }
     }
   },
 
   drawParticles() {
     const ctx = this.ctx;
-    if (!ctx) return;
+    if (!ctx || !this.canvas) return;
     const w = this.canvas.width;
     const h = this.canvas.height;
+    const viewMode = this.molecularSim.viewMode;
 
     ctx.clearRect(0, 0, w, h);
 
-    // Fondo reticular estilo laboratorio digital
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+    // 1. Fondo reticular subatómico + gradiente térmico si el Mechero Bunsen está activo
+    if (this.state.heatActive) {
+      const heatGrad = ctx.createLinearGradient(0, h, 0, h - 95);
+      heatGrad.addColorStop(0, 'rgba(56, 189, 248, 0.22)');
+      heatGrad.addColorStop(0.5, 'rgba(249, 115, 22, 0.10)');
+      heatGrad.addColorStop(1, 'rgba(15, 23, 42, 0)');
+      ctx.fillStyle = heatGrad;
+      ctx.fillRect(0, h - 95, w, 95);
+    }
+
+    // En la Práctica 3 (Neutralización), mostrar sutilmente el tinte de indicador ácido/neutro
+    if (this.state.currentPracticeIndex === 2 && this.state.particles.length > 0) {
+      ctx.fillStyle = this.molecularSim.currentPh < 6.5
+        ? 'rgba(244, 63, 94, 0.06)'
+        : 'rgba(34, 197, 94, 0.06)';
+      ctx.fillRect(0, 0, w, h);
+    }
+
+    ctx.strokeStyle = 'rgba(148, 163, 184, 0.06)';
     ctx.lineWidth = 1;
-    for (let x = 0; x < w; x += 30) {
+    for (let x = 0; x < w; x += 32) {
       ctx.beginPath();
       ctx.moveTo(x, 0);
       ctx.lineTo(x, h);
       ctx.stroke();
     }
-    for (let y = 0; y < h; y += 30) {
+    for (let y = 0; y < h; y += 32) {
       ctx.beginPath();
       ctx.moveTo(0, y);
       ctx.lineTo(w, y);
       ctx.stroke();
     }
 
+    // Dibujar chispas térmicas ascendentes cuando el calor está encendido
+    this.molecularSim.heatSparks.forEach(sp => {
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, sp.alpha);
+      ctx.fillStyle = sp.color;
+      ctx.beginPath();
+      ctx.arc(sp.x, sp.y, sp.size, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    });
+
     const parts = this.state.particles;
 
-    // Dibujar enlaces químicos entre átomos enlazados
+    // Mensaje guía central si la cámara aún está vacía
+    if (parts.length === 0) {
+      ctx.save();
+      ctx.fillStyle = 'rgba(148, 163, 184, 0.75)';
+      ctx.font = '600 13px "Segoe UI", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Cámara de Reacción Molecular Lista', w / 2, h / 2 - 10);
+      ctx.font = '400 11.5px "Segoe UI", sans-serif';
+      ctx.fillStyle = 'rgba(148, 163, 184, 0.55)';
+      ctx.fillText('Pulse "▶️ Ejecutar Paso 1" o "⚡ Simular Reacción Molecular" para visualizar átomos, electrones y enlaces.', w / 2, h / 2 + 12);
+      ctx.restore();
+      return;
+    }
+
+    // 2. Dibujar nubes de densidad electrónica (si modo 'cloud' está activo, o sutil en otros modos)
     for (let i = 0; i < parts.length; i++) {
       const p = parts[i];
-      if (p.bondedWith && parts.indexOf(p.bondedWith) > i) {
-        ctx.strokeStyle = '#38bdf8';
-        ctx.lineWidth = 4;
+      if (viewMode === 'cloud' || p.moleculeLabel) {
+        const cloudRadius = p.radius * (viewMode === 'cloud' ? 2.15 : 1.55);
+        const grad = ctx.createRadialGradient(p.x, p.y, p.radius * 0.3, p.x, p.y, cloudRadius);
+        const isNeg = p.charge < 0 || (p.partialCharge && p.partialCharge.includes('⁻')) || p.en >= 3.0;
+        if (viewMode === 'cloud') {
+          grad.addColorStop(0, isNeg ? 'rgba(239, 68, 68, 0.38)' : 'rgba(59, 130, 246, 0.35)');
+          grad.addColorStop(1, 'rgba(15, 23, 42, 0)');
+        } else {
+          grad.addColorStop(0, 'rgba(56, 189, 248, 0.14)');
+          grad.addColorStop(1, 'rgba(15, 23, 42, 0)');
+        }
+        ctx.fillStyle = grad;
         ctx.beginPath();
-        ctx.moveTo(p.x, p.y);
-        ctx.lineTo(p.bondedWith.x, p.bondedWith.y);
-        ctx.stroke();
-
-        const midX = (p.x + p.bondedWith.x) / 2;
-        const midY = (p.y + p.bondedWith.y) / 2;
-        ctx.fillStyle = '#fef08a';
-        ctx.beginPath();
-        ctx.arc(midX, midY, 4, 0, Math.PI * 2);
+        ctx.arc(p.x, p.y, cloudRadius, 0, Math.PI * 2);
         ctx.fill();
       }
     }
 
-    // Dibujar cada átomo/partícula con gradiente esférico
+    // 3. Dibujar enlaces químicos (Binarios Na-Cl / H-OH y Triatómicos H-O-H a 104.5°)
     for (let i = 0; i < parts.length; i++) {
       const p = parts[i];
 
-      ctx.shadowBlur = 10;
+      // 3a. Enlaces binarios (ej. Na⁺Cl⁻ o neutralización H-OH)
+      if (p.bondedWith && parts.indexOf(p.bondedWith) > i) {
+        const q = p.bondedWith;
+        const isIonic = Math.abs(p.en - q.en) >= 2.0 || p.charge !== 0;
+
+        ctx.save();
+        if (isIonic) {
+          // Enlace iónico electrostático punteado/vibrante entre catión y anión
+          ctx.strokeStyle = '#c084fc';
+          ctx.lineWidth = 3;
+          ctx.setLineDash([5, 4]);
+          ctx.beginPath();
+          ctx.moveTo(p.x, p.y);
+          ctx.lineTo(q.x, q.y);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        } else {
+          // Enlace covalente con par de electrones compartidos
+          ctx.strokeStyle = '#38bdf8';
+          ctx.lineWidth = 5;
+          ctx.beginPath();
+          ctx.moveTo(p.x, p.y);
+          ctx.lineTo(q.x, q.y);
+          ctx.stroke();
+
+          // Par de electrones compartidos en el enlace
+          const midX = (p.x + q.x) / 2;
+          const midY = (p.y + q.y) / 2;
+          ctx.fillStyle = '#fde047';
+          ctx.beginPath();
+          ctx.arc(midX - 3, midY - 3, 3.2, 0, Math.PI * 2);
+          ctx.arc(midX + 3, midY + 3, 3.2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+
+      // 3b. Enlaces covalentes polares triatómicos en H2O (O enlazado a 2 H a 104.5°)
+      if (p.bondedChildren && p.bondedChildren.length > 0) {
+        p.bondedChildren.forEach(hChild => {
+          ctx.save();
+          // Cilindro de enlace covalente polar
+          const bondGrad = ctx.createLinearGradient(p.x, p.y, hChild.x, hChild.y);
+          bondGrad.addColorStop(0, '#ef4444');
+          bondGrad.addColorStop(1, '#bae6fd');
+          ctx.strokeStyle = bondGrad;
+          ctx.lineWidth = 5;
+          ctx.beginPath();
+          ctx.moveTo(p.x, p.y);
+          ctx.lineTo(hChild.x, hChild.y);
+          ctx.stroke();
+
+          // Par de electrones compartidos desplazados hacia el Oxígeno (más electronegativo)
+          if (viewMode === 'lewis' || viewMode === 'charges') {
+            const pairX = p.x * 0.62 + hChild.x * 0.38;
+            const pairY = p.y * 0.62 + hChild.y * 0.38;
+            const perpX = -(hChild.y - p.y) * 0.12;
+            const perpY = (hChild.x - p.x) * 0.12;
+            ctx.fillStyle = '#fde047';
+            ctx.shadowBlur = 6;
+            ctx.shadowColor = '#fde047';
+            ctx.beginPath();
+            ctx.arc(pairX + perpX, pairY + perpY, 3.2, 0, Math.PI * 2);
+            ctx.arc(pairX - perpX, pairY - perpY, 3.2, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.restore();
+        });
+
+        // Etiqueta de ángulo 104.5° o vector dipolar en H2O
+        if (p.bondedChildren.length === 2) {
+          ctx.save();
+          ctx.fillStyle = '#bae6fd';
+          ctx.font = 'bold 9.5px monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText('104.5°', p.x, p.y + p.radius + 16);
+          ctx.restore();
+        }
+      }
+    }
+
+    // 4. Dibujar cada átomo/ion, su capa de valencia (Lewis) y sus etiquetas de carga
+    for (let i = 0; i < parts.length; i++) {
+      const p = parts[i];
+      const isSelected = (this.molecularSim.selectedParticle === p || this.molecularSim.hoveredParticle === p);
+
+      ctx.save();
+
+      // Anillo de selección si el usuario pasa el cursor o selecciona el átomo
+      if (isSelected) {
+        ctx.strokeStyle = '#fde047';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius + 9, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      // 4a. Órbita y electrones de valencia (Modo 'lewis')
+      if (viewMode === 'lewis' && p.valence > 0) {
+        const orbitR = p.radius + 5.5;
+        ctx.strokeStyle = 'rgba(226, 232, 240, 0.25)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([2, 3]);
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, orbitR, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Dibujar cada electrón de valencia (e⁻) orbitando
+        const eCount = Math.min(8, p.valence);
+        for (let eIdx = 0; eIdx < eCount; eIdx++) {
+          const angle = p.electronPhase + (eIdx * (Math.PI * 2)) / eCount;
+          const ex = p.x + Math.cos(angle) * orbitR;
+          const ey = p.y + Math.sin(angle) * orbitR;
+
+          ctx.fillStyle = '#fde047';
+          ctx.shadowBlur = 5;
+          ctx.shadowColor = '#facc15';
+          ctx.beginPath();
+          ctx.arc(ex, ey, 2.8, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.shadowBlur = 0;
+        }
+      }
+
+      // 4b. Cuerpo esférico 3D del átomo
+      ctx.shadowBlur = 12;
       ctx.shadowColor = p.color;
 
       ctx.beginPath();
@@ -3809,18 +4747,101 @@ const App = {
       ctx.fillStyle = p.color;
       ctx.fill();
 
+      // Brillo especular 3D
+      ctx.shadowBlur = 0;
       ctx.beginPath();
       ctx.arc(p.x - p.radius * 0.3, p.y - p.radius * 0.3, p.radius * 0.35, 0, Math.PI * 2);
       ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
       ctx.fill();
 
-      ctx.shadowBlur = 0;
+      // Símbolo químico central
       ctx.fillStyle = (p.symbol === 'H' || p.color === '#FFFFFF') ? '#0f172a' : '#ffffff';
-      ctx.font = `bold ${Math.round(p.radius * 0.9)}px Segoe UI, sans-serif`;
+      ctx.font = `bold ${Math.max(10, Math.round(p.radius * 0.78))}px "Segoe UI", sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(p.symbol, p.x, p.y);
+      ctx.fillText(p.displayLabel || p.symbol, p.x, p.y);
+
+      // 4c. Insignia de carga iónica (+/-) o dipolo parcial (δ+/δ-)
+      if (viewMode === 'charges' || p.charge !== 0 || p.partialCharge) {
+        const badgeText = p.charge > 0 ? `+${p.charge}` : (p.charge < 0 ? `${p.charge}` : p.partialCharge);
+        if (badgeText) {
+          const bx = p.x + p.radius * 0.78;
+          const by = p.y - p.radius * 0.78;
+          ctx.fillStyle = (p.charge > 0 || badgeText.includes('⁺')) ? '#2563eb' : '#dc2626';
+          ctx.beginPath();
+          ctx.arc(bx, by, 8.5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 1.2;
+          ctx.stroke();
+
+          ctx.fillStyle = '#ffffff';
+          ctx.font = 'bold 8.5px "Segoe UI", sans-serif';
+          ctx.fillText(badgeText, bx, by + 0.5);
+        }
+      }
+
+      ctx.restore();
     }
+
+    // 5. Dibujar animaciones de transferencia electrónica en vuelo (Arco luminoso de 1e⁻)
+    this.molecularSim.electronTransfers.forEach(tr => {
+      const t = tr.progress;
+      const startX = tr.donor.x;
+      const startY = tr.donor.y;
+      const endX = tr.acceptor.x;
+      const endY = tr.acceptor.y;
+
+      // Curva cuadrática con elevación para que el salto del electrón sea claramente visible
+      const ctrlX = (startX + endX) / 2;
+      const ctrlY = Math.min(startY, endY) - 38;
+
+      const curX = (1 - t) * (1 - t) * startX + 2 * (1 - t) * t * ctrlX + t * t * endX;
+      const curY = (1 - t) * (1 - t) * startY + 2 * (1 - t) * t * ctrlY + t * t * endY;
+
+      ctx.save();
+      ctx.strokeStyle = 'rgba(253, 224, 71, 0.55)';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([3, 3]);
+      ctx.beginPath();
+      ctx.moveTo(startX, startY);
+      ctx.quadraticCurveTo(ctrlX, ctrlY, endX, endY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.shadowBlur = 12;
+      ctx.shadowColor = '#fde047';
+      ctx.fillStyle = '#fde047';
+      ctx.beginPath();
+      ctx.arc(curX, curY, 6, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#0f172a';
+      ctx.font = 'bold 8px monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('e⁻', curX, curY);
+      ctx.restore();
+    });
+
+    // 6. Dibujar ondas expansivas de colisión y etiquetas de reacción
+    this.molecularSim.collisionWaves.forEach(cw => {
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, cw.alpha);
+      ctx.strokeStyle = cw.color;
+      ctx.lineWidth = 2.2;
+      ctx.beginPath();
+      ctx.arc(cw.x, cw.y, cw.r, 0, Math.PI * 2);
+      ctx.stroke();
+
+      if (cw.label) {
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 10.5px "Segoe UI", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(cw.label, cw.x, cw.y - cw.r - 5);
+      }
+      ctx.restore();
+    });
   },
 
   // Actualizar datos del ReactionEngine y PubChem
