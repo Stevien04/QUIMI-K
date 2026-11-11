@@ -12,3 +12,9 @@ desktop.ini
 # IDE
 .vscode/
 .idea/
+
+# Scratch & temporary files
+scratch/
+index_backup.html
+index_line99.html
+index_reconstructed.html

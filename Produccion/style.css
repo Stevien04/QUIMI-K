@@ -1,0 +1,694 @@
+/* ==========================================================================
+   🧪 Laboratorio Virtual Integral de Química - style.css
+   Colegio Alexander Fleming (2026) - Interfaz Profesional para Producción
+   ========================================================================== */
+
+:root {
+  --primary: #0284c7;
+  --primary-dark: #0369a1;
+  --primary-light: #e0f2fe;
+  --accent: #2563eb;
+  --success: #16a34a;
+  --danger: #dc2626;
+  --warning: #f59e0b;
+  --surface: #ffffff;
+  --surface-alt: #f8fafc;
+  --border: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --text-light: #94a3b8;
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 14px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: var(--text-main);
+  background-color: #f1f5f9;
+  line-height: 1.5;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ==========================================================================
+   1. BARRA SUPERIOR (HEADER)
+   ========================================================================== */
+.lab-header {
+  background: #ffffff;
+  border-bottom: 1px solid var(--border);
+  padding: 0.6rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: var(--shadow-sm);
+  z-index: 20;
+}
+
+.brand-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.brand-icon {
+  font-size: 1.75rem;
+  background: var(--primary-light);
+  border-radius: var(--radius-sm);
+  padding: 0.2rem 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.brand-info h1 {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+}
+
+.brand-info p {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.main-navigation {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.nav-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  padding: 0.45rem 0.85rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all 0.15s ease;
+}
+
+.nav-btn:hover {
+  background: var(--surface-alt);
+  color: var(--primary-dark);
+}
+
+.nav-btn.active {
+  background: var(--primary-light);
+  color: var(--primary-dark);
+  border-color: #bae6fd;
+}
+
+.header-status-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  padding: 0.3rem 0.65rem;
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+  border-radius: 20px;
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   2. CONTENIDO PRINCIPAL Y PANELES
+   ========================================================================== */
+.main-viewport {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+}
+
+.tab-view {
+  display: none;
+  width: 100%;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.tab-view.active {
+  display: flex;
+}
+
+/* ==========================================================================
+   3. DISTRIBUCIÓN DE LA MESA DE LABORATORIO 2D (GRID 3 COLUMNAS)
+   ========================================================================== */
+.lab-bench-grid {
+  display: grid;
+  grid-template-columns: 260px 1fr 340px;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Panel Izquierdo: Reactivos y Cristalería */
+.bench-sidebar-left {
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.panel-header-title {
+  padding: 0.65rem 0.85rem;
+  background: var(--surface-alt);
+  border-bottom: 1px solid var(--border);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #334155;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.scrollable-shelf {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.65rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.reagent-card {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.45rem 0.6rem;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.reagent-card:hover {
+  border-color: var(--primary);
+  background: var(--primary-light);
+  transform: translateX(2px);
+}
+
+.reagent-icon-badge {
+  font-size: 1.15rem;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+}
+
+.reagent-meta {
+  flex: 1;
+  overflow: hidden;
+}
+
+.reagent-name {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.reagent-formula {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  font-family: monospace;
+}
+
+.tool-rack-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.45rem 0.6rem;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tool-rack-item:hover {
+  border-color: #3b82f6;
+  background: #eff6ff;
+  transform: translateX(2px);
+}
+
+.tool-icon {
+  font-size: 1.15rem;
+}
+
+.tool-text .tool-name {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.tool-text .tool-cat {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+}
+
+/* Área Central: Mesa de Experimentación y Canvas */
+.bench-center-stage {
+  display: flex;
+  flex-direction: column;
+  background: #f8fafc;
+  position: relative;
+  overflow: hidden;
+}
+
+.stage-top-controls {
+  padding: 0.5rem 1rem;
+  background: #ffffff;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.canvas-container-bench {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  position: relative;
+}
+
+#canvasLabBench {
+  background: #ffffff;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  max-width: 100%;
+  max-height: 100%;
+}
+
+/* Panel Derecho: Sensores Digitales y Telemetría Viva */
+.bench-sidebar-right {
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 0.75rem;
+  gap: 0.75rem;
+}
+
+.sensor-card {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.sensor-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.digital-lcd-readout {
+  background: #0f172a;
+  color: #38bdf8;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 1.45rem;
+  font-weight: 800;
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+  text-align: right;
+  letter-spacing: 0.08em;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+.btn-tare {
+  background: #334155;
+  color: #f8fafc;
+  border: none;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.btn-tare:hover {
+  background: #1e293b;
+}
+
+/* Lupa de Menisco */
+.meniscus-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+#canvasMeniscusZoom {
+  background: #ffffff;
+  border-radius: 50%;
+  box-shadow: var(--shadow);
+  cursor: crosshair;
+}
+
+/* Curva de Titulación */
+#canvasTitrationGraph {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  width: 100%;
+}
+
+/* ==========================================================================
+   4. BOTONES Y CONTROLES GENERALES
+   ========================================================================= */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.8rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: #ffffff;
+}
+
+.btn-primary:hover {
+  background: var(--primary-dark);
+}
+
+.btn-secondary {
+  background: #ffffff;
+  border-color: var(--border-strong);
+  color: #334155;
+}
+
+.btn-secondary:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.btn-success {
+  background: var(--success);
+  color: #ffffff;
+}
+
+.btn-danger {
+  background: var(--danger);
+  color: #ffffff;
+}
+
+.btn-active-flow {
+  background: #ef4444 !important;
+  color: #ffffff !important;
+  animation: pulse-flow 1s infinite alternate;
+}
+
+@keyframes pulse-flow {
+  from { opacity: 0.85; }
+  to { opacity: 1; }
+}
+
+.form-control {
+  width: 100%;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  color: var(--text-main);
+  background: #ffffff;
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px var(--primary-light);
+}
+
+/* ==========================================================================
+   5. TEMARIO CURRICULAR (13 MÓDULOS)
+   ========================================================================== */
+.curriculum-layout {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.curriculum-nav-sidebar {
+  width: 250px;
+  background: #ffffff;
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.curr-subtab-btn {
+  text-align: left;
+  background: transparent;
+  border: 1px solid transparent;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  line-height: 1.3;
+}
+
+.curr-subtab-btn:hover {
+  background: #f1f5f9;
+}
+
+.curr-subtab-btn.active {
+  background: #e0f2fe;
+  color: #0369a1;
+  border-color: #bae6fd;
+}
+
+.curriculum-content-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.25rem;
+  background: #f8fafc;
+}
+
+.curr-module-card {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.curr-module-card h3 {
+  font-size: 1.15rem;
+  color: #0f172a;
+  margin-bottom: 0.35rem;
+}
+
+.curr-module-card p {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+/* ==========================================================================
+   6. TABLA PERIÓDICA INTERACTIVA
+   ========================================================================== */
+.ptable-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(58px, 1fr));
+  gap: 0.3rem;
+  padding: 0.5rem;
+}
+
+.ptable-cell {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.25rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.1s ease;
+  min-height: 54px;
+}
+
+.ptable-cell:hover {
+  transform: scale(1.08);
+  box-shadow: var(--shadow);
+  z-index: 5;
+}
+
+.pt-z {
+  font-size: 0.6rem;
+  color: var(--text-light);
+  align-self: flex-start;
+}
+
+.pt-sym {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.pt-mass {
+  font-size: 0.58rem;
+  color: var(--text-muted);
+}
+
+.block-s { border-left: 3px solid #8b5cf6; }
+.block-p { border-left: 3px solid #3b82f6; }
+.block-d { border-left: 3px solid #f59e0b; }
+.block-f { border-left: 3px solid #10b981; }
+
+/* ==========================================================================
+   7. MODALES (SGA y Reporte Vigesimal)
+   ========================================================================== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(3px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 1rem;
+}
+
+.modal-content-card {
+  background: #ffffff;
+  border-radius: var(--radius-lg);
+  max-width: 640px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-lg);
+  padding: 1.5rem;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.modal-header h3 {
+  font-size: 1.15rem;
+  color: #0f172a;
+}
+
+.btn-close-modal {
+  background: transparent;
+  border: none;
+  font-size: 1.3rem;
+  cursor: pointer;
+  color: var(--text-muted);
+}
+
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  margin: 1rem 0;
+}
+
+.report-table th,
+.report-table td {
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--border);
+  text-align: left;
+}
+
+.report-table th {
+  background: #f1f5f9;
+  color: #334155;
+  font-weight: 700;
+}
+
+.badge-score {
+  background: #e0f2fe;
+  color: #0369a1;
+  font-weight: bold;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+}
+
+/* ==========================================================================
+   8. MEDIA QUERIES RESPONSIVAS
+   ========================================================================== */
+@media (max-width: 1024px) {
+  .lab-bench-grid {
+    grid-template-columns: 220px 1fr 280px;
+  }
+}
+
+@media (max-width: 768px) {
+  body {
+    overflow-y: auto;
+    height: auto;
+  }
+  .lab-bench-grid {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+  }
+  .curriculum-layout {
+    flex-direction: column;
+    height: auto;
+  }
+  .curriculum-nav-sidebar {
+    width: 100%;
+  }
+}

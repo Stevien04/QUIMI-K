@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Laboratorio Virtual Integral de Química | Colegio Alexander Fleming</title>
+  <link rel="stylesheet" href="style.css?v=3.5">
+</head>
+<body>
+
+  <!-- ================= BARRA SUPERIOR (HEADER) ================= -->
+  <header class="lab-header">
+    <div class="brand-wrapper">
+      <div class="brand-icon">🧪</div>
+      <div class="brand-info">
+        <h1>QUIMI-K • Laboratorio Virtual Integral</h1>
+        <p>Colegio Alexander Fleming (2026) • Entorno Científico Interactivo</p>
+      </div>
+    </div>
+
+    <!-- Navegación Principal -->
+    <nav class="main-navigation">
+      <button class="nav-btn active" data-tab="tab-lab-bench" onclick="App.switchMainTab('tab-lab-bench')">
+        ⚗️ Mesa de Experimentación 2D
+      </button>
+      <button class="nav-btn" data-tab="tab-curriculum-13" onclick="App.switchMainTab('tab-curriculum-13')">
+        📚 Temario Curricular (13 Unidades)
+      </button>
+      <button class="nav-btn" data-tab="tab-molecular-3d" onclick="App.switchMainTab('tab-molecular-3d')">
+        🌐 Visor Molecular 3D
+      </button>
+      <button class="nav-btn" data-tab="tab-teacher-templates" onclick="App.switchMainTab('tab-teacher-templates')">
+        👩‍🏫 Asistente Docente (Plantillas)
+      </button>
+      <button class="nav-btn" data-tab="tab-telemetry-rubric" onclick="App.switchMainTab('tab-telemetry-rubric')">
+        📊 Telemetría JSONB & Rúbrica (0-20)
+      </button>
+    </nav>
+
+    <!-- Estado del Sistema -->
+    <div class="header-status-badge">
+      <span>●</span> ChemEngine 60 FPS • Arrastre & Vertido Libre
+    </div>
+  </header>
+
+  <!-- ================= CONTENEDOR PRINCIPAL ================= -->
+  <main class="main-viewport">
+
+    <!-- ================= 1. PESTAÑA: MESA DE LABORATORIO 2D ================= -->
+    <section id="tab-lab-bench" class="tab-view active">
+      <div class="lab-bench-grid">
+        
+        <!-- Panel Izquierdo: Reactivos SGA & Cristalería -->
+        <aside class="bench-sidebar-left">
+          <div class="panel-header-title">
+            <span>🛡️ Reactivos Químicos (SGA)</span>
+            <span style="font-size: 0.65rem; color: #2563eb;">Clic para verter</span>
+          </div>
+          <div class="scrollable-shelf" id="reagentsShelf">
+            <!-- Renderizado dinámico desde ChemEngine -->
+          </div>
+
+          <div class="panel-header-title" style="border-top: 1px solid var(--border);">
+            <span>🧰 Instrumental Virtual</span>
+            <span style="font-size: 0.65rem; color: #2563eb;">Clic para colocar</span>
+          </div>
+          <div class="scrollable-shelf" id="instrumentsRack" style="max-height: 220px;">
+            <!-- Renderizado dinámico desde ChemEngine -->
+          </div>
+        </aside>
+
+        <!-- Área Central: Mesa de Experimentación y Canvas 2D -->
+        <main class="bench-center-stage">
+          
+          <!-- Barra de Acciones y Dosificación -->
+          <div class="stage-top-controls">
+            <!-- Colocar recipientes -->
+            <button class="btn btn-secondary" onclick="App.addVesselAction('beaker')" title="Colocar un vaso de precipitados">
+              🥛 + Vaso (250 mL)
+            </button>
+            <button class="btn btn-secondary" onclick="App.addVesselAction('erlenmeyer')" title="Colocar un matraz Erlenmeyer">
+              ⚗️ + Matraz (250 mL)
+            </button>
+            <button class="btn btn-secondary" onclick="App.addVesselAction('cylinder')" title="Colocar una probeta graduada">
+              📏 + Probeta (100 mL)
+            </button>
+            
+            <!-- Acciones químicas -->
+            <button class="btn btn-secondary" onclick="App.pourSelectedAction()" title="Trasvasar líquido al otro recipiente">
+              🧪 Verter en otro recipiente
+            </button>
+            <button class="btn btn-primary" id="btnTitrationDrip" onclick="App.titrationDripToggle()" title="Abrir o cerrar la llave de paso de la bureta">
+              💧 Abrir Bureta (NaOH)
+            </button>
+            <button class="btn btn-secondary" onclick="App.titrationAddDrop()" title="Dosificar 1 gota exacta (+0.05 mL)">
+              💉 Gota (+0.05 mL)
+            </button>
+            <button class="btn btn-secondary" onclick="App.toggleBunsenBurner()" title="Encender o apagar el fuego del mechero">
+              🔥 Mechero Bunsen
+            </button>
+            <button class="btn btn-secondary" onclick="App.tareBalance()" title="Tarar la balanza analítica a 0.00 g">
+              ⚖️ Tarar Balanza
+            </button>
+            <button class="btn btn-secondary" onclick="App.clearSelectedVessel()" title="Vaciar el recipiente seleccionado">
+              🗑️ Vaciar
+            </button>
+            <button class="btn btn-secondary" onclick="App.removeSelectedVessel()" title="Quitar el recipiente seleccionado de la mesa">
+              ❌ Retirar
+            </button>
+            <button class="btn btn-success" style="margin-left: auto;" onclick="App.finishTitrationPractice()">
+              📋 Finalizar & Evaluar (0-20)
+            </button>
+          </div>
+
+          <!-- Guía Interactiva en Barra Sub-cabecera -->
+          <div style="background: #e0f2fe; color: #0369a1; padding: 0.35rem 0.85rem; font-size: 0.75rem; font-weight: 600; border-bottom: 1px solid #bae6fd; display: flex; align-items: center; justify-content: space-between;">
+            <span>🖱️ Arrastre recipientes con el ratón hacia la <strong>balanza</strong> para pesarlos, sobre el <strong>mechero</strong> para calentarlos o bajo la <strong>bureta</strong> para titular.</span>
+            <span>💡 Haga clic en un reactivo para agregarlo.</span>
+          </div>
+
+          <!-- Lienzo de la Mesa 2D -->
+          <div class="canvas-container-bench">
+            <canvas id="canvasLabBench" width="820" height="500"></canvas>
+          </div>
+        </main>
+
+        <!-- Panel Derecho: Sensores Digitales y Telemetría Viva -->
+        <aside class="bench-sidebar-right">
+          
+          <!-- Balanza Analítica Digital -->
+          <div class="sensor-card">
+            <div class="sensor-title">
+              <span>⚖️ Balanza Analítica Digital</span>
+              <button class="btn-tare" onclick="App.tareBalance()">[TARA]</button>
+            </div>
+            <div class="digital-lcd-readout" id="sensorBalanceDisplay">0.00 g</div>
+            <div style="font-size: 0.68rem; color: #64748b; margin-top: 0.3rem;">Precisión: ± 0.01 g • Pese cualquier recipiente colocándolo encima</div>
+          </div>
+
+          <!-- pH-metro y Termómetro -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+            <div class="sensor-card">
+              <div class="sensor-title">📟 pH-metro</div>
+              <div class="digital-lcd-readout" id="sensorPhDisplay" style="color: #4ade80;">1.00</div>
+              <div style="font-size: 0.65rem; color: #64748b; margin-top: 0.2rem;">Recipiente activo</div>
+            </div>
+            <div class="sensor-card">
+              <div class="sensor-title">🌡️ Termómetro</div>
+              <div class="digital-lcd-readout" id="sensorTempDisplay" style="color: #f87171;">22.5 °C</div>
+              <div style="font-size: 0.65rem; color: #64748b; margin-top: 0.2rem;">Temperatura (°C)</div>
+            </div>
+          </div>
+
+          <!-- Lupa de Aumento: Menisco Óptico -->
+          <div class="sensor-card meniscus-box">
+            <div class="sensor-title" style="width: 100%;">
+              <span>🔍 Zoom Menisco Cóncavo</span>
+              <span style="font-size: 0.65rem; color: #0284c7;">± 0.02 mL</span>
+            </div>
+            <canvas id="canvasMeniscusZoom" width="160" height="160"></canvas>
+            <div style="font-size: 0.7rem; color: #64748b; text-align: center;">Lectura en el punto más bajo de la curva</div>
+          </div>
+
+          <!-- Curva de Titulación en Tiempo Real -->
+          <div class="sensor-card">
+            <div class="sensor-title">📈 Curva de Neutralización</div>
+            <canvas id="canvasTitrationGraph" width="300" height="150"></canvas>
+            <div style="font-size: 0.68rem; color: #64748b; margin-top: 0.3rem;">Banda rosa: Viraje fenolftaleína (pH 8.2 - 10.0)</div>
+          </div>
+
+        </aside>
+
+      </div>
+    </section>
+
+    <!-- ================= 2. PESTAÑA: TEMARIO CURRICULAR (13 UNIDADES) ================= -->
+    <section id="tab-curriculum-13" class="tab-view">
+      <div class="curriculum-layout">
+        
+        <nav class="curriculum-nav-sidebar">
+          <div style="padding: 0.5rem 0.25rem; font-size: 0.72rem; font-weight: 800; color: #64748b; text-transform: uppercase;">
+            Plan Curricular Oficial
+          </div>
+          <button class="curr-subtab-btn active" data-mod="1" onclick="App.renderCurriculumModule(1)">01. Química y Magnitudes (Arquímedes)</button>
+          <button class="curr-subtab-btn" data-mod="2" onclick="App.renderCurriculumModule(2)">02. Materia y Cinética 2D</button>
+          <button class="curr-subtab-btn" data-mod="3" onclick="App.renderCurriculumModule(3)">03. Clasificación y Separación</button>
+          <button class="curr-subtab-btn" data-mod="4" onclick="App.renderCurriculumModule(4)">04. Estructura Atómica e Isótopos</button>
+          <button class="curr-subtab-btn" data-mod="5" onclick="App.renderCurriculumModule(5)">05. Zona Extranuclear & Moeller</button>
+          <button class="curr-subtab-btn" data-mod="6" onclick="App.renderCurriculumModule(6)">06. Tabla Periódica Interactiva</button>
+          <button class="curr-subtab-btn" data-mod="7" onclick="App.renderCurriculumModule(7)">07. Enlace Químico & Pauling</button>
+          <button class="curr-subtab-btn" data-mod="8" onclick="App.renderCurriculumModule(8)">08. Funciones Inorgánicas (IUPAC)</button>
+          <button class="curr-subtab-btn" data-mod="9" onclick="App.renderCurriculumModule(9)">09. Reacciones y Fenomenología</button>
+          <button class="curr-subtab-btn" data-mod="10" onclick="App.renderCurriculumModule(10)">10. Estequiometría Cuantitativa</button>
+          <button class="curr-subtab-btn" data-mod="11" onclick="App.renderCurriculumModule(11)">11. Disoluciones y Escala de pH</button>
+          <button class="curr-subtab-btn" data-mod="12" onclick="App.renderCurriculumModule(12)">12. Química del Carbono & Hibridación</button>
+          <button class="curr-subtab-btn" data-mod="13" onclick="App.renderCurriculumModule(13)">13. Química Orgánica e Hidrocarburos</button>
+        </nav>
+
+        <div class="curriculum-content-area" id="curriculumModuleContent"></div>
+
+      </div>
+    </section>
+
+    <!-- ================= 3. PESTAÑA: MODELADO MOLECULAR 3D ================= -->
+    <section id="tab-molecular-3d" class="tab-view">
+      <div style="display: grid; grid-template-columns: 1fr 340px; width: 100%; height: 100%; padding: 1rem; gap: 1rem; background: #0b1120;">
+        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative;">
+          <canvas id="canvasMolecular3D" width="680" height="480" style="width: 100%; height: 100%; max-height: 520px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); cursor: grab;"></canvas>
+          <div style="position: absolute; bottom: 1.5rem; color: #94a3b8; font-size: 0.75rem; background: rgba(15, 23, 42, 0.7); padding: 0.35rem 0.75rem; border-radius: 20px;">
+            🖱️ Haga clic y arrastre sobre la molécula para rotar libremente en 360°
+          </div>
+        </div>
+
+        <div style="background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 1.25rem; color: #f8fafc; overflow-y: auto;">
+          <h3 style="margin-top: 0; color: #38bdf8; font-size: 1.1rem;">🌐 Quimioinformática Molecular</h3>
+          <p style="font-size: 0.8rem; color: #94a3b8;">Visualice geometrías atómicas tridimensionales y ángulos moleculares reales.</p>
+          <label style="font-size: 0.8rem; font-weight: bold; margin-top: 1rem; display: block;">Molécula Orgánica:</label>
+          <select id="sel3dMolecule" class="form-control" style="background: #0f172a; color: #f8fafc; border-color: #475569; margin-top: 0.3rem;" onchange="App.select3DMolecule(this.value)">
+            <option value="methane">Metano (CH₄) - Alcano sp³</option>
+            <option value="ethane">Etano (C₂H₆) - Alcano saturado</option>
+            <option value="ethene">Eteno (C₂H₄) - Alqueno sp² (Doble enlace)</option>
+            <option value="ethyne">Etino (C₂H₂) - Alquino sp (Triple enlace)</option>
+            <option value="ethanol">Etanol (C₂H₅OH) - Alcohol primario</option>
+            <option value="acetic_acid">Ácido Acético (CH₃COOH) - Carboxílico</option>
+          </select>
+
+          <div style="margin-top: 1.5rem;">
+            <button class="btn btn-primary" style="width: 100%; justify-content: center;" onclick="App.switchMainTab('tab-lab-bench')">
+              🧪 Volver a la Mesa de Trabajo
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= 4. PESTAÑA: ASISTENTE DOCENTE ================= -->
+    <section id="tab-teacher-templates" class="tab-view">
+      <div style="max-width: 900px; margin: 1.5rem auto; padding: 1.5rem; background: #ffffff; border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow);">
+        <h2 style="color: #0f172a; font-size: 1.35rem; margin-bottom: 0.5rem;">
+          👩‍🏫 Asistente de Plantillas Paramétricas para Docentes
+        </h2>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem;">
+          Configure prácticas y exámenes virtuales con aleatorización de reactivos anti-copia.
+        </p>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem; margin-bottom: 1rem;">
+          <button class="btn btn-secondary" onclick="App.loadTeacherTemplate('titration')">⚗️ 1. Titulación Ácido-Base</button>
+          <button class="btn btn-secondary" onclick="App.loadTeacherTemplate('density')">⚖️ 2. Densidad (Arquímedes)</button>
+          <button class="btn btn-secondary" onclick="App.loadTeacherTemplate('separation')">🌪️ 3. Separación de Mezclas</button>
+          <button class="btn btn-secondary" onclick="App.loadTeacherTemplate('organic')">🌐 4. Geometría Molecular</button>
+        </div>
+
+        <div id="teacherPreviewContent" style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 1rem; font-size: 0.85rem; margin-bottom: 1rem;">
+          Seleccione una plantilla base para configurar sus parámetros.
+        </div>
+
+        <div style="display: flex; gap: 0.75rem; justify-content: flex-end;">
+          <button class="btn btn-secondary" onclick="App.randomizeReagentsAntiCheat()">🎲 Aleatorizar Reactivos (Anti-Copia)</button>
+          <button class="btn btn-primary" onclick="alert('✅ Práctica publicada con éxito.')">🚀 Publicar Actividad a Estudiantes</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= 5. PESTAÑA: TELEMETRÍA JSONB ================= -->
+    <section id="tab-telemetry-rubric" class="tab-view">
+      <div style="max-width: 1050px; margin: 1.5rem auto; padding: 1.5rem; background: #ffffff; border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow); width: 100%;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <div>
+            <h2 style="color: #0f172a; font-size: 1.35rem;">📊 Auditoría de Telemetría JSONB & Rúbrica Oficial (0 - 20)</h2>
+            <p style="color: var(--text-muted); font-size: 0.85rem;">Registro procedimental continuo para calificación formativa objetiva.</p>
+          </div>
+          <button class="btn btn-primary" onclick="App.downloadTelemetryJSON()">💾 Descargar Telemetría JSON</button>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div style="border: 1px solid var(--border); border-radius: var(--radius); max-height: 380px; overflow-y: auto;">
+            <table class="report-table" style="margin: 0;">
+              <thead>
+                <tr><th>Tiempo</th><th>Acción</th><th>Objetivo</th><th>Valor</th></tr>
+              </thead>
+              <tbody id="telemetryTableBody"></tbody>
+            </table>
+          </div>
+          <pre id="telemetryJsonPreview" style="background: #0f172a; color: #38bdf8; padding: 0.85rem; border-radius: var(--radius); font-size: 0.72rem; max-height: 380px; overflow-y: auto; font-family: monospace;"></pre>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ================= MODAL: REPORTE DE EVALUACIÓN VIGESIMAL (0 - 20) ================= -->
+  <div id="modalReport" class="modal-overlay">
+    <div class="modal-content-card" style="max-width: 720px;">
+      <div class="modal-header">
+        <h3>📋 Reporte Oficial de Laboratorio - Escala Vigesimal Escolar</h3>
+        <button class="btn-close-modal" onclick="App.closeReportModal()">✕</button>
+      </div>
+
+      <div style="text-align: center; padding: 1rem 0; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius); margin-bottom: 1.25rem;">
+        <span style="font-size: 0.85rem; color: #166534; font-weight: 600; text-transform: uppercase;">Calificación Final Obtenida</span>
+        <div id="reportScoreDisplay" style="font-size: 2.6rem; font-weight: 800; color: #15803d; line-height: 1.2;">-- / 20</div>
+        <div id="reportLetterGrade" style="font-size: 1rem; font-weight: 700; color: #166534;">--</div>
+      </div>
+
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th>Criterio Evaluado</th>
+            <th style="text-align: center; width: 100px;">Puntaje</th>
+            <th>Retroalimentación Formativa</th>
+          </tr>
+        </thead>
+        <tbody id="reportRubricBody"></tbody>
+      </table>
+
+      <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem;">
+        <button class="btn btn-secondary" onclick="window.print()">🖨️ Imprimir Reporte</button>
+        <button class="btn btn-primary" onclick="App.closeReportModal()">Entendido</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="ChemEngine.js"></script>
+  <script src="simulation_canvas.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

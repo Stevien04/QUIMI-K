@@ -1,3 +1,4 @@
+import urllib.request
 import http.server
 import socketserver
 import json
@@ -210,6 +211,12 @@ class QuimiKHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=DIRECTORY, **kwargs)
 
+    def end_headers(self):
+        self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
+        self.send_header('Pragma', 'no-cache')
+        self.send_header('Expires', '0')
+        super().end_headers()
+
     def send_json_response(self, code, data):
         try:
             payload = json.dumps(data, ensure_ascii=False).encode('utf-8')
@@ -234,6 +241,66 @@ class QuimiKHandler(http.server.SimpleHTTPRequestHandler):
             pass
 
     def do_GET(self):
+        # API Telemetría: Plantillas de Cursos (Sección 14)
+        if self.path == '/api/v1/courses/templates':
+            templates = [
+                {
+                    "id": "tpl_titulacion",
+                    "title": "Titulación Ácido-Base Fuerte (HCl + NaOH)",
+                    "unit": "Unidad 6: Soluciones y Reacciones Acuosas",
+                    "targetPh": 7.0,
+                    "targetVolumeMl": 25.0,
+                    "indicator": "Fenolftaleína (Viraje rosa tenue)"
+                },
+                {
+                    "id": "tpl_ebullicion",
+                    "title": "Determinación de Punto de Ebullición y Destilación",
+                    "unit": "Unidad 1: Materia y Métodos de Separación",
+                    "targetTempC": 78.37,
+                    "solvent": "Etanol 96%"
+                },
+                {
+                    "id": "tpl_solubilidad",
+                    "title": "Curva de Solubilidad Térmica y Cristalización",
+                    "unit": "Unidad 6: Concentración y Saturación",
+                    "solute": "CuSO4·5H2O"
+                }
+            ]
+            self.send_json_response(200, templates)
+            return
+
+        elif self.path == '/api/v1/health':
+            self.send_json_response(200, {
+                "service": "QUIMI-K API Rest Stateless",
+                "version": "1.0.0",
+                "status": "UP",
+                "gradingService": "Active (Rubric 0-20)"
+            })
+            return
+
+        elif self.path.startswith('/api/pubchem/sdf'):
+            parsed = urllib.parse.urlparse(self.path)
+            params = urllib.parse.parse_qs(parsed.query)
+            comp_name = params.get('name', ['water'])[0]
+            
+            # Consultar PubChem REST oficial
+            try:
+                url = f"https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/{urllib.parse.quote(comp_name)}/SDF?record_type=3d"
+                req = urllib.request.Request(url, headers={'User-Agent': 'QUIMI-K-VirtualLab/1.0'})
+                with urllib.request.urlopen(req, timeout=4) as resp:
+                    sdf_data = resp.read().decode('utf-8')
+                    self.send_json_response(200, {"name": comp_name, "sdf": sdf_data, "source": "PubChem REST"})
+                    return
+            except Exception as e:
+                # Retornar SDF estándar offline para no bloquear
+                self.send_json_response(200, {
+                    "name": comp_name,
+                    "sdf": None,
+                    "error": str(e),
+                    "fallback": True
+                })
+                return
+
         # API Estado de Base de Datos PostgreSQL
         if self.path == '/api/db/status':
             conn = get_pg_connection()
@@ -261,6 +328,85 @@ class QuimiKHandler(http.server.SimpleHTTPRequestHandler):
         super().do_GET()
 
     def do_POST(self):
+        # API Evaluación de Telemetría JSONB y Rúbrica Vigesimal (Sección 14 GradingService)
+        if self.path == '/api/v1/telemetry/evaluate':
+            content_length = int(self.headers.get('Content-Length', 0))
+            post_data = self.rfile.read(content_length).decode('utf-8')
+            try:
+                body = json.loads(post_data) if post_data else {}
+            except Exception:
+                body = {}
+
+            vol_target = float(body.get('targetVolumeMl') or 25.0)
+            vol_disp = float(body.get('dispensedVolumeMl') or 0.0)
+            meniscus_err = abs(float(body.get('meniscusErrorMl') or 0.0))
+            is_stirring = bool(body.get('magneticStirringActive', False))
+            is_purged = bool(body.get('purgedBurette', False))
+
+            # 1. Exactitud Volumétrica (0 a 8)
+            vol_diff = abs(vol_disp - vol_target)
+            if vol_diff <= 0.10: score_vol = 8.0
+            elif vol_diff <= 0.25: score_vol = 6.5
+            elif vol_diff <= 0.50: score_vol = 5.0
+            elif vol_diff <= 1.00: score_vol = 3.0
+            else: score_vol = 1.0
+
+            # 2. Lectura Menisco (0 a 5)
+            if meniscus_err <= 0.02: score_men = 5.0
+            elif meniscus_err <= 0.05: score_men = 3.5
+            elif meniscus_err <= 0.10: score_men = 2.0
+            else: score_men = 1.0
+
+            # 3. Agitación (0 a 4)
+            score_stir = 4.0 if is_stirring else 1.5
+
+            # 4. Purga y Seguridad (0 a 3)
+            score_safe = 3.0 if is_purged else 1.0
+
+            total = round(score_vol + score_men + score_stir + score_safe, 1)
+            total = max(0.0, min(20.0, total))
+
+            if total >= 18.0:
+                letter = "AD"
+                feedback = "¡Logro Destacado (AD)! Demostró un dominio excepcional de las técnicas cuantitativas de laboratorio. "
+            elif total >= 14.0:
+                letter = "A"
+                feedback = "Logro Esperado (A). Ejecución metodológica satisfactoria con control adecuado de las variables. "
+            elif total >= 11.0:
+                letter = "B"
+                feedback = "En Proceso (B). Cumple con los procedimientos básicos pero requiere mayor precisión en la dosificación gota a gota. "
+            else:
+                letter = "C"
+                feedback = "En Inicio (C). Se evidenciaron desviaciones significativas en el volumen o falta de purga/agitación. "
+
+            if vol_diff <= 0.15:
+                feedback += f"Punto de viraje detectado con gran precisión volumétrica (ΔV = {vol_diff:.2f} mL). "
+            else:
+                feedback += f"Desviación en el volumen dispensado (ΔV = {vol_diff:.2f} mL). "
+
+            if not is_purged:
+                feedback += "Recuerde purgar las burbujas de aire de la punta de la bureta. "
+            if not is_stirring:
+                feedback += "La agitación continua es indispensable para evitar sobretitulaciones. "
+
+            evaluation = {
+                "studentId": body.get("studentId", "estudiante@fleming.edu.pe"),
+                "practiceId": body.get("practiceId", "titulacion_acido_base"),
+                "score": total,
+                "letterGrade": letter,
+                "qualitativeFeedback": feedback,
+                "rubricScores": {
+                    "exactitud_volumetrica": score_vol,
+                    "lectura_menisco": score_men,
+                    "agitacion_cinetica": score_stir,
+                    "seguridad_y_purga": score_safe
+                },
+                "evaluatedAt": "2026-11-10T16:45:00Z"
+            }
+
+            self.send_json_response(200, evaluation)
+            return
+
         # API Guardar Salón en PostgreSQL
         if self.path == '/api/db/save-classroom':
             content_length = int(self.headers.get('Content-Length', 0))

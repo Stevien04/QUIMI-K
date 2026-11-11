@@ -4,7 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>QUIMI-K | Laboratorio Virtual de Química</title>
-  <link rel="stylesheet" href="style.css?v=2.3">
+  <link rel="stylesheet" href="style.css?v=7.2">
+  <!-- 3Dmol.js Quimioinformática (Producción - README.md) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/3Dmol/2.0.4/3Dmol-min.js"></script>
 </head>
 <body>
 
@@ -80,7 +82,7 @@
             </div>
             <div class="form-group">
               <label>Contraseña:</label>
-              <input type="password" id="loginPassword" class="form-input" placeholder="••••••••" required value="123">
+              <input type="password" id="loginPassword" class="form-input" placeholder="••••••••" required value="123456">
             </div>
 
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; font-size: 0.8rem;">
@@ -184,12 +186,21 @@
             </div>
           </button>
 
-          <!-- SUB-MÓDULO: MESA DE LABORATORIO (DEBAJO DE SALÓN) -->
+          <!-- SUB-MÓDULO 1: MESA DE LABORATORIO 2D -->
           <button class="sidebar-nav-item nav-tab sidebar-nav-subitem" data-tab="tab-simulator" id="navSidebarSimulator">
-            <span class="nav-icon" style="font-size: 1.05rem;">🔬</span>
+            <span class="nav-icon" style="font-size: 1.05rem;">⚗️</span>
             <div class="nav-text-block">
-              <span class="nav-label">Mesa de Laboratorio</span>
-              <span class="nav-hint">Simulación Molecular</span>
+              <span class="nav-label">Mesa de Laboratorio 2D</span>
+              <span class="nav-hint">Simulador Experimental</span>
+            </div>
+          </button>
+
+          <!-- SUB-MÓDULO 2: VISOR MOLECULAR 3D (MÓDULO INDEPENDIENTE) -->
+          <button class="sidebar-nav-item nav-tab sidebar-nav-subitem" data-tab="tab-molecular-3d" id="navSidebarMolecular3D">
+            <span class="nav-icon" style="font-size: 1.05rem;">🌐</span>
+            <div class="nav-text-block">
+              <span class="nav-label">Visor Molecular 3D</span>
+              <span class="nav-hint">Reacciones & Enlaces 3D</span>
             </div>
           </button>
 
@@ -268,273 +279,593 @@
       </div>
     </section>
 
-    <!-- ================= PESTAÑA 1: LABORATORIO & SIMULADOR ================= -->
+    <!-- ================= PESTAÑA 1: LABORATORIO & SIMULADOR (INTEGRADO PRODUCCIÓN) ================= -->
     <section id="tab-simulator" class="tab-pane">
-      <div class="section-banner">
-        <strong>Entorno de Experimentación Segura:</strong>
-        Realice la práctica guiada utilizando instrumentos virtuales, observe las reacciones a nivel molecular en la cámara de reacción y analice el tipo de enlace químico formado.
+      
+      <!-- Sub-barra de Navegación del Simulador Científico -->
+      <div class="sim-subnav-bar">
+        <button class="sim-subnav-btn active" data-subtab="subtab-bench" onclick="App.switchSimSubtab('subtab-bench')">
+          ⚗️ Mesa de Experimentación 2D
+        </button>
+        <button class="sim-subnav-btn" onclick="App.switchTabTo('tab-molecular-3d')" title="Abrir Módulo Independiente de Visor Molecular 3D">
+          🌐 Ir a Visor Molecular 3D ➔
+        </button>
+        <button class="sim-subnav-btn" data-subtab="subtab-teacher" onclick="App.switchSimSubtab('subtab-teacher')">
+          👩‍🏫 Plantillas Docentes Paramétricas
+        </button>
+        <div style="margin-left: auto; display: flex; align-items: center; gap: 0.5rem; font-size: 0.72rem; color: #166534; font-weight: 700; background: #DCFCE7; padding: 0.25rem 0.6rem; border-radius: 12px;">
+          <span>●</span> ChemEngine 60 FPS • Laboratorio Físicoquímico
+        </div>
       </div>
 
-      <div class="lab-grid">
-        <!-- Columna Izquierda: Práctica y Herramientas -->
-        <div class="steps-column">
-          <div class="card">
-            <div class="card-title" style="display: flex; justify-content: space-between; align-items: center; gap: 0.4rem; flex-wrap: wrap;">
-              <span>📋 Procedimiento Paso a Paso</span>
-              <button type="button" class="btn btn-outline" style="font-size: 0.7rem; padding: 0.22rem 0.55rem; color: #0284c7; border-color: #7dd3fc; background: #f0f9ff; font-weight: 700;" onclick="App.openFullProcedureModal()" title="Abrir protocolo detallado paso a paso de cada laboratorio">
-                📖 Ver Guía Completa
+      <!-- SUB-VISTA 1: MESA DE EXPERIMENTACIÓN 2D -->
+      <div id="subtab-bench" class="sim-subpane active">
+        <div class="lab-bench-grid" style="width: 100%; height: 100%;">
+          
+          <!-- Panel Izquierdo: Reactivos SGA & Cristalería (Paneles Plegables Estilo Power BI) -->
+          <aside class="bench-sidebar-left" id="benchSidebarLeft">
+            
+            <!-- PANEL 1: REACTIVOS QUÍMICOS (SGA) - ESTILO POWER BI -->
+            <div class="powerbi-panel" id="panelReagents" data-expanded="true">
+              <!-- Franja Colapsada Vertical (Estilo Power BI) -->
+              <div class="powerbi-rail-collapsed" onclick="App.togglePowerBiPanel('reagents')" title="Clic para expandir Reactivos Químicos">
+                <button class="powerbi-btn-chevron" title="Expandir Reactivos">»</button>
+                <div class="powerbi-rail-icon">🛡️</div>
+                <div class="powerbi-rail-text">Reactivos (SGA)</div>
+              </div>
+
+              <!-- Panel Expandido -->
+              <div class="powerbi-panel-expanded">
+                <div class="powerbi-panel-header">
+                  <div class="powerbi-header-title">
+                    <span>🛡️ Reactivos (SGA)</span>
+                    <a href="javascript:void(0)" onclick="App.showSGAModal('h2o')" style="font-size: 0.65rem; color: #2563eb; text-decoration: underline; margin-left: 0.25rem;">FDS</a>
+                  </div>
+                  <button class="powerbi-btn-chevron" onclick="App.togglePowerBiPanel('reagents')" title="Ocultar Reactivos a la izquierda (Colapsar)">«</button>
+                </div>
+                <!-- Buscador de Reactivos estilo Power BI -->
+                <div class="powerbi-search-box">
+                  <input type="text" id="searchReagentsInput" placeholder="🔍 Buscar reactivo..." oninput="App.filterReagents(this.value)">
+                </div>
+                <div class="scrollable-shelf" id="reagentsShelf"></div>
+              </div>
+            </div>
+
+            <!-- PANEL 2: INSTRUMENTAL VIRTUAL (AL COSTADO) - ESTILO POWER BI -->
+            <div class="powerbi-panel" id="panelInstruments" data-expanded="true">
+              <!-- Franja Colapsada Vertical (Estilo Power BI) -->
+              <div class="powerbi-rail-collapsed" onclick="App.togglePowerBiPanel('instruments')" title="Clic para expandir Instrumental Virtual">
+                <button class="powerbi-btn-chevron" title="Expandir Instrumental">»</button>
+                <div class="powerbi-rail-icon">🧰</div>
+                <div class="powerbi-rail-text">Instrumental Virtual</div>
+              </div>
+
+              <!-- Panel Expandido -->
+              <div class="powerbi-panel-expanded">
+                <div class="powerbi-panel-header">
+                  <div class="powerbi-header-title">
+                    <span>🧰 Instrumental</span>
+                    <span style="font-size: 0.65rem; color: #0284c7; font-weight: 700; background: #e0f2fe; padding: 0.1rem 0.35rem; border-radius: 8px;">14</span>
+                  </div>
+                  <button class="powerbi-btn-chevron" onclick="App.togglePowerBiPanel('instruments')" title="Ocultar Instrumental a la izquierda (Colapsar)">«</button>
+                </div>
+                <!-- Buscador de Instrumental estilo Power BI -->
+                <div class="powerbi-search-box">
+                  <input type="text" id="searchInstrumentsInput" placeholder="🔍 Buscar instrumental..." oninput="App.filterInstruments(this.value)">
+                </div>
+                <div class="scrollable-shelf" id="instrumentsRack"></div>
+              </div>
+            </div>
+
+          </aside>
+
+          <!-- Área Central: Mesa y Canvas 2D -->
+          <main class="bench-center-stage">
+            <div class="stage-top-controls">
+              <button class="btn btn-primary" onclick="App.pourSelectedAction()" title="Trasvasar líquido al otro recipiente">
+                🧪 Verter / Trasvasar
+              </button>
+              <button class="btn btn-secondary" onclick="App.clearSelectedVessel()" title="Vaciar el recipiente seleccionado">
+                🗑️ Vaciar
+              </button>
+              <button class="btn btn-secondary" onclick="App.removeSelectedVessel()" title="Quitar el recipiente o instrumento seleccionado de la mesa">
+                ❌ Retirar
+              </button>
+              <button class="btn btn-secondary" onclick="App.clearAllBench()" title="Dejar la mesa 100% limpia para colocar libremente cualquier instrumento">
+                🧹 Mesa Vacía
+              </button>
+              <button class="btn btn-secondary" onclick="App.resetBenchObjects()" title="Restablecer la mesa al estado inicial con matraz y vaso">
+                🔄 Reiniciar Mesa
+              </button>
+              <button class="btn btn-success" style="margin-left: auto;" onclick="App.finishTitrationPractice()">
+                📋 Finalizar & Evaluar (0-20)
               </button>
             </div>
 
-            <!-- Selector de Práctica Curada -->
-            <div style="margin-bottom: 0.65rem;">
-              <label style="font-size: 0.76rem; font-weight: 700; color: #475569; display: block; margin-bottom: 0.25rem;">Seleccionar Laboratorio:</label>
-              <select id="practiceSelect" style="width: 100%; padding: 0.42rem; border-radius: 6px; border: 1px solid #cbd5e1; font-size: 0.81rem; font-weight: 600; color: #0f172a;" onchange="App.selectPractice(this.value)">
-                <option value="0">Lab 1: Síntesis de Enlace Iónico (Na + Cl → NaCl)</option>
-                <option value="1">Lab 2: Formación de Molécula Polar (2H₂ + O₂ → 2H₂O)</option>
-                <option value="2">Lab 3: Neutralización Ácido-Base (HCl + NaOH)</option>
-              </select>
+            <!-- Guía de Mesa -->
+            <div class="bench-guide-tip">
+              <span>🖱️ Arrastre recipientes libremente o mueva la <strong>balanza</strong>, <strong>mechero</strong> y <strong>bureta</strong> por la encimera.</span>
+              <span>💡 Clic en un instrumento o reactivo en el estante izquierdo para traerlo a la mesa.</span>
             </div>
 
-            <!-- Barra de Progreso del Procedimiento Paso a Paso -->
-            <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.5rem 0.65rem; margin-bottom: 0.75rem;">
-              <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.73rem; margin-bottom: 0.3rem;">
-                <span id="practiceProgressSummary" style="font-weight: 700; color: #1e293b;">Progreso: Paso 1 de 4</span>
-                <span id="practiceProgressPercent" style="font-weight: 800; color: #0284c7;">0%</span>
+            <!-- Barra Inspectora de Cristalería Activa -->
+            <div class="active-vessel-inspector-bar" id="activeVesselInspector">
+              <div class="inspector-item-main">
+                <span class="inspector-icon" id="inspectorVesselIcon">⚗️</span>
+                <div>
+                  <div class="inspector-vessel-name" id="inspectorVesselName">Matraz de Reacción (250 mL)</div>
+                  <div class="inspector-vessel-meta" id="inspectorVesselMeta">Volumen Total: 50.0 mL • pH: 1.00 • Temp: 23°C</div>
+                </div>
               </div>
-              <div style="width: 100%; height: 7px; background: #e2e8f0; border-radius: 999px; overflow: hidden;">
-                <div id="practiceProgressBarFill" style="width: 0%; height: 100%; background: linear-gradient(90deg, #0284c7, #16a34a); border-radius: 999px; transition: width 0.3s ease;"></div>
+              <div class="inspector-reagents-list" id="inspectorReagentsList">
+                <span class="reagent-pill-badge" style="border-left: 3px solid #0284C7;">💧 <strong>Agua:</strong> 25.0 mL</span>
+                <span class="reagent-pill-badge" style="border-left: 3px solid #EF4444;">⚠️ <strong>HCl 0.1 M:</strong> 25.0 mL</span>
+                <span class="reagent-pill-badge" style="border-left: 3px solid #EC4899;">🌸 <strong>Fenolftaleína:</strong> 3 gotas</span>
               </div>
-              <div style="font-size: 0.68rem; color: #64748b; margin-top: 0.3rem;">
-                💡 Haga clic en cualquier paso para desplegar su procedimiento detallado, reactivos e instrumentos.
+              <div class="inspector-actions">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="App.clearSelectedVessel()" title="Vaciar cristalería">🗑️ Vaciar</button>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="App.removeSelectedVessel()" title="Retirar de la mesa">❌ Retirar</button>
               </div>
             </div>
 
-            <!-- Pasos Guiados Detallados -->
-            <div class="steps-container" id="stepsList">
-              <!-- Renderizado dinámico desde JS -->
+            <div class="canvas-container-bench" style="flex: 1; display: flex; align-items: center; justify-content: center; padding: 0.5rem; position: relative;">
+              <canvas id="canvasLabBench" width="1120" height="620"></canvas>
+            </div>
+          </main>
+
+          <!-- Panel Derecho: Sensores Digitales y Lupa Dinámica -->
+          <aside class="bench-sidebar-right">
+            <!-- Placeholder cuando no hay instrumental activo -->
+            <div id="noSensorsPlaceholder" class="sensor-card empty-sensors-card" style="display: none; text-align: center; padding: 2rem 1rem; color: #64748b; background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 8px;">
+              <div style="font-size: 2.2rem; margin-bottom: 0.5rem;">🔬</div>
+              <div style="font-weight: 700; color: #334155; font-size: 0.9rem; margin-bottom: 0.3rem;">Sin instrumental activo</div>
+              <div style="font-size: 0.75rem; line-height: 1.4; color: #64748b;">
+                Selecciona herramientas desde el estante izquierdo (<strong>Balanza</strong>, <strong>Bureta</strong>, etc.) para visualizar sus lecturas y controles aquí.
+              </div>
             </div>
 
-            <!-- Herramientas Virtuales de Laboratorio (RF008 & RF009) -->
-            <div style="margin-top: 1.25rem;">
-              <div class="card-title" style="margin-bottom: 0.25rem; display: flex; justify-content: space-between; align-items: center;">
-                <span>🧪 Instrumentos de Mesa</span>
-                <span style="font-size: 0.7rem; color: #2563eb; font-weight: 700;">Uso Guiado</span>
+            <!-- Tarjeta de Cristalería / Recipiente Activo (Aparece a la derecha al hacer clic) -->
+            <div class="sensor-card highlight-card" id="cardActiveVessel" style="display: none;">
+              <div class="sensor-title" style="width: 100%; display: flex; justify-content: space-between; align-items: center;">
+                <span id="cardVesselTitle">⚗️ Recipiente Activo</span>
+                <button class="btn-card-close" onclick="App.removeSelectedVessel()" title="Retirar este recipiente de la mesa">✕</button>
               </div>
-              <p style="font-size: 0.75rem; color: #64748b; margin-bottom: 0.5rem;">Haga clic en una herramienta para ver su guía de uso e interactuar:</p>
-              
-              <div class="tools-rack">
-                <button class="tool-btn" onclick="App.openToolGuide('pipeta')" title="Medición y dosificación volumétrica">
-                  <span class="icon">💧</span>
-                  <span>Pipeta Graduada</span>
+              <div class="digital-lcd-readout" id="cardVesselVolumeDisplay" style="font-size: 1.15rem; color: #38bdf8; display: flex; justify-content: space-between; align-items: center;">
+                <span id="cardVesselVolText">0.0 mL</span>
+                <span id="cardVesselMassText" style="font-size: 0.8rem; color: #94a3b8;">Tara: 0g</span>
+              </div>
+              <div style="font-size: 0.68rem; font-weight: 700; color: #64748b; margin-top: 0.45rem; text-transform: uppercase;">
+                Contenido Químico:
+              </div>
+              <div id="cardVesselReagentsList" style="display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.25rem; max-height: 100px; overflow-y: auto;">
+                <span style="color: #94a3b8; font-style: italic; font-size: 0.72rem;">(Recipiente vacío)</span>
+              </div>
+              <div style="display: flex; gap: 0.35rem; margin-top: 0.5rem;">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="App.clearSelectedVessel()" style="flex: 1; font-size: 0.72rem;">
+                  🗑️ Vaciar
                 </button>
-                <button class="tool-btn" onclick="App.openToolGuide('matraz')" title="Mezcla y agitación orbital">
-                  <span class="icon">🧪</span>
-                  <span>Matraz Erlenmeyer</span>
-                </button>
-                <button class="tool-btn" onclick="App.openToolGuide('tubo')" title="Pruebas a microescala">
-                  <span class="icon">🧪</span>
-                  <span>Tubo de Ensayo</span>
-                </button>
-                <button class="tool-btn" onclick="App.openToolGuide('mechero')" title="Suministro térmico y control de llama">
-                  <span class="icon">🔥</span>
-                  <span>Mechero Bunsen</span>
-                </button>
-                <button class="tool-btn" onclick="App.openToolGuide('balanza')" title="Pesaje analítico de reactivos sólidos">
-                  <span class="icon">⚖️</span>
-                  <span>Balanza Digital</span>
-                </button>
-                <button class="tool-btn" onclick="App.openToolGuide('termometro')" title="Monitoreo térmico en tiempo real">
-                  <span class="icon">🌡️</span>
-                  <span>Termómetro</span>
-                </button>
-                <button class="tool-btn" onclick="App.openToolGuide('phmetro')" title="Medición de acidez y neutralización">
-                  <span class="icon">📊</span>
-                  <span>Sensor de pH</span>
-                </button>
-                <button class="tool-btn" onclick="App.openToolGuide('espatula')" title="Manipulación de cristales y polvos">
-                  <span class="icon">🥄</span>
-                  <span>Espátula & Reloj</span>
+                <button type="button" class="btn btn-secondary btn-sm" onclick="App.pourSelectedAction()" style="flex: 1; font-size: 0.72rem;">
+                  🧪 Trasvasar
                 </button>
               </div>
             </div>
+
+            <!-- Balanza Analítica Digital -->
+            <div class="sensor-card" id="cardSensorBalance">
+              <div class="sensor-title">
+                <span>⚖️ Balanza Analítica Digital</span>
+                <div style="display: flex; gap: 0.25rem; align-items: center;">
+                  <button class="btn-tare" onclick="App.tareBalance()" title="Tarar la balanza a 0.00 g">[TARA]</button>
+                  <button class="btn-card-close" onclick="App.removeInstrumentDirect('balance')" title="Retirar balanza de la mesa">✕</button>
+                </div>
+              </div>
+              <div class="digital-lcd-readout" id="sensorBalanceDisplay">0.00 g</div>
+              <div style="font-size: 0.68rem; color: #64748b; margin-top: 0.3rem;">Precisión: ± 0.01 g • Pese recipientes colocándolos encima</div>
+            </div>
+
+            <!-- Sensores de pH y Temperatura -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;" id="cardSensorRowPhTemp">
+              <div class="sensor-card" id="cardSensorPh">
+                <div class="sensor-title">📟 pH-metro</div>
+                <div class="digital-lcd-readout" id="sensorPhDisplay" style="color: #4ade80;">1.00</div>
+                <div style="font-size: 0.65rem; color: #64748b; margin-top: 0.2rem;">Recipiente activo</div>
+              </div>
+              <div class="sensor-card" id="cardSensorTemp">
+                <div class="sensor-title">🌡️ Termómetro</div>
+                <div class="digital-lcd-readout" id="sensorTempDisplay" style="color: #f87171;">22.5 °C</div>
+                <div style="font-size: 0.65rem; color: #64748b; margin-top: 0.2rem;">Temperatura (°C)</div>
+              </div>
+            </div>
+
+            <!-- Mechero Bunsen Regulable (Térmico) -->
+            <div class="sensor-card" id="cardSensorBunsen">
+              <div class="sensor-title" style="width: 100%; display: flex; justify-content: space-between; align-items: center;">
+                <span>🔥 Mechero Bunsen</span>
+                <button class="btn-card-close" onclick="App.removeInstrumentDirect('bunsen')" title="Retirar mechero de la mesa">✕</button>
+              </div>
+              <div class="digital-lcd-readout" id="sensorBunsenDisplay" style="color: #fb923c; font-size: 1.05rem; display: flex; justify-content: space-between; align-items: center;">
+                <span id="sensorBunsenStateText">💨 APAGADO</span>
+                <span id="sensorBunsenTempText" style="font-size: 0.9rem; color: #94a3b8;">22.5 °C</span>
+              </div>
+              <div style="display: flex; gap: 0.4rem; margin-top: 0.45rem;">
+                <button type="button" class="btn btn-sm btn-primary" id="btnBunsenToggleCard" onclick="App.toggleBunsenBurner()" style="flex: 1; font-weight: 700; background: #ea580c; border-color: #c2410c;">
+                  🔥 Encender Llama
+                </button>
+              </div>
+              <div style="font-size: 0.65rem; color: #64748b; margin-top: 0.3rem;">
+                Llama a ~1200 °C • Coloque recipientes sobre el trípode para calentar
+              </div>
+            </div>
+
+            <!-- Zoom Menisco de Bureta -->
+            <div class="sensor-card meniscus-box" id="cardSensorMeniscus">
+              <div class="sensor-title" style="width: 100%;">
+                <span>🔍 Zoom Menisco Cóncavo</span>
+                <div style="display: flex; gap: 0.25rem; align-items: center;">
+                  <span style="font-size: 0.65rem; color: #0284c7;">± 0.02 mL</span>
+                  <button class="btn-card-close" onclick="App.removeInstrumentDirect('burette')" title="Retirar soporte con bureta de la mesa">✕</button>
+                </div>
+              </div>
+              <canvas id="canvasMeniscusZoom" width="160" height="160"></canvas>
+              <div style="font-size: 0.7rem; color: #64748b; text-align: center;">Lectura tangencial inferior</div>
+            </div>
+
+            <!-- Gráfico de Neutralización de Titulación -->
+            <div class="sensor-card" id="cardSensorTitration">
+              <div class="sensor-title" style="width: 100%; display: flex; justify-content: space-between; align-items: center;">
+                <span>📈 Curva de Neutralización</span>
+                <button class="btn-card-close" onclick="App.removeInstrumentDirect('burette')" title="Retirar titulación de la mesa">✕</button>
+              </div>
+              <canvas id="canvasTitrationGraph" width="300" height="150"></canvas>
+              <div style="font-size: 0.68rem; color: #64748b; margin-top: 0.25rem;">Banda rosa: Viraje fenolftaleína (pH 8.2 - 10.0)</div>
+            </div>
+          </aside>
+        </div>
+      </div>
+
+      <!-- SUB-VISTA 2: TEMARIO CURRICULAR (13 UNIDADES) -->
+      <div id="subtab-curriculum" class="sim-subpane" style="display: none;">
+        <div class="curriculum-layout" style="width: 100%; height: 100%;">
+          <nav class="curriculum-nav-sidebar">
+            <div style="padding: 0.5rem 0.25rem; font-size: 0.72rem; font-weight: 800; color: #64748b; text-transform: uppercase;">
+              Plan Curricular Oficial (CNEB)
+            </div>
+            <button class="curr-subtab-btn active" data-mod="1" onclick="App.renderCurriculumModule(1)">01. Química y Magnitudes (Arquímedes)</button>
+            <button class="curr-subtab-btn" data-mod="2" onclick="App.renderCurriculumModule(2)">02. Materia y Cinética 2D</button>
+            <button class="curr-subtab-btn" data-mod="3" onclick="App.renderCurriculumModule(3)">03. Clasificación y Separación</button>
+            <button class="curr-subtab-btn" data-mod="4" onclick="App.renderCurriculumModule(4)">04. Estructura Atómica e Isótopos</button>
+            <button class="curr-subtab-btn" data-mod="5" onclick="App.renderCurriculumModule(5)">05. Zona Extranuclear & Moeller</button>
+            <button class="curr-subtab-btn" data-mod="6" onclick="App.renderCurriculumModule(6)">06. Tabla Periódica Interactiva</button>
+            <button class="curr-subtab-btn" data-mod="7" onclick="App.renderCurriculumModule(7)">07. Enlace Químico & Pauling</button>
+            <button class="curr-subtab-btn" data-mod="8" onclick="App.renderCurriculumModule(8)">08. Funciones Inorgánicas (IUPAC)</button>
+            <button class="curr-subtab-btn" data-mod="9" onclick="App.renderCurriculumModule(9)">09. Reacciones y Fenomenología</button>
+            <button class="curr-subtab-btn" data-mod="10" onclick="App.renderCurriculumModule(10)">10. Estequiometría Cuantitativa</button>
+            <button class="curr-subtab-btn" data-mod="11" onclick="App.renderCurriculumModule(11)">11. Disoluciones y Escala de pH</button>
+            <button class="curr-subtab-btn" data-mod="12" onclick="App.renderCurriculumModule(12)">12. Química del Carbono & Hibridación</button>
+            <button class="curr-subtab-btn" data-mod="13" onclick="App.renderCurriculumModule(13)">13. Química Orgánica e Hidrocarburos</button>
+          </nav>
+          <div class="curriculum-content-area" id="curriculumModuleContent" style="flex: 1; overflow-y: auto; padding: 1.25rem; background: #f8fafc;"></div>
+        </div>
+      </div>
+
+
+
+      <!-- SUB-VISTA 4: PLANTILLAS DOCENTES -->
+      <div id="subtab-teacher" class="sim-subpane" style="display: none;">
+        <div style="max-width: 900px; margin: 1rem auto; padding: 1.5rem; background: #ffffff; border: 1px solid var(--border); border-radius: 10px; width: 100%;">
+          <h2 style="color: #0f172a; font-size: 1.35rem; margin-bottom: 0.5rem;">👩‍🏫 Asistente de Plantillas Paramétricas</h2>
+          <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem;">Cree prácticas con reactivos aleatorios anti-copia en menos de 5 minutos.</p>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem; margin-bottom: 1rem;">
+            <button class="btn btn-secondary" onclick="App.loadTeacherTemplate('titration')">⚗️ 1. Titulación Ácido-Base</button>
+            <button class="btn btn-secondary" onclick="App.loadTeacherTemplate('density')">⚖️ 2. Densidad (Arquímedes)</button>
+            <button class="btn btn-secondary" onclick="App.loadTeacherTemplate('separation')">🌪️ 3. Separación de Mezclas</button>
+            <button class="btn btn-secondary" onclick="App.loadTeacherTemplate('organic')">🌐 4. Geometría Molecular</button>
+          </div>
+          <div id="teacherPreviewContent" style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 1rem; font-size: 0.85rem; margin-bottom: 1rem;">
+            Seleccione una plantilla para ver sus parámetros.
+          </div>
+          <div style="display: flex; gap: 0.75rem; justify-content: flex-end;">
+            <button class="btn btn-secondary" onclick="App.randomizeReagentsAntiCheat()">🎲 Aleatorizar Reactivos (Anti-Copia)</button>
+            <button class="btn btn-primary" onclick="alert('✅ Práctica publicada con éxito.')">🚀 Publicar Práctica a Estudiantes</button>
           </div>
         </div>
+      </div>
 
-        <!-- Columna Central: Mesa de Laboratorio y Canvas Molecular -->
-        <div class="workbench-area">
-          <div class="card" style="padding: 0; overflow: hidden;">
-            <div class="lab-table-isometric">
-              <!-- Overlay Superior de la Mesa: Estado y Modos de Visualización Molecular -->
-              <div class="lab-status-overlay" style="flex-direction: column; align-items: stretch; gap: 0.45rem; padding: 0.65rem 0.9rem;">
-                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
-                  <div style="display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap;">
-                    <span style="color: #38bdf8; font-weight: 800; font-size: 0.85rem;">⚛️ Cámara de Simulación Molecular</span>
-                    <span id="chamberEquationPill" style="background: rgba(56, 189, 248, 0.16); border: 1px solid rgba(56, 189, 248, 0.35); color: #bae6fd; font-family: monospace; font-size: 0.75rem; font-weight: 700; padding: 0.12rem 0.5rem; border-radius: 999px;">2Na(s) + Cl₂(g) → 2NaCl(s)</span>
-                    <span id="chamberSubtext" style="color: #94a3b8; font-size: 0.74rem;">• Esperando reactivos</span>
-                  </div>
-                  <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    <div id="particleCounter" style="font-family: monospace; font-size: 0.75rem; color: #a5f3fc; background: rgba(15, 23, 42, 0.75); padding: 0.18rem 0.55rem; border-radius: 6px; border: 1px solid rgba(165, 243, 252, 0.25);">
-                      Partículas activas: 0
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Barra de Modos de Vista Molecular y Telemetría en Vivo -->
-                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.45rem; padding-top: 0.35rem; border-top: 1px solid rgba(255, 255, 255, 0.08);">
-                  <div style="display: flex; align-items: center; gap: 0.3rem; flex-wrap: wrap;">
-                    <span style="font-size: 0.7rem; color: #94a3b8; font-weight: 700; margin-right: 0.15rem;">Vista:</span>
-                    <button type="button" id="btnMolViewLewis" class="mol-view-pill active" onclick="App.setMolecularViewMode('lewis')" title="Ver capas electrónicas y electrones de valencia (Lewis)">
-                      ⚛️ Electrones & Lewis
-                    </button>
-                    <button type="button" id="btnMolViewCharges" class="mol-view-pill" onclick="App.setMolecularViewMode('charges')" title="Ver cargas iónicas (+/-), dipolos (δ+/δ-) y vectores">
-                      ⚡ Cargas & Dipolos
-                    </button>
-                    <button type="button" id="btnMolViewCloud" class="mol-view-pill" onclick="App.setMolecularViewMode('cloud')" title="Ver nube de densidad electrónica y orbitales">
-                      🌐 Nube Electrónica
-                    </button>
-                  </div>
-
-                  <!-- Telemetría en Tiempo Real -->
-                  <div style="display: flex; align-items: center; gap: 0.55rem; font-size: 0.72rem; font-family: monospace;">
-                    <span id="molTelemetryTemp" style="color: #fde047;" title="Temperatura en cámara">🌡️ 21.5 °C</span>
-                    <span id="molTelemetryPh" style="color: #86efac;" title="pH del medio">📊 pH 7.0</span>
-                    <span id="molTelemetryYield" style="color: #38bdf8;" title="Moléculas de producto formadas">🧪 Productos: 0</span>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Canvas Molecular Interactivo + Inspector Flotante -->
-              <div class="canvas-container" style="height: 330px; position: relative;">
-                <canvas id="molecularCanvas" style="cursor: grab;" title="Arrastre átomos para hacerlos colisionar o haga clic para inspeccionar su estructura subatómica"></canvas>
-
-                <!-- Inspector Subatómico Flotante (HUD al seleccionar/pasar sobre átomo o molécula) -->
-                <div id="molecularInspectorHud" style="display: none; position: absolute; top: 10px; right: 10px; width: 245px; background: rgba(15, 23, 42, 0.92); backdrop-filter: blur(6px); border: 1px solid rgba(56, 189, 248, 0.45); border-radius: 10px; padding: 0.65rem 0.75rem; color: #f8fafc; font-size: 0.74rem; z-index: 15; box-shadow: 0 8px 20px rgba(0,0,0,0.45); pointer-events: none;">
-                  <!-- Se actualiza dinámicamente -->
-                </div>
-
-                <!-- Leyenda Interactiva Inferior en el Canvas -->
-                <div id="molecularCanvasLegend" style="position: absolute; bottom: 8px; left: 10px; right: 10px; display: flex; justify-content: space-between; align-items: center; pointer-events: none; font-size: 0.7rem; color: rgba(226, 232, 240, 0.85); flex-wrap: wrap; gap: 0.35rem;">
-                  <span style="background: rgba(15, 23, 42, 0.75); padding: 0.15rem 0.5rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1);">
-                    💡 <strong>Interactivo:</strong> Arrastre un átomo hacia otro para colisionarlos o haga clic para inspeccionar sus electrones.
-                  </span>
-                  <span id="molecularPhaseStatusPill" style="background: rgba(15, 23, 42, 0.8); padding: 0.15rem 0.55rem; border-radius: 6px; border: 1px solid rgba(56, 189, 248, 0.3); color: #7dd3fc; font-weight: 700;">
-                    Fase: Reactivos en reposo
-                  </span>
-                </div>
-              </div>
-
-              <!-- Barra de Controles Inferiores -->
-              <div class="workbench-controls" style="gap: 0.45rem;">
-                <div style="display: flex; gap: 0.4rem; flex-wrap: wrap; align-items: center;">
-                  <button class="btn btn-primary" id="btnNextStep" onclick="App.executeCurrentStep()" style="padding: 0.45rem 0.8rem; font-size: 0.8rem;">
-                    ▶️ Ejecutar Siguiente Paso
-                  </button>
-                  <button class="btn btn-secondary" id="btnHeatToggle" onclick="App.triggerHeat()" style="padding: 0.45rem 0.75rem; font-size: 0.8rem;">
-                    🔥 Activar Calor
-                  </button>
-                  <button class="btn btn-outline" onclick="App.triggerDirectMolecularReaction()" style="padding: 0.45rem 0.75rem; font-size: 0.78rem; color: #38bdf8; border-color: rgba(56, 189, 248, 0.4); background: rgba(56, 189, 248, 0.1);" title="Cargar reactivos y ejecutar colisión reactiva a nivel molecular inmediatamente">
-                    ⚡ Simular Reacción Molecular
-                  </button>
-                </div>
-
-                <!-- Controles de Velocidad Temporal (Cámara Lenta) y Reinicio -->
-                <div style="display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap;">
-                  <div style="display: flex; align-items: center; background: rgba(15, 23, 42, 0.9); border: 1px solid #334155; border-radius: 6px; padding: 0.15rem;">
-                    <button type="button" id="btnSpeedPause" class="mol-speed-btn" onclick="App.setSimulationSpeed(0)" title="Pausar movimiento molecular">⏸️</button>
-                    <button type="button" id="btnSpeedSlow" class="mol-speed-btn" onclick="App.setSimulationSpeed(0.3)" title="Cámara Lenta (0.3x) para observar salto de electrones">0.3x</button>
-                    <button type="button" id="btnSpeedNormal" class="mol-speed-btn active" onclick="App.setSimulationSpeed(1)" title="Velocidad Normal (1x)">1x</button>
-                    <button type="button" id="btnSpeedFast" class="mol-speed-btn" onclick="App.setSimulationSpeed(2)" title="Velocidad Rápida (2x)">2x</button>
-                  </div>
-                  <button class="btn btn-outline" onclick="App.resetSimulation()" style="padding: 0.42rem 0.7rem; font-size: 0.78rem; color: #cbd5e1; border-color: #475569;">
-                    🔄 Reiniciar
-                  </button>
-                </div>
-              </div>
-            </div>
+      <!-- SUB-VISTA 5: TELEMETRÍA Y RÚBRICA 0-20 -->
+      <div id="subtab-telemetry" class="sim-subpane" style="display: none;">
+        <div style="max-width: 1050px; margin: 1rem auto; padding: 1.5rem; background: #ffffff; border: 1px solid var(--border); border-radius: 10px; width: 100%;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h2 style="color: #0f172a; font-size: 1.35rem;">📊 Telemetría Procedimental JSONB & Rúbrica Oficial (0-20)</h2>
+            <button class="btn btn-primary" onclick="App.downloadTelemetryJSON()">💾 Descargar Telemetría JSON</button>
           </div>
-
-          <!-- Panel de Mecanismo de Reacción a Nivel Molecular (Etapa Reactivos -> Estado de Transición -> Producto) -->
-          <div class="card" style="padding: 0.8rem 1rem; border-left: 4px solid #0284c7; background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.55rem;">
-              <div style="display: flex; align-items: center; gap: 0.45rem;">
-                <span style="font-size: 0.84rem; font-weight: 800; color: #0f172a;">🔬 Mecanismo de Reacción a Nivel Molecular</span>
-                <span id="molMechanismSubBadge" style="font-size: 0.7rem; font-weight: 700; background: #e0f2fe; color: #0369a1; padding: 0.12rem 0.5rem; border-radius: 999px;">Transferencia Electrónica (Lewis)</span>
-              </div>
-              <span style="font-size: 0.72rem; color: #64748b;">Escala subatómica en vivo</span>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div style="border: 1px solid var(--border); border-radius: 8px; max-height: 380px; overflow-y: auto;">
+              <table class="report-table" style="margin: 0;">
+                <thead><tr><th>Tiempo</th><th>Acción</th><th>Objetivo</th><th>Valor</th></tr></thead>
+                <tbody id="telemetryTableBody"></tbody>
+              </table>
             </div>
-
-            <div id="molecularMechanismStages" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem;">
-              <!-- Renderizado dinámico de las 3 fases moleculares: 1. Reactivos -> 2. Colisión y Electrones -> 3. Estructura del Producto -->
-            </div>
-          </div>
-
-          <!-- Bitácora del Procedimiento en Vivo -->
-          <div class="card" style="padding: 0.85rem 1rem;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-size: 0.85rem; font-weight: 700; color: #1e293b;">🔬 Bitácora Experimental de Laboratorio (Observaciones en vivo):</span>
-              <span id="experimentStatusBadge" class="status-tag status-pending">En Preparación</span>
-            </div>
-            <div id="labLogText" style="font-size: 0.82rem; color: #475569; margin-top: 0.4rem; line-height: 1.45;">
-              Seleccione una práctica o presione "Ejecutar Siguiente Paso" para comenzar a agregar reactivos al matraz y observar la reacción a nivel molecular.
-            </div>
+            <pre id="telemetryJsonPreview" style="background: #0f172a; color: #38bdf8; padding: 0.85rem; border-radius: 8px; font-size: 0.72rem; max-height: 380px; overflow-y: auto; font-family: monospace;"></pre>
           </div>
         </div>
+      </div>
 
-        <!-- Columna Derecha: ReactionEngine y PubChem -->
-        <div class="analysis-column">
-          <div class="card">
-            <div class="card-title">
-              <span>⚡ Motor de Reacciones</span>
-            </div>
-            <p style="font-size: 0.78rem; color: #64748b;">Cálculo de electronegatividad (Escala de Linus Pauling):</p>
-            
-            <div class="reaction-math" id="formulaDisplay">
-              ΔEN = |EN₁ - EN₂| = ?
-            </div>
+    </section>
 
-            <div class="reaction-result-box" id="reactionAnalysisBox">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                <span style="font-size: 0.82rem; font-weight: 700;">Tipo de Enlace:</span>
-                <span id="bondBadge" class="bond-tag bond-covalent-nonpolar">Pendiente</span>
-              </div>
-              <p id="bondAnalysisText" style="font-size: 0.78rem; color: #475569; line-height: 1.35;">
-                Inicie la reacción para calcular la naturaleza del enlace interatómico según la regla de Linus Pauling.
+    <!-- ================= PESTAÑA: VISOR MOLECULAR 3D & REACCIONES QUÍMICAS (MÓDULO INDEPENDIENTE) ================= -->
+    <section id="tab-molecular-3d" class="tab-pane" style="width: 100%; height: 100%; background: #0b1120; color: #f8fafc; overflow-y: auto;">
+      
+      <!-- Sub-barra de Navegación del Visor Molecular 3D -->
+      <div class="sim-subnav-bar" style="background: #0f172a; border-bottom: 2px solid #1e293b; color: #f8fafc;">
+        <button class="sim-subnav-btn" onclick="App.switchTabTo('tab-simulator')" style="background: #1e293b; color: #38bdf8; border-color: #334155; font-weight: 700;">
+          ⬅️ Volver a Mesa de Laboratorio 2D
+        </button>
+        <div style="display: flex; align-items: center; gap: 0.5rem; font-weight: 800; color: #38bdf8; font-size: 0.95rem; margin-left: 0.5rem;">
+          🌐 Visor Molecular 3D • Reacciones Químicas & Enlaces Atómicos
+        </div>
+        <div style="margin-left: auto; display: flex; align-items: center; gap: 0.65rem;">
+          <span style="font-size: 0.72rem; color: #94a3b8; background: #1e293b; padding: 0.25rem 0.65rem; border-radius: 12px; border: 1px solid #334155;">
+            ⚡ ReactionEngine + 3Dmol.js (WebGL)
+          </span>
+          <span style="font-size: 0.72rem; color: #4ade80; background: rgba(34, 197, 94, 0.15); padding: 0.25rem 0.65rem; border-radius: 12px; border: 1px solid rgba(34, 197, 94, 0.3); font-weight: 700;">
+            ● PubChem NCBI Conectado
+          </span>
+        </div>
+      </div>
+
+      <div style="padding: 1rem 1.25rem; max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; gap: 1rem;">
+
+        <!-- ================= PANEL SUPERIOR: COMBINADOR LIBRE DE ELEMENTOS & CHOQUE ATÓMICO ================= -->
+        <div style="background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 1.15rem; box-shadow: 0 4px 16px rgba(0,0,0,0.4);">
+          
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem; flex-wrap: wrap; gap: 0.5rem;">
+            <div>
+              <h2 style="margin: 0; font-size: 1.15rem; color: #38bdf8; display: flex; align-items: center; gap: 0.5rem;">
+                <span>🧪</span> Combinador Libre de Elementos Químicos (Elige y Experimenta)
+              </h2>
+              <p style="margin: 0.2rem 0 0 0; font-size: 0.78rem; color: #9ca3af;">
+                Haga clic en cualquier elemento para colocarlo en la <strong>Ranura A</strong> o <strong>Ranura B</strong>. Calcule la escala de electronegatividad de Pauling (ΔEN) y observe la reacción.
               </p>
             </div>
 
-            <!-- Tarjeta de Monitoreo de PubChem API Caché -->
-            <div class="pubchem-card">
-              <div style="display: flex; justify-content: space-between; font-weight: 700;">
-                <span>🌐 Datos Científicos PubChem</span>
-                <span style="color: #0284c7;">Caché Local</span>
+            <!-- Selector de Reacciones Guiadas Preconfiguradas -->
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <label style="font-size: 0.78rem; font-weight: 700; color: #e2e8f0;">Reacciones Predefinidas:</label>
+              <select id="selectPresetReaction" class="select-control" style="background: #1e293b; color: #f8fafc; border-color: #475569; font-size: 0.82rem; padding: 0.35rem 0.65rem; border-radius: 8px;" onchange="App.onSelectReactionPreset(this.value)">
+                <option value="custom">🧪 Combinación Libre (Elige Ranura A y B)</option>
+                <option value="reaction-h2o">💧 2H₂ + O₂ ➔ 2H₂O (Síntesis de Agua)</option>
+                <option value="reaction-nacl">🧂 2Na + Cl₂ ➔ 2NaCl (Sal Común - Enlace Iónico)</option>
+                <option value="reaction-co2">🫧 C + O₂ ➔ CO₂ (Dióxido de Carbono)</option>
+                <option value="reaction-nh3">💨 N₂ + 3H₂ ➔ 2NH₃ (Amoníaco)</option>
+                <option value="reaction-ch4-combustion">🔥 C + 2H₂ ➔ CH₄ (Metano Tetraédrico)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Paleta de 20 Elementos Químicos Interactivos -->
+          <div style="margin-bottom: 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+              <span style="font-size: 0.72rem; font-weight: 700; color: #cbd5e1; text-transform: uppercase; letter-spacing: 0.05em;">
+                Paleta de Elementos de la Tabla Periódica (Haga clic para agregar al slot activo):
+              </span>
+              <span style="font-size: 0.7rem; color: #38bdf8;">
+                Ranura de destino activa: <strong id="activeSlotIndicatorBadge" style="background: #0284c7; color: #fff; padding: 0.1rem 0.45rem; border-radius: 4px;">Ranura A</strong>
+              </span>
+            </div>
+            <div id="elementsPaletteBar" style="display: flex; flex-wrap: wrap; gap: 0.35rem;">
+              <button type="button" class="btn-elem-chip" onclick="App.placeElementInSlot('H')" title="Hidrógeno (Z=1, EN=2.20)"><span class="sym">H</span><span class="z">1</span></button>
+              <button type="button" class="btn-elem-chip" onclick="App.placeElementInSlot('Li')" title="Litio (Z=3, EN=0.98)"><span class="sym">Li</span><span class="z">3</span></button>
+              <button type="button" class="btn-elem-chip" onclick="App.placeElementInSlot('C')" title="Carbono (Z=6, EN=2.55)"><span class="sym">C</span><span class="z">6</span></button>
+              <button type="button" class="btn-elem-chip" onclick="App.placeElementInSlot('N')" title="Nitrógeno (Z=7, EN=3.04)"><span class="sym">N</span><span class="z">7</span></button>
+              <button type="button" class="btn-elem-chip" onclick="App.placeElementInSlot('O')" title="Oxígeno (Z=8, EN=3.44)"><span class="sym">O</span><span class="z">8</span></button>
+              <button type="button" class="btn-elem-chip" onclick="App.placeElementInSlot('F')" title="Flúor (Z=9, EN=3.98)"><span class="sym">F</span><span class="z">9</span></button>
+              <button type="button" class="btn-elem-chip" onclick="App.placeElementInSlot('Na')" title="Sodio (Z=11, EN=0.93)"><span class="sym">Na</span><span class="z">11</span></button>
+              <button type="button" class="btn-elem-chip" onclick="App.placeElementInSlot('Mg')" title="Magnesio (Z=12, EN=1.31)"><span class="sym">Mg</span><span class="z">12</span></button>
+              <button type="button" class="btn-elem-chip" onclick="App.placeElementInSlot('Al')" title="Aluminio (Z=13, EN=1.61)"><span class="sym">Al</span><span class="z">13</span></button>
+              <button type="button" class="btn-elem-chip" onclick="App.placeElementInSlot('Si')" title="Silicio (Z=14, EN=1.90)"><span class="sym">Si</span><span class="z">14</span></button>
+              <button type="button" class="btn-elem-chip" onclick="App.placeElementInSlot('P')" title="Fósforo (Z=15, EN=2.19)"><span class="sym">P</span><span class="z">15</span></button>
+              <button type="button" class="btn-elem-chip" onclick="App.placeElementInSlot('S')" title="Azufre (Z=16, EN=2.58)"><span class="sym">S</span><span class="z">16</span></button>
+              <button type="button" class="btn-elem-chip" onclick="App.placeElementInSlot('Cl')" title="Cloro (Z=17, EN=3.16)"><span class="sym">Cl</span><span class="z">17</span></button>
+              <button type="button" class="btn-elem-chip" onclick="App.placeElementInSlot('K')" title="Potasio (Z=19, EN=0.82)"><span class="sym">K</span><span class="z">19</span></button>
+              <button type="button" class="btn-elem-chip" onclick="App.placeElementInSlot('Ca')" title="Calcio (Z=20, EN=1.00)"><span class="sym">Ca</span><span class="z">20</span></button>
+              <button type="button" class="btn-elem-chip" onclick="App.placeElementInSlot('Fe')" title="Hierro (Z=26, EN=1.83)"><span class="sym">Fe</span><span class="z">26</span></button>
+              <button type="button" class="btn-elem-chip" onclick="App.placeElementInSlot('Cu')" title="Cobre (Z=29, EN=1.90)"><span class="sym">Cu</span><span class="z">29</span></button>
+              <button type="button" class="btn-elem-chip" onclick="App.placeElementInSlot('Zn')" title="Zinc (Z=30, EN=1.65)"><span class="sym">Zn</span><span class="z">30</span></button>
+              <button type="button" class="btn-elem-chip" onclick="App.placeElementInSlot('Br')" title="Bromo (Z=35, EN=2.96)"><span class="sym">Br</span><span class="z">35</span></button>
+              <button type="button" class="btn-elem-chip" onclick="App.placeElementInSlot('I')" title="Yodo (Z=53, EN=2.66)"><span class="sym">I</span><span class="z">53</span></button>
+            </div>
+          </div>
+
+          <!-- ÁREA DE COMBINACIÓN: RANURA A + RANURA B ➔ PRODUCTO PREDICHO -->
+          <div style="display: grid; grid-template-columns: 1fr auto 1fr auto 1.3fr auto; gap: 0.75rem; align-items: center; background: #0f172a; border: 1px solid #334155; border-radius: 10px; padding: 0.85rem; margin-bottom: 0.85rem;">
+            
+            <!-- Ranura A -->
+            <div id="boxElementA" style="background: #1e293b; border: 2px solid #38bdf8; border-radius: 8px; padding: 0.65rem; text-align: center; box-shadow: 0 0 14px rgba(56, 189, 248, 0.45); transition: all 0.2s;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                <button type="button" id="btnSlotA" onclick="App.setActiveElementSlot('A')" style="background: #38bdf8; color: #0f172a; border: none; font-size: 0.72rem; font-weight: 800; padding: 0.15rem 0.5rem; border-radius: 4px; cursor: pointer;">
+                  Ranura A (Activa)
+                </button>
+                <select id="selectElementA" class="select-control" style="background: #0f172a; color: #38bdf8; border-color: #38bdf8; font-size: 0.75rem; padding: 0.15rem 0.35rem; border-radius: 4px; max-width: 110px;" onchange="App.onSelectElementDropdown('A', this.value)"></select>
               </div>
-              <div class="pubchem-metric">
-                <span>Elementos consultados:</span>
-                <strong id="pubchemElem">Na / Cl</strong>
-              </div>
-              <div class="pubchem-metric">
-                <span>Tiempo de respuesta:</span>
-                <span id="pubchemLatency" class="fast">12 ms</span>
-              </div>
-              <div class="pubchem-metric">
-                <span>Origen de datos:</span>
-                <span id="pubchemSource">Memoria Caché Local</span>
-              </div>
+              <div id="rxReactant1Name" style="font-size: 1.8rem; font-weight: 900; color: #38bdf8; line-height: 1.1;">Na</div>
+              <div id="rxReactant1Meta" style="font-size: 0.72rem; color: #94a3b8;">Sodio (EN: 0.93)</div>
             </div>
 
-            <!-- Accesos rápidos al Asistente y Quiz -->
-            <div style="margin-top: 1rem; display: flex; flex-direction: column; gap: 0.5rem;">
-              <button class="btn btn-secondary" style="width: 100%; justify-content: center;" onclick="App.askQuimiAboutCurrentStep()">
-                💬 Preguntar a Quimi sobre este paso
+            <!-- Signo + -->
+            <div style="font-size: 1.8rem; font-weight: 900; color: #64748b;">+</div>
+
+            <!-- Ranura B -->
+            <div id="boxElementB" style="background: #1e293b; border: 1px solid #475569; border-radius: 8px; padding: 0.65rem; text-align: center; transition: all 0.2s;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                <button type="button" id="btnSlotB" onclick="App.setActiveElementSlot('B')" style="background: #334155; color: #ffffff; border: none; font-size: 0.72rem; font-weight: 800; padding: 0.15rem 0.5rem; border-radius: 4px; cursor: pointer;">
+                  Ranura B
+                </button>
+                <select id="selectElementB" class="select-control" style="background: #0f172a; color: #f87171; border-color: #f87171; font-size: 0.75rem; padding: 0.15rem 0.35rem; border-radius: 4px; max-width: 110px;" onchange="App.onSelectElementDropdown('B', this.value)"></select>
+              </div>
+              <div id="rxReactant2Name" style="font-size: 1.8rem; font-weight: 900; color: #f87171; line-height: 1.1;">Cl</div>
+              <div id="rxReactant2Meta" style="font-size: 0.72rem; color: #94a3b8;">Cloro (EN: 3.16)</div>
+            </div>
+
+            <!-- Flecha ➔ -->
+            <div style="font-size: 1.8rem; font-weight: 900; color: #38bdf8;">➔</div>
+
+            <!-- Producto Predicho -->
+            <div style="background: #1e293b; border: 1px solid #10b981; border-radius: 8px; padding: 0.65rem; text-align: center;">
+              <div style="font-size: 0.72rem; font-weight: 800; color: #10b981; margin-bottom: 0.25rem;">Compuesto Predicho</div>
+              <div id="rxProductName" style="font-size: 1.8rem; font-weight: 900; color: #10b981; line-height: 1.1;">NaCl</div>
+              <div id="rxProductMeta" style="font-size: 0.72rem; color: #cbd5e1;">Cloruro de Sodio (58.44 g/mol)</div>
+              <div id="rxGeoBrief" style="font-size: 0.68rem; color: #38bdf8; margin-top: 0.2rem;">Red Cúbica FCC</div>
+            </div>
+
+            <!-- Botones de Acción -->
+            <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+              <button type="button" id="btnTriggerReaction" class="btn btn-primary" style="background: #2563eb; border-color: #1d4ed8; font-weight: 800; font-size: 0.88rem; padding: 0.6rem 1rem; box-shadow: 0 4px 12px rgba(37,99,235,0.4);" onclick="App.triggerAtomicReaction3D()">
+                ⚡ ¡Hacer Reaccionar!
               </button>
-              <button class="btn btn-success" style="width: 100%; justify-content: center;" onclick="App.goToQuiz()">
-                📝 Ir a la Evaluación →
+              <button type="button" class="btn btn-secondary" style="background: #334155; color: #f8fafc; border: 1px solid #475569; font-size: 0.75rem; padding: 0.35rem 0.75rem;" onclick="App.resetReactionState()">
+                🔄 Separar Átomos
               </button>
             </div>
           </div>
+
+          <!-- TIRA DE EVALUACIÓN CIENTÍFICA (PAULING ΔEN, ENLACE Y LAVOISIER) -->
+          <div style="display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 0.5rem 0.85rem; font-size: 0.78rem;">
+            <div style="display: flex; align-items: center; gap: 0.4rem;">
+              <span style="color: #94a3b8;">Escala Pauling:</span>
+              <strong id="rxDeltaEn" style="color: #facc15; font-family: monospace; font-size: 0.88rem;">ΔEN = 2.23 (Pauling)</strong>
+            </div>
+            <div style="width: 1px; height: 16px; background: #475569;"></div>
+            <div style="display: flex; align-items: center; gap: 0.4rem;">
+              <span style="color: #94a3b8;">Tipo de Enlace:</span>
+              <span id="rxBondBadge" style="background: #15803d; color: #ffffff; padding: 0.15rem 0.5rem; border-radius: 6px; font-weight: 700; font-size: 0.75rem;">Enlace Iónico</span>
+            </div>
+            <div style="width: 1px; height: 16px; background: #475569;"></div>
+            <div style="display: flex; align-items: center; gap: 0.4rem; flex: 1;">
+              <span style="color: #94a3b8;">Ley de Conservación:</span>
+              <span id="rxMassConservation" style="color: #38bdf8; font-size: 0.75rem;">Reactivos: 58.44 g ➔ NaCl: Conserva masa (Lavoisier)</span>
+            </div>
+          </div>
+
         </div>
+
+        <!-- ================= PANEL INFERIOR: VISOR TRIDIMENSIONAL 3DMOL & ESPECIFICACIONES ================= -->
+        <div style="display: grid; grid-template-columns: 1fr 380px; gap: 1rem; align-items: start;">
+          
+          <!-- Columna Izquierda: Visor 3D WebGL (3Dmol.js) -->
+          <div style="background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 1rem; position: relative; box-shadow: 0 4px 16px rgba(0,0,0,0.4);">
+            
+            <!-- Barra de Controles de Cámara 3D -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.65rem; flex-wrap: wrap; gap: 0.4rem;">
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span id="rxStageBadge" style="background: #0284c7; color: #ffffff; padding: 0.2rem 0.6rem; border-radius: 12px; font-size: 0.72rem; font-weight: 700;">
+                  ● Fase 1: Átomos Separados en el Espacio 3D
+                </span>
+              </div>
+              <div style="display: flex; gap: 0.35rem; align-items: center;">
+                <button type="button" class="btn btn-secondary btn-sm" style="background: #1e293b; color: #e2e8f0; border-color: #475569; font-size: 0.72rem; padding: 0.25rem 0.5rem;" onclick="App.set3dRepresentation('stick')" title="Representación en Varillas">
+                  🥢 Varillas
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" style="background: #1e293b; color: #e2e8f0; border-color: #475569; font-size: 0.72rem; padding: 0.25rem 0.5rem;" onclick="App.set3dRepresentation('ball_stick')" title="Esferas y Varillas">
+                  ⚪-🥢 Esferas y Varillas
+                </button>
+                <button type="button" class="btn btn-secondary btn-sm" style="background: #1e293b; color: #e2e8f0; border-color: #475569; font-size: 0.72rem; padding: 0.25rem 0.5rem;" onclick="App.set3dRepresentation('sphere')" title="Esferas CPK Van der Waals">
+                  🔮 Esferas CPK
+                </button>
+                <button type="button" id="btnToggle3dSpin" class="btn btn-secondary btn-sm" style="background: #0f172a; color: #38bdf8; border-color: #0284c7; font-size: 0.72rem; padding: 0.25rem 0.5rem; font-weight: 700;" onclick="App.toggle3dSpin()">
+                  🔄 Rotación: ON
+                </button>
+              </div>
+            </div>
+
+            <!-- Aviso Didáctico de Fase -->
+            <div id="rxStatusNotice" style="background: #1e293b; border-left: 3px solid #38bdf8; padding: 0.45rem 0.75rem; border-radius: 4px; font-size: 0.75rem; color: #cbd5e1; margin-bottom: 0.65rem;">
+              💡 Fase 1: Reactivos colocados en el espacio 3D. Pulse "⚡ ¡Hacer Reaccionar!" para iniciar la colisión eficaz.
+            </div>
+
+            <!-- Contenedor del Canvas 3Dmol.js con Flash Overlay -->
+            <div id="viewer3dmolBox" style="position: relative; width: 100%; height: 480px; border-radius: 8px; overflow: hidden; background: #020617; border: 1px solid #1e293b;">
+              <div id="container3Dmol" style="width: 100%; height: 100%; position: relative;"></div>
+              
+              <!-- Destello de Activación Térmica / Choque Eficaz -->
+              <div id="rxFlashOverlay" style="position: absolute; inset: 0; background: radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(56,189,248,0.7) 50%, rgba(2,6,23,0) 100%); opacity: 0; pointer-events: none; transition: opacity 0.35s ease; z-index: 20;"></div>
+
+              <!-- Tip inferior para el usuario -->
+              <div style="position: absolute; bottom: 0.65rem; left: 50%; transform: translateX(-50%); background: rgba(15,23,42,0.85); color: #94a3b8; font-size: 0.7rem; padding: 0.25rem 0.75rem; border-radius: 20px; border: 1px solid #334155; pointer-events: none; white-space: nowrap;">
+                🖱️ Arrastre para rotar 360° • Rueda del ratón para Zoom • Clic derecho para trasladar
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Columna Derecha: Tarjeta Científica y Búsqueda PubChem -->
+          <div style="display: flex; flex-direction: column; gap: 0.85rem;">
+            
+            <!-- Especificaciones Moleculares -->
+            <div style="background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 1.15rem; box-shadow: 0 4px 16px rgba(0,0,0,0.4);">
+              <h3 id="rx3dProductTitle" style="margin: 0 0 0.65rem 0; font-size: 1.05rem; color: #38bdf8;">
+                Cloruro de Sodio (NaCl)
+              </h3>
+              
+              <div style="display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.78rem;">
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #1f2937; padding-bottom: 0.35rem;">
+                  <span style="color: #94a3b8;">Geometría Espacial:</span>
+                  <strong id="rx3dGeometry" style="color: #f8fafc;">Red Cúbica FCC</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #1f2937; padding-bottom: 0.35rem;">
+                  <span style="color: #94a3b8;">Hibridación Orbital:</span>
+                  <strong id="rx3dHybridization" style="color: #f8fafc;">Enlace Iónico Coulombic</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #1f2937; padding-bottom: 0.35rem;">
+                  <span style="color: #94a3b8;">Momento Dipolar:</span>
+                  <strong id="rx3dDipole" style="color: #f8fafc;">μ = 9.0 D</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #1f2937; padding-bottom: 0.35rem;">
+                  <span style="color: #94a3b8;">Masa Molar:</span>
+                  <strong id="rx3dMass" style="color: #f8fafc;">58.44 g/mol</strong>
+                </div>
+              </div>
+
+              <div style="margin-top: 0.85rem; padding: 0.65rem; background: #0f172a; border-radius: 8px; border: 1px solid #1e293b;">
+                <div style="font-size: 0.72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.25rem;">
+                  Mecanismo y Fenomenología Química:
+                </div>
+                <p id="rx3dExplanation" style="margin: 0; font-size: 0.75rem; color: #cbd5e1; line-height: 1.4;">
+                  El Sodio metálico cede 1 electrón de valencia al átomo de Cloro. La gran diferencia de electronegatividad (ΔEN ≥ 2.0) produce atracción electrostática pura, conformando una red iónica cristalina de coordinación 6:6.
+                </p>
+              </div>
+            </div>
+
+            <!-- Explorador de Moléculas PubChem Directo -->
+            <div style="background: #111827; border: 1px solid #1f2937; border-radius: 12px; padding: 1.15rem; box-shadow: 0 4px 16px rgba(0,0,0,0.4);">
+              <h3 style="margin: 0 0 0.35rem 0; font-size: 0.95rem; color: #38bdf8; display: flex; align-items: center; gap: 0.4rem;">
+                <span>🔍</span> Explorador Molecular (PubChem API)
+              </h3>
+              <p style="margin: 0 0 0.65rem 0; font-size: 0.72rem; color: #94a3b8;">
+                Cargue cualquier estructura 3D real desde la base científica de PubChem (NCBI).
+              </p>
+
+              <div style="display: flex; gap: 0.35rem; margin-bottom: 0.65rem;">
+                <input type="text" id="inputPubChemSearch" placeholder="Ej: caffeine, aspirin, ethanol..." style="flex: 1; background: #0f172a; border: 1px solid #334155; border-radius: 6px; padding: 0.35rem 0.6rem; color: #f8fafc; font-size: 0.78rem;">
+                <button type="button" class="btn btn-primary" style="font-size: 0.75rem; padding: 0.35rem 0.75rem;" onclick="App.searchPubChemMolecule()">
+                  Ver 3D
+                </button>
+              </div>
+
+              <div style="display: flex; flex-wrap: wrap; gap: 0.3rem;">
+                <button type="button" class="btn btn-secondary btn-sm" style="background: #0f172a; color: #94a3b8; border-color: #334155; font-size: 0.7rem;" onclick="App.fetchPubChemDirect('water', 'Agua (H₂O)')">Agua</button>
+                <button type="button" class="btn btn-secondary btn-sm" style="background: #0f172a; color: #94a3b8; border-color: #334155; font-size: 0.7rem;" onclick="App.fetchPubChemDirect('ethanol', 'Etanol (C₂H₅OH)')">Etanol</button>
+                <button type="button" class="btn btn-secondary btn-sm" style="background: #0f172a; color: #94a3b8; border-color: #334155; font-size: 0.7rem;" onclick="App.fetchPubChemDirect('glucose', 'Glucosa (C₆H₁₂O₆)')">Glucosa</button>
+                <button type="button" class="btn btn-secondary btn-sm" style="background: #0f172a; color: #94a3b8; border-color: #334155; font-size: 0.7rem;" onclick="App.fetchPubChemDirect('caffeine', 'Cafeína (C₈H₁₀N₄O₂)')">Cafeína</button>
+                <button type="button" class="btn btn-secondary btn-sm" style="background: #0f172a; color: #94a3b8; border-color: #334155; font-size: 0.7rem;" onclick="App.fetchPubChemDirect('aspirin', 'Aspirina')">Aspirina</button>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
       </div>
+
     </section>
 
     <!-- ================= PESTAÑA 2: ASISTENTE VIRTUAL "QUIMI" ================= -->
@@ -2351,55 +2682,6 @@
     </div>
   </div>
 
-  <!-- ================= MODAL VISOR DEL PROCEDIMIENTO DETALLADO PASO A PASO DE CADA LABORATORIO ================= -->
-  <div class="eval-modal-backdrop" id="modalStepByStepProcedure" style="display: none; z-index: 9600;">
-    <div class="eval-modal-card" style="max-width: 920px; width: 95%; border-top: 5px solid #0284c7;">
-      <div class="eval-modal-header" style="background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);">
-        <div>
-          <span class="badge-role badge-role-student" style="margin-bottom: 0.3rem; display: inline-block; background: #0284c7; color: #ffffff; font-weight: 700;">
-            📋 Protocolo Experimental Oficial • I.E. Alexander Fleming
-          </span>
-          <h3 id="modalProcedureMainTitle" style="font-size: 1.2rem; font-weight: 800; color: #0f172a; margin: 0;">
-            Procedimiento Detallado Paso a Paso del Laboratorio
-          </h3>
-        </div>
-        <button class="eval-modal-close" onclick="App.closeFullProcedureModal()">✕</button>
-      </div>
-
-      <div class="eval-modal-body" style="padding: 1.2rem 1.4rem; max-height: 76vh; overflow-y: auto;">
-        <!-- Selector de los 3 Laboratorios dentro del Modal -->
-        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem; margin-bottom: 1rem;">
-          <button type="button" id="btnProcModalLab0" class="btn btn-primary" style="justify-content: center; font-size: 0.78rem; padding: 0.55rem 0.65rem;" onclick="App.renderFullProcedureModalContent(0)">
-            🧪 Lab 1: Síntesis de NaCl (Iónico)
-          </button>
-          <button type="button" id="btnProcModalLab1" class="btn btn-outline" style="justify-content: center; font-size: 0.78rem; padding: 0.55rem 0.65rem;" onclick="App.renderFullProcedureModalContent(1)">
-            💧 Lab 2: Molécula de Agua (H₂O)
-          </button>
-          <button type="button" id="btnProcModalLab2" class="btn btn-outline" style="justify-content: center; font-size: 0.78rem; padding: 0.55rem 0.65rem;" onclick="App.renderFullProcedureModalContent(2)">
-            ⚖️ Lab 3: Neutralización (HCl + NaOH)
-          </button>
-        </div>
-
-        <!-- Contenido Dinámico Detallado de los Pasos del Laboratorio Seleccionado -->
-        <div id="modalProcedureContentBody">
-          <!-- Poblado dinámicamente desde App.renderFullProcedureModalContent() -->
-        </div>
-      </div>
-
-      <div class="eval-modal-footer" style="display: flex; justify-content: space-between; align-items: center; padding: 0.85rem 1.4rem; flex-wrap: wrap; gap: 0.5rem;">
-        <div style="font-size: 0.78rem; color: #475569;">
-          🔬 Puede ejecutar cualquier paso directamente en la cámara molecular desde este protocolo.
-        </div>
-        <div style="display: flex; gap: 0.6rem;">
-          <button type="button" class="btn btn-outline" onclick="App.closeFullProcedureModal()">Cerrar Guía</button>
-          <button type="button" class="btn btn-primary" id="btnProcModalStartLab" onclick="App.startLabFromProcedureModal()">
-            🚀 Ir a Simular este Laboratorio Ahora
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <!-- ================= CUADRO DE MENSAJE CENTRADO (REEMPLAZA ALERTS) ================= -->
   <div class="custom-dialog-backdrop" id="customDialogBackdrop">
     <div class="custom-dialog-card">
@@ -2413,8 +2695,11 @@
   </div>
 
   <!-- Scripts -->
-  <script src="reaction_engine.js?v=0.9"></script>
-  <script src="pubchem_service.js?v=0.9"></script>
-  <script src="app.js?v=3.0"></script>
+  <script src="ChemEngine.js?v=3.2"></script>
+  <script src="simulation_canvas.js?v=3.2"></script>
+  <script src="offline_storage.js?v=3.2"></script>
+  <script src="reaction_engine.js?v=3.2"></script>
+  <script src="pubchem_service.js?v=3.2"></script>
+  <script src="app.js?v=6.2"></script>
 </body>
 </html>

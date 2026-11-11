@@ -1297,6 +1297,7 @@ const App = {
     this.renderQuiz();
     this.renderClassroomsOverview();
     this.renderEvaluations();
+    this.initIntegratedSimulator();
     this.startCanvasAnimation();
     this.updateReactionAnalysis();
     this.renderMolecularMechanismStages();
@@ -1960,12 +1961,24 @@ const App = {
     }
   },
 
+  switchTabTo(tabId) {
+    const tab = document.querySelector(`.sidebar-nav-item[data-tab="${tabId}"]`) || document.querySelector(`[data-tab="${tabId}"]`);
+    if (tab) {
+      tab.click();
+    } else {
+      document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+      const pane = document.getElementById(tabId);
+      if (pane) pane.classList.add('active');
+    }
+  },
+
   // Configurar la navegación de la barra lateral izquierda y vistas
   setupNavigation() {
     const tabs = document.querySelectorAll('.nav-tab, .sidebar-nav-item');
     const titleMap = {
       'tab-student-salon': '🏫 Salón de Clases • Aula Asignada',
-      'tab-simulator': '🔬 Mesa de Laboratorio & Simulador',
+      'tab-simulator': '⚗️ Mesa de Laboratorio 2D',
+      'tab-molecular-3d': '🌐 Visor Molecular & Reacciones 3D',
       'tab-assistant': '🤖 Asistente Virtual "Quimi" (IA & Reglas)',
       'tab-guide': '📖 Libro Guía Digital & Enciclopedia',
       'tab-quiz': '📝 Evaluación & Reporte de Práctica',
@@ -1983,6 +1996,29 @@ const App = {
         }
         if (targetId === 'tab-assistant') {
           App.updateContextualAssistantUI();
+        }
+        if (targetId === 'tab-simulator') {
+          document.body.classList.add('simulator-active');
+          const dash = document.querySelector('.dashboard-layout');
+          if (dash) dash.classList.add('simulator-active');
+          App.initIntegratedSimulator();
+        } else if (targetId === 'tab-molecular-3d') {
+          document.body.classList.add('simulator-active');
+          const dash = document.querySelector('.dashboard-layout');
+          if (dash) dash.classList.add('simulator-active');
+          App.init3DmolViewer();
+          setTimeout(() => {
+            App.populateElementDropdowns();
+            if (App.currentReactionKey === 'custom' || !App.currentReactionKey) {
+              App.evaluateCurrentCustomCombination();
+            } else {
+              App.onSelectReactionPreset(App.currentReactionKey);
+            }
+          }, 60);
+        } else {
+          document.body.classList.remove('simulator-active');
+          const dash = document.querySelector('.dashboard-layout');
+          if (dash) dash.classList.remove('simulator-active');
         }
 
         // Desactivar todas las pestañas y paneles
@@ -5246,19 +5282,30 @@ const App = {
     if (!result) return;
 
     const formulaEl = document.getElementById('formulaDisplay');
-    formulaEl.innerHTML = `ΔEN = |${elem2.en} - ${elem1.en}| = <strong>${result.deltaEN}</strong>`;
+    if (formulaEl) formulaEl.innerHTML = `ΔEN = |${elem2.en} - ${elem1.en}| = <strong>${result.deltaEN}</strong>`;
 
     const badgeEl = document.getElementById('bondBadge');
-    badgeEl.className = `bond-tag bond-${result.category}`;
-    badgeEl.innerText = `Enlace ${result.bondType}`;
+    if (badgeEl) {
+      badgeEl.className = `bond-tag bond-${result.category}`;
+      badgeEl.innerText = `Enlace ${result.bondType}`;
+    }
 
     const textEl = document.getElementById('bondAnalysisText');
-    textEl.innerText = result.explanation;
+    if (textEl) textEl.innerText = result.explanation;
 
-    const pubchemRes = await PubChemService.getElementData(elem1.symbol);
-    document.getElementById('pubchemElem').innerText = `${elem1.symbol} (Z=${elem1.z}) / ${elem2.symbol} (Z=${elem2.z})`;
-    document.getElementById('pubchemLatency').innerText = `${pubchemRes.latencyMs} ms (${pubchemRes.isFromCache ? 'en memoria caché' : 'en vivo'})`;
-    document.getElementById('pubchemSource').innerText = pubchemRes.data.source;
+    if (typeof PubChemService !== 'undefined') {
+      try {
+        const pubchemRes = await PubChemService.getElementData(elem1.symbol);
+        const pElem = document.getElementById('pubchemElem');
+        const pLat = document.getElementById('pubchemLatency');
+        const pSrc = document.getElementById('pubchemSource');
+        if (pElem) pElem.innerText = `${elem1.symbol} (Z=${elem1.z}) / ${elem2.symbol} (Z=${elem2.z})`;
+        if (pLat) pLat.innerText = `${pubchemRes.latencyMs} ms (${pubchemRes.isFromCache ? 'en memoria caché' : 'en vivo'})`;
+        if (pSrc) pSrc.innerText = pubchemRes.data.source;
+      } catch (e) {
+        console.warn('PubChemService error:', e);
+      }
+    }
   },
 
   // ================= ASISTENTE VIRTUAL "QUIMI" =================
@@ -8674,13 +8721,2201 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
     );
   },
 
+  // =========================================================================
+  // INTEGRACIÓN DEL LABORATORIO CIENTÍFICO (Producción - README.md)
+  // =========================================================================
+  labBench: null,
+  kineticSim: null,
+  atomicSim: null,
+  separationSim: null,
+  molecular3DSim: null,
+  practiceConfig2026: {
+    id: 'practica-titulacion-01',
+    title: 'Titulación de HCl con NaOH 0.1 M y Viraje de Fenolftaleína',
+    targetVolume: 25.0,
+    tolerance: 0.05
+  },
+
+  initIntegratedSimulator() {
+    if (typeof SimulationCanvas === 'undefined') return;
+    
+    // Si ya fue instanciado, reanudar loop y evitar duplicar listeners
+    if (this.labBench) {
+      this.labBench.start();
+      return;
+    }
+
+    // Instanciar simuladores una sola vez
+    this.labBench = new SimulationCanvas.InteractiveLabBench('canvasLabBench', 'canvasMeniscusZoom', 'canvasTitrationGraph');
+    this.kineticSim = new SimulationCanvas.ParticleKineticSimulation('canvasKineticParticles');
+    this.atomicSim = new SimulationCanvas.AtomicModelVisualizer('canvasAtomicModel');
+    this.separationSim = new SimulationCanvas.MixtureSeparationSimulation('canvasSeparation');
+    this.molecular3DSim = new SimulationCanvas.Molecular3DViewer('canvasMolecular3D');
+
+    if (this.labBench) this.labBench.start();
+
+    this.renderReagentsShelf();
+    this.renderInstrumentsRack();
+    this.renderCurriculumModule(1);
+
+    if (!this._sensorsIntervalStarted) {
+      this._sensorsIntervalStarted = true;
+      setInterval(() => this.updateDigitalSensorsUI(), 120);
+    }
+
+    if (typeof ChemEngine !== 'undefined') {
+      ChemEngine.logTelemetry('session_start', 'lab_platform', 'Fleming-2026', { integration: 'Quimi-K Full' });
+      this.refreshTelemetryUI();
+    }
+  },
+
+  switchSimSubtab(subtabId) {
+    document.querySelectorAll('.sim-subpane').forEach(p => p.style.display = 'none');
+    document.querySelectorAll('.sim-subnav-btn').forEach(b => b.classList.remove('active'));
+
+    const targetPane = document.getElementById(subtabId);
+    if (targetPane) targetPane.style.display = 'flex';
+
+    const targetBtn = document.querySelector(`[data-subtab="${subtabId}"]`);
+    if (targetBtn) targetBtn.classList.add('active');
+
+    if (subtabId === 'subtab-bench' && this.labBench) {
+      this.labBench.start();
+    } else if (this.labBench) {
+      this.labBench.stop();
+    }
+
+    if (subtabId === 'subtab-3d') {
+      if (!this.viewer3Dmol) {
+        this.init3DmolViewer();
+      }
+      setTimeout(() => {
+        this.populateElementDropdowns();
+        if (this.currentReactionKey === 'custom' || !this.currentReactionKey) {
+          this.evaluateCurrentCustomCombination();
+        } else {
+          this.onSelectReactionPreset(this.currentReactionKey);
+        }
+      }, 60);
+    }
+  },
+
+  renderReagentsShelf() {
+    const container = document.getElementById('reagentsShelf');
+    if (!container || typeof ChemEngine === 'undefined') return;
+    container.innerHTML = '';
+
+    const colorThemes = {
+      h2o: { border: '#0284c7', bg: '#f0f9ff', badgeBg: '#bae6fd', badgeBorder: '#38bdf8', formulaColor: '#0284c7' },
+      nacl: { border: '#6366f1', bg: '#f8fafc', badgeBg: '#e0e7ff', badgeBorder: '#818cf8', formulaColor: '#4f46e5' },
+      sucrose: { border: '#d97706', bg: '#fffbeb', badgeBg: '#fef3c7', badgeBorder: '#fbbf24', formulaColor: '#b45309' },
+      sand: { border: '#b45309', bg: '#fffbeb', badgeBg: '#fde68a', badgeBorder: '#f59e0b', formulaColor: '#78350f' },
+      oil: { border: '#eab308', bg: '#fefce8', badgeBg: '#fef08a', badgeBorder: '#facc15', formulaColor: '#a16207' },
+      ethanol: { border: '#f97316', bg: '#fff7ed', badgeBg: '#ffedd5', badgeBorder: '#fb923c', formulaColor: '#c2410c' },
+      vinegar: { border: '#84cc16', bg: '#f7fee7', badgeBg: '#ecfccb', badgeBorder: '#a3e635', formulaColor: '#4d7c0f' },
+      nahco3: { border: '#10b981', bg: '#ecfdf5', badgeBg: '#d1fae5', badgeBorder: '#34d399', formulaColor: '#047857' },
+      hcl: { border: '#ef4444', bg: '#fef2f2', badgeBg: '#fee2e2', badgeBorder: '#f87171', formulaColor: '#b91c1c' },
+      naoh: { border: '#8b5cf6', bg: '#f5f3ff', badgeBg: '#ede9fe', badgeBorder: '#a78bfa', formulaColor: '#6d28d9' },
+      phenolphthalein: { border: '#ec4899', bg: '#fdf2f8', badgeBg: '#fce7f3', badgeBorder: '#f472b6', formulaColor: '#be185d' },
+      cuso4: { border: '#0ea5e9', bg: '#f0f9ff', badgeBg: '#bae6fd', badgeBorder: '#38bdf8', formulaColor: '#0369a1' }
+    };
+
+    Object.values(ChemEngine.reagents).forEach(r => {
+      const theme = colorThemes[r.id] || { border: '#0284c7', bg: '#ffffff', badgeBg: '#f1f5f9', badgeBorder: '#cbd5e1', formulaColor: '#64748b' };
+      const card = document.createElement('div');
+      card.className = 'reagent-card';
+      card.style.borderLeft = `5px solid ${theme.border}`;
+      card.style.background = theme.bg;
+      card.title = `Haga clic para verter ${r.name} en el recipiente seleccionado`;
+      card.innerHTML = `
+        <div class="reagent-icon-badge" style="background: ${theme.badgeBg}; border-color: ${theme.badgeBorder}; font-size: 1.15rem;">${r.sga.icon}</div>
+        <div class="reagent-meta">
+          <div class="reagent-name" style="font-weight: 700; color: #1e293b;">${r.name}</div>
+          <div class="reagent-formula" style="color: ${theme.formulaColor}; font-weight: 700;">${r.formula}</div>
+        </div>
+      `;
+      card.onclick = () => this.onReagentClick(r.id);
+      container.appendChild(card);
+    });
+  },
+
+  onReagentClick(reagentId) {
+    if (!this.labBench) return;
+    const r = ChemEngine.reagents[reagentId];
+    if (!r) return;
+
+    // Si no hay recipiente seleccionado, seleccionar el primero disponible (Matraz bajo la bureta)
+    if (!this.labBench.selectedVessel || !this.labBench.vessels.includes(this.labBench.selectedVessel)) {
+      if (this.labBench.vessels.length > 0) {
+        this.labBench.selectedVessel = this.labBench.vessels[0];
+      } else {
+        this.labBench.addVesselToBench('erlenmeyer');
+      }
+    }
+
+    const targetVessel = this.labBench.selectedVessel;
+    if (targetVessel) {
+      const amount = (r.state === 'solid') ? 5.0 : (reagentId === 'phenolphthalein' ? 3 : 25.0);
+      this.labBench.addReagentToVessel(targetVessel, reagentId, amount);
+    }
+
+    this.updateDigitalSensorsUI();
+    this.refreshTelemetryUI();
+    if (typeof this.labBench.render === 'function') {
+      this.labBench.render();
+    }
+  },
+
+  renderInstrumentsRack() {
+    const container = document.getElementById('instrumentsRack');
+    if (!container || typeof ChemEngine === 'undefined') return;
+    container.innerHTML = '';
+
+    Object.values(ChemEngine.instruments).forEach(inst => {
+      const item = document.createElement('div');
+      item.className = 'tool-rack-item';
+      item.title = `Haga clic para colocar ${inst.name} en la mesa`;
+      item.innerHTML = `
+        <div class="tool-icon">${inst.icon}</div>
+        <div class="tool-text">
+          <div class="tool-name">${inst.name}</div>
+          <div class="tool-cat">${inst.category}</div>
+        </div>
+      `;
+      item.onclick = () => this.onInstrumentClick(inst.id);
+      container.appendChild(item);
+    });
+  },
+
+  onInstrumentClick(instId) {
+    if (!this.labBench) return;
+    
+    if (instId === 'bunsen_burner') {
+      if (this.labBench.bunsen.visible === false) {
+        this.labBench.bunsen.visible = true;
+        this.labBench.selectedInstrument = 'bunsen';
+        this.labBench.selectedVessel = null;
+        this.labBench.showToast('✨ Mechero Bunsen colocado en la mesa.');
+      } else {
+        this.toggleBunsenBurner();
+        this.labBench.selectedInstrument = 'bunsen';
+        this.labBench.selectedVessel = null;
+      }
+    } else if (instId === 'digital_balance') {
+      if (this.labBench.balance.visible === false) {
+        this.labBench.balance.visible = true;
+        this.labBench.selectedInstrument = 'balance';
+        this.labBench.selectedVessel = null;
+        this.labBench.showToast('✨ Balanza analítica colocada en la mesa.');
+      } else {
+        this.tareBalance();
+        this.labBench.selectedInstrument = 'balance';
+        this.labBench.selectedVessel = null;
+      }
+    } else if (instId === 'burette') {
+      if (this.labBench.buretteStand.visible === false) {
+        this.labBench.buretteStand.visible = true;
+        this.labBench.selectedInstrument = 'burette';
+        this.labBench.selectedVessel = null;
+        this.labBench.showToast('✨ Soporte universal con bureta colocado en la mesa.');
+      } else {
+        this.titrationDripToggle();
+        this.labBench.selectedInstrument = 'burette';
+        this.labBench.selectedVessel = null;
+      }
+    } else {
+      // Instrumentos y cristalería: crear y colocar en la mesa
+      const typeMap = {
+        beaker: 'beaker',
+        erlenmeyer: 'erlenmeyer',
+        graduated_cylinder: 'cylinder',
+        test_tubes: 'tube',
+        pipette: 'pipette',
+        filter_funnel: 'funnel',
+        mortar_pestle: 'mortar',
+        distillation_apparatus: 'distillation',
+        centrifuge: 'centrifuge',
+        digital_thermometer: 'thermometer',
+        ph_meter: 'ph_meter'
+      };
+      const vType = typeMap[instId] || 'beaker';
+      const newVessel = this.labBench.addVesselToBench(vType);
+      this.labBench.selectedInstrument = null;
+      this.labBench.selectedVessel = newVessel;
+    }
+    this.updateDigitalSensorsUI();
+    this.refreshTelemetryUI();
+  },
+
+  addVesselAction(type) {
+    if (this.labBench) {
+      this.labBench.addVesselToBench(type);
+      this.updateDigitalSensorsUI();
+      this.refreshTelemetryUI();
+    }
+  },
+
+  pourSelectedAction() {
+    if (!this.labBench) return;
+    if (!this.labBench.selectedVessel) {
+      this.labBench.showToast('⚠️ Seleccione el recipiente que desea verter.');
+      return;
+    }
+    const target = this.labBench.vessels.find(v => v !== this.labBench.selectedVessel);
+    if (!target) {
+      this.labBench.showToast('⚠️ Coloque otro recipiente en la mesa para poder trasvasar.');
+      return;
+    }
+    this.labBench.startPouring(this.labBench.selectedVessel, target, 25);
+    this.refreshTelemetryUI();
+  },
+
+  clearSelectedVessel() {
+    if (!this.labBench || !this.labBench.selectedVessel) return;
+    const v = this.labBench.selectedVessel;
+    v.contents = { water: 0, hcl: 0, naoh: 0, vinegar: 0, nahco3: 0, nacl: 0, sand: 0, oil: 0, ethanol: 0, cuso4: 0, phenolphthalein: 0 };
+    v.temperature = 22.5;
+    v.bubbles = [];
+    this.labBench.showToast(`🗑️ ${v.name} vaciado y lavado.`);
+    this.updateDigitalSensorsUI();
+    this.refreshTelemetryUI();
+  },
+
+  removeSelectedVessel() {
+    if (!this.labBench) return;
+
+    if (this.labBench.selectedInstrument) {
+      const inst = this.labBench.selectedInstrument;
+      if (inst === 'bunsen') {
+        this.labBench.bunsen.visible = false;
+        this.labBench.bunsen.isOn = false;
+        this.labBench.selectedInstrument = null;
+        this.labBench.showToast('❌ Mechero Bunsen retirado de la mesa.');
+      } else if (inst === 'balance') {
+        this.labBench.balance.visible = false;
+        this.labBench.selectedInstrument = null;
+        this.labBench.showToast('❌ Balanza analítica retirada de la mesa.');
+      } else if (inst === 'burette') {
+        this.labBench.buretteStand.visible = false;
+        this.labBench.buretteStand.isDripping = false;
+        this.labBench.selectedInstrument = null;
+        this.labBench.showToast('❌ Soporte universal con bureta retirado de la mesa.');
+      }
+      this.updateDigitalSensorsUI();
+      this.refreshTelemetryUI();
+      return;
+    }
+
+    if (!this.labBench.selectedVessel) {
+      this.labBench.showToast('⚠️ Seleccione una cristalería o instrumento para retirarlo.');
+      return;
+    }
+    const idx = this.labBench.vessels.indexOf(this.labBench.selectedVessel);
+    if (idx !== -1) {
+      const removed = this.labBench.vessels.splice(idx, 1)[0];
+      this.labBench.selectedVessel = this.labBench.vessels[0] || null;
+      this.labBench.showToast(`❌ ${removed.name} retirado de la mesa.`);
+    }
+    this.updateDigitalSensorsUI();
+    this.refreshTelemetryUI();
+  },
+
+  removeInstrumentDirect(inst) {
+    if (!this.labBench) return;
+    if (inst === 'balance') {
+      this.labBench.balance.visible = false;
+      if (this.labBench.selectedInstrument === 'balance') this.labBench.selectedInstrument = null;
+      this.labBench.showToast('❌ Balanza analítica retirada de la mesa.');
+    } else if (inst === 'burette') {
+      this.labBench.buretteStand.visible = false;
+      this.labBench.buretteStand.isDripping = false;
+      if (this.labBench.selectedInstrument === 'burette') this.labBench.selectedInstrument = null;
+      this.labBench.showToast('❌ Soporte universal con bureta retirado de la mesa.');
+    } else if (inst === 'bunsen') {
+      this.labBench.bunsen.visible = false;
+      this.labBench.bunsen.isOn = false;
+      if (this.labBench.selectedInstrument === 'bunsen') this.labBench.selectedInstrument = null;
+      this.labBench.showToast('❌ Mechero Bunsen retirado de la mesa.');
+    }
+    this.updateDigitalSensorsUI();
+    this.refreshTelemetryUI();
+  },
+
+  resetBenchObjects() {
+    if (!this.labBench) return;
+    this.labBench.balance.visible = true;
+    this.labBench.bunsen.visible = true;
+    this.labBench.bunsen.isOn = false;
+    this.labBench.buretteStand.visible = true;
+    this.labBench.buretteStand.isDripping = false;
+    this.labBench.buretteStand.volumeAddedMl = 0.0;
+    this.labBench.vessels = [];
+    this.labBench.vesselCounter = 1;
+    this.labBench.selectedInstrument = null;
+    this.labBench.draggedInstrument = null;
+    this.labBench.initDefaultObjects();
+    this.labBench.showToast('🔄 Mesa restaurada al estado inicial.');
+    this.updateDigitalSensorsUI();
+    this.refreshTelemetryUI();
+  },
+
+  clearAllBench() {
+    if (!this.labBench) return;
+    this.labBench.balance.visible = false;
+    this.labBench.bunsen.visible = false;
+    this.labBench.bunsen.isOn = false;
+    this.labBench.buretteStand.visible = false;
+    this.labBench.buretteStand.isDripping = false;
+    this.labBench.vessels = [];
+    this.labBench.selectedVessel = null;
+    this.labBench.selectedInstrument = null;
+    this.labBench.draggedInstrument = null;
+    this.labBench.showToast('🧹 Mesa vaciada. Trae desde el estante izquierdo las herramientas que desees usar.');
+    this.updateDigitalSensorsUI();
+    this.refreshTelemetryUI();
+  },
+
+  titrationDripToggle() {
+    if (!this.labBench) return;
+    this.labBench.buretteStand.isDripping = !this.labBench.buretteStand.isDripping;
+    const btn = document.getElementById('btnTitrationDrip');
+    if (btn) {
+      if (this.labBench.buretteStand.isDripping) {
+        btn.innerHTML = '⏸️ Pausar Flujo de NaOH';
+        btn.classList.add('btn-active-flow');
+      } else {
+        btn.innerHTML = '💧 Abrir Bureta (NaOH)';
+        btn.classList.remove('btn-active-flow');
+      }
+    }
+    this.labBench.showToast(this.labBench.buretteStand.isDripping ? '💧 Flujo de NaOH activado.' : '⏸️ Flujo detenido.');
+    this.updateDigitalSensorsUI();
+    this.refreshTelemetryUI();
+  },
+
+  titrationAddDrop() {
+    if (!this.labBench) return;
+    if (this.labBench.buretteStand.volumeAddedMl < 50.0) {
+      this.labBench.buretteStand.volumeAddedMl = Math.min(50.0, this.labBench.buretteStand.volumeAddedMl + 0.05);
+      const tipX = this.labBench.buretteStand.tipX;
+      const tipY = this.labBench.buretteStand.tipY;
+      const receivingVessel = this.labBench.vessels.find(v => (
+        tipX >= v.x && tipX <= v.x + v.width &&
+        v.y >= tipY && v.y <= tipY + 120
+      ));
+      if (receivingVessel) {
+        receivingVessel.contents.naoh += 0.05;
+        this.labBench.recordTitrationStep(receivingVessel);
+      }
+      ChemEngine.logTelemetry('titration_drop', 'fine_dosage', this.labBench.buretteStand.volumeAddedMl);
+      this.labBench.showToast('💉 Gota dosificada (+0.05 mL NaOH).');
+    }
+    this.updateDigitalSensorsUI();
+    this.refreshTelemetryUI();
+  },
+
+  titrationPurgeBurette() {
+    if (!this.labBench) return;
+    this.labBench.buretteStand.isPurged = true;
+    this.labBench.showToast('✅ Purga de aire realizada.');
+    ChemEngine.logTelemetry('purge_burette', 'burette_tip', 0);
+    this.refreshTelemetryUI();
+  },
+
+  toggleBunsenBurner() {
+    if (!this.labBench) return;
+    this.labBench.bunsen.isOn = !this.labBench.bunsen.isOn;
+    this.labBench.showToast(this.labBench.bunsen.isOn ? '🔥 Mechero Bunsen encendido.' : '💨 Mechero Bunsen apagado.');
+    ChemEngine.logTelemetry('toggle_bunsen', 'bunsen_burner', this.labBench.bunsen.isOn ? 'ON' : 'OFF');
+    this.updateDigitalSensorsUI();
+    this.refreshTelemetryUI();
+  },
+
+  tareBalance() {
+    if (!this.labBench) return;
+    this.labBench.balance.tareOffset = this.labBench.balance.currentMass;
+    this.labBench.showToast('⚖️ Balanza analítica tarada a 0.00 g.');
+    ChemEngine.logTelemetry('tare_balance', 'digital_balance', 0.00);
+    this.updateDigitalSensorsUI();
+    this.refreshTelemetryUI();
+  },
+
+  updateDigitalSensorsUI() {
+    if (!this.labBench) return;
+    const netMass = Math.max(0, this.labBench.balance.currentMass - this.labBench.balance.tareOffset);
+    const balanceElem = document.getElementById('sensorBalanceDisplay');
+    if (balanceElem) balanceElem.innerText = `${netMass.toFixed(2)} g`;
+
+    // Sincronización y Ocultamiento Reactivo de Tarjetas en la Columna Derecha
+    const balanceVisible = Boolean(this.labBench.balance && this.labBench.balance.visible !== false);
+    const cardBalance = document.getElementById('cardSensorBalance');
+    if (cardBalance) {
+      cardBalance.style.setProperty('display', balanceVisible ? 'block' : 'none', 'important');
+      if (balanceVisible && (this.labBench.selectedInstrument === 'balance' || this.labBench.draggedInstrument === 'balance')) {
+        cardBalance.classList.add('highlight-card');
+      } else {
+        cardBalance.classList.remove('highlight-card');
+      }
+    }
+
+    const buretteVisible = Boolean(this.labBench.buretteStand && this.labBench.buretteStand.visible !== false);
+    const buretteActive = (this.labBench.selectedInstrument === 'burette' || this.labBench.draggedInstrument === 'burette');
+    const cardMeniscus = document.getElementById('cardSensorMeniscus');
+    const cardTitration = document.getElementById('cardSensorTitration');
+    if (cardMeniscus) {
+      cardMeniscus.style.setProperty('display', buretteVisible ? 'block' : 'none', 'important');
+      if (buretteActive) cardMeniscus.classList.add('highlight-card');
+      else cardMeniscus.classList.remove('highlight-card');
+    }
+    if (cardTitration) {
+      cardTitration.style.setProperty('display', buretteVisible ? 'block' : 'none', 'important');
+      if (buretteActive) cardTitration.classList.add('highlight-card');
+      else cardTitration.classList.remove('highlight-card');
+    }
+
+    const hasVessels = Boolean(this.labBench.vessels && this.labBench.vessels.length > 0);
+    const rowPhTemp = document.getElementById('cardSensorRowPhTemp');
+    if (rowPhTemp) {
+      rowPhTemp.style.setProperty('display', hasVessels ? 'grid' : 'none', 'important');
+    }
+
+    const bunsenVisible = Boolean(this.labBench.bunsen && this.labBench.bunsen.visible !== false);
+    const cardBunsen = document.getElementById('cardSensorBunsen');
+    if (cardBunsen) {
+      cardBunsen.style.setProperty('display', bunsenVisible ? 'block' : 'none', 'important');
+      const isBunsenOn = Boolean(this.labBench.bunsen && this.labBench.bunsen.isOn);
+      const bunsenActive = isBunsenOn || 
+                           this.labBench.selectedInstrument === 'bunsen' || 
+                           this.labBench.draggedInstrument === 'bunsen';
+      if (bunsenActive) {
+        cardBunsen.classList.add('highlight-card');
+      } else {
+        cardBunsen.classList.remove('highlight-card');
+      }
+
+      const stateText = document.getElementById('sensorBunsenStateText');
+      const tempText = document.getElementById('sensorBunsenTempText');
+      const btnToggle = document.getElementById('btnBunsenToggleCard');
+
+      if (stateText) {
+        stateText.innerHTML = isBunsenOn ? '🔥 ENCENDIDO' : '💨 APAGADO';
+        stateText.style.color = isBunsenOn ? '#fb923c' : '#94a3b8';
+      }
+      if (tempText) {
+        tempText.innerText = isBunsenOn ? '1200 °C' : '22.5 °C';
+        tempText.style.color = isBunsenOn ? '#ef4444' : '#64748b';
+      }
+      if (btnToggle) {
+        btnToggle.innerHTML = isBunsenOn ? '💨 Apagar Llama' : '🔥 Encender Llama';
+        btnToggle.style.background = isBunsenOn ? '#475569' : '#ea580c';
+        btnToggle.style.borderColor = isBunsenOn ? '#334155' : '#c2410c';
+      }
+    }
+
+    const cardTemp = document.getElementById('cardSensorTemp');
+    if (cardTemp) {
+      const bunsenActive = (this.labBench.bunsen && this.labBench.bunsen.isOn) ||
+                           this.labBench.selectedInstrument === 'bunsen' ||
+                           this.labBench.draggedInstrument === 'bunsen';
+      if (bunsenActive) cardTemp.classList.add('highlight-card');
+      else cardTemp.classList.remove('highlight-card');
+    }
+
+    const cardPh = document.getElementById('cardSensorPh');
+    if (cardPh) {
+      if (this.labBench.selectedVessel) {
+        cardPh.classList.add('highlight-card');
+      } else {
+        cardPh.classList.remove('highlight-card');
+      }
+    }
+
+    // Tarjeta del Recipiente Activo en el Panel Lateral Derecho (Se abre al hacer clic sobre el recipiente)
+    const cardActiveVessel = document.getElementById('cardActiveVessel');
+    const vesselActive = Boolean(this.labBench.selectedVessel && !this.labBench.selectedInstrument);
+    if (cardActiveVessel) {
+      cardActiveVessel.style.setProperty('display', vesselActive ? 'block' : 'none', 'important');
+      if (vesselActive) {
+        const v = this.labBench.selectedVessel;
+        const totalVol = this.labBench.getVesselTotalVolume(v);
+        const totalMass = this.labBench.getVesselTotalMass(v);
+        const summary = typeof this.labBench.getVesselContentsSummary === 'function'
+          ? this.labBench.getVesselContentsSummary(v)
+          : [];
+
+        const titleEl = document.getElementById('cardVesselTitle');
+        const volText = document.getElementById('cardVesselVolText');
+        const massText = document.getElementById('cardVesselMassText');
+        const reagentsList = document.getElementById('cardVesselReagentsList');
+
+        if (titleEl) titleEl.innerText = `⚗️ ${v.name} (${v.capacity} mL)`;
+        if (volText) volText.innerText = `${totalVol.toFixed(1)} mL`;
+        if (massText) massText.innerText = `Masa: ${totalMass.toFixed(1)}g (Tara: ${v.tareMass}g)`;
+
+        if (reagentsList) {
+          if (summary.length === 0) {
+            reagentsList.innerHTML = '<span style="color: #94a3b8; font-style: italic; font-size: 0.72rem;">(Recipiente vacío - Haga clic en un reactivo para verter)</span>';
+          } else {
+            reagentsList.innerHTML = summary.map(item => `
+              <span class="reagent-pill-badge" style="border-left: 3px solid ${item.color};">
+                <span>${item.icon}</span>
+                <span><strong>${item.name}:</strong> ${item.amount.toFixed(1)} ${item.unit}</span>
+              </span>
+            `).join('');
+          }
+        }
+      }
+    }
+
+    // Placeholder cuando no hay ningún instrumental o sensor activo
+    const noSensorsPlaceholder = document.getElementById('noSensorsPlaceholder');
+    if (noSensorsPlaceholder) {
+      const anySensorActive = balanceVisible || buretteVisible || bunsenVisible || vesselActive || hasVessels;
+      noSensorsPlaceholder.style.setProperty('display', anySensorActive ? 'none' : 'block', 'important');
+    }
+
+    const activeVessel = this.labBench.selectedVessel || this.labBench.vessels[0];
+    const phElem = document.getElementById('sensorPhDisplay');
+    const tempElem = document.getElementById('sensorTempDisplay');
+
+    // Elementos de la Barra Inspectora de Cristalería e Instrumentos
+    const iconEl = document.getElementById('inspectorVesselIcon');
+    const nameEl = document.getElementById('inspectorVesselName');
+    const metaEl = document.getElementById('inspectorVesselMeta');
+    const listEl = document.getElementById('inspectorReagentsList');
+
+    if (this.labBench.selectedInstrument) {
+      const inst = this.labBench.selectedInstrument;
+      if (inst === 'bunsen') {
+        if (iconEl) iconEl.innerText = '🔥';
+        if (nameEl) nameEl.innerText = 'Mechero Bunsen Regulable (Térmico)';
+        if (metaEl) metaEl.innerText = `Estado: ${this.labBench.bunsen.isOn ? 'Llama activa (Calentando)' : 'Apagado'} • Clic en 'Retirar' para quitarlo de la mesa`;
+        if (listEl) {
+          listEl.innerHTML = `
+            <span class="reagent-pill-badge" style="border-left: 3px solid #f97316;">🔥 Llama: ${this.labBench.bunsen.isOn ? 'ENCENDIDA' : 'APAGADA'}</span>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="App.toggleBunsenBurner()">🔥 ${this.labBench.bunsen.isOn ? 'Apagar Llama' : 'Encender Llama'}</button>
+          `;
+        }
+      } else if (inst === 'balance') {
+        if (iconEl) iconEl.innerText = '⚖️';
+        if (nameEl) nameEl.innerText = 'Balanza Analítica Digital (Gravimétrico)';
+        if (metaEl) metaEl.innerText = `Lectura actual: ${netMass.toFixed(2)} g • Clic en 'Retirar' para quitarla de la mesa`;
+        if (listEl) {
+          listEl.innerHTML = `
+            <span class="reagent-pill-badge" style="border-left: 3px solid #3b82f6;">⚖️ Tara: ${(this.labBench.balance.tareOffset || 0).toFixed(2)} g</span>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="App.tareBalance()">⚖️ Tarar</button>
+          `;
+        }
+      } else if (inst === 'burette') {
+        if (iconEl) iconEl.innerText = '💧';
+        if (nameEl) nameEl.innerText = 'Soporte Universal con Bureta Graduada (50 mL)';
+        if (metaEl) metaEl.innerText = `Volumen dosificado: ${this.labBench.buretteStand.volumeAddedMl.toFixed(2)} mL • Clic en 'Retirar' para quitarla de la mesa`;
+        if (listEl) {
+          listEl.innerHTML = `
+            <span class="reagent-pill-badge" style="border-left: 3px solid #06b6d4;">💧 Válvula: ${this.labBench.buretteStand.isDripping ? 'ABIERTA' : 'CERRADA'}</span>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="App.titrationDripToggle()">💧 ${this.labBench.buretteStand.isDripping ? 'Cerrar Llave' : 'Abrir Llave'}</button>
+          `;
+        }
+      }
+      return;
+    }
+
+    if (activeVessel) {
+      const ph = this.labBench.getVesselPH(activeVessel);
+      const totalVol = this.labBench.getVesselTotalVolume(activeVessel);
+      const totalMass = activeVessel.tareMass + totalVol;
+
+      if (phElem) phElem.innerText = ph.toFixed(2);
+      if (tempElem) tempElem.innerText = `${activeVessel.temperature.toFixed(1)} °C`;
+
+      const typeIcons = {
+        erlenmeyer: '⚗️',
+        beaker: '🥛',
+        cylinder: '📏',
+        tube: '🧪',
+        pipette: '💉',
+        funnel: '🌪️',
+        mortar: '🥣',
+        distillation: '🔬',
+        centrifuge: '⚙️',
+        thermometer: '🌡️',
+        ph_meter: '📟'
+      };
+
+      if (iconEl) {
+        iconEl.innerText = typeIcons[activeVessel.type] || '⚗️';
+      }
+      if (nameEl) {
+        nameEl.innerText = `${activeVessel.name} (${activeVessel.capacity} mL)`;
+      }
+      if (metaEl) {
+        metaEl.innerText = `Volumen Total: ${totalVol.toFixed(1)} mL • Masa: ${totalMass.toFixed(1)} g (Tara: ${activeVessel.tareMass.toFixed(0)}g) • pH: ${ph.toFixed(2)} • Temp: ${activeVessel.temperature.toFixed(0)}°C`;
+      }
+
+      if (listEl) {
+        const summary = typeof this.labBench.getVesselContentsSummary === 'function' 
+          ? this.labBench.getVesselContentsSummary(activeVessel)
+          : [];
+        
+        if (summary.length === 0) {
+          listEl.innerHTML = '<span style="color: #94a3b8; font-style: italic; font-size: 0.72rem;">(Recipiente vacío - Haga clic en un reactivo para verter)</span>';
+        } else {
+          listEl.innerHTML = summary.map(item => `
+            <span class="reagent-pill-badge" style="border-left: 3px solid ${item.color};">
+              <span>${item.icon}</span>
+              <span><strong>${item.name}:</strong> ${item.amount.toFixed(1)} ${item.unit}</span>
+            </span>
+          `).join('');
+        }
+      }
+    } else {
+      if (iconEl) iconEl.innerText = '⚗️';
+      if (nameEl) nameEl.innerText = 'Ningún objeto o instrumento seleccionado';
+      if (metaEl) metaEl.innerText = 'Coloque o haga clic en un instrumento, vaso o matraz sobre la mesa para interactuar o retirarlo.';
+      if (listEl) listEl.innerHTML = '<span style="color: #94a3b8; font-size: 0.72rem;">💡 Seleccione un instrumento para ver sus datos o retirarlo con [❌ Retirar].</span>';
+    }
+  },
+
+  finishTitrationPractice() {
+    if (!this.labBench) return;
+    const vAdded = this.labBench.buretteStand.volumeAddedMl;
+    const receivingFlask = this.labBench.vessels[0];
+    const finalPh = receivingFlask ? this.labBench.getVesselPH(receivingFlask) : 7.0;
+
+    ChemEngine.logTelemetry('finish_titration', 'practice_submission', vAdded, {
+      finalPh,
+      targetEqVol: this.practiceConfig2026.targetVolume
+    });
+
+    const rubricResult = ChemEngine.evaluateProceduralRubric(this.practiceConfig2026, ChemEngine.getTelemetryJSONB().events);
+    
+    // Guardar en el perfil de usuario activo de Quimi-K
+    if (this.state.currentUser) {
+      this.state.currentUser.score = rubricResult.vigesimalScore;
+      this.state.currentUser.status = rubricResult.vigesimalScore >= 11 ? 'Aprobado' : 'Pendiente';
+      this.updateUserUI();
+
+      fetch('/api/db/save-score', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: this.state.currentUser.id,
+          score: rubricResult.vigesimalScore,
+          practice: this.practiceConfig2026.title
+        })
+      }).catch(() => {});
+    }
+
+    this.showEvaluationReportModal(rubricResult);
+    this.refreshTelemetryUI();
+  },
+
+  showEvaluationReportModal(rubric) {
+    const modal = document.getElementById('modalReport');
+    if (!modal) return;
+    document.getElementById('reportScoreDisplay').innerText = `${rubric.vigesimalScore} / 20`;
+    document.getElementById('reportLetterGrade').innerText = rubric.letterGrade;
+    const tbody = document.getElementById('reportRubricBody');
+    tbody.innerHTML = '';
+    rubric.details.forEach(item => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><strong>${item.criteria}</strong></td>
+        <td style="text-align: center;"><span class="badge-score">${item.score} / ${item.maxScore}</span></td>
+        <td style="font-size: 0.82rem; color: #334155;">${item.feedback}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+    modal.style.display = 'flex';
+  },
+
+  closeReportModal() {
+    const modal = document.getElementById('modalReport');
+    if (modal) modal.style.display = 'none';
+  },
+
+  renderCurriculumModule(modNumber) {
+    document.querySelectorAll('.curr-subtab-btn').forEach(btn => {
+      btn.classList.toggle('active', parseInt(btn.dataset.mod, 10) === modNumber);
+    });
+    const container = document.getElementById('curriculumModuleContent');
+    if (!container || typeof ChemEngine === 'undefined') return;
+
+    if (this.kineticSim) this.kineticSim.stop();
+    if (this.atomicSim) this.atomicSim.stop();
+    if (this.separationSim) this.separationSim.stop();
+
+    if (modNumber === 1) {
+      container.innerHTML = `
+        <div class="curr-module-card">
+          <h3>⚖️ Módulo 01: Química y Magnitudes (Arquímedes)</h3>
+          <p>Determine la densidad de un sólido por desplazamiento de volumen.</p>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+            <div style="background: #F8FAFC; border: 1px solid #E2E8F0; padding: 1rem; border-radius: 8px;">
+              <label>Masa del sólido (g):</label>
+              <input type="number" id="inpDensityMass" class="form-control" value="54.0" step="0.1">
+              <label style="margin-top: 0.5rem;">Volumen Inicial de Agua (mL):</label>
+              <input type="number" id="inpDensityV1" class="form-control" value="50.0" step="0.5">
+              <label style="margin-top: 0.5rem;">Volumen Final Sumergido (mL):</label>
+              <input type="number" id="inpDensityV2" class="form-control" value="70.0" step="0.5">
+              <button class="btn btn-primary" style="margin-top: 1rem; width: 100%;" onclick="App.runDensityCalc()">📐 Calcular Densidad</button>
+            </div>
+            <div id="densityResultBox" style="background: #EFF6FF; border: 1px solid #BFDBFE; padding: 1rem; border-radius: 8px;">
+              <h4 style="margin: 0; color: #1E40AF;">Resultado Arquímedes</h4>
+              <p style="font-size: 0.85rem; color: #3B82F6; margin-top: 0.5rem;">Presione calcular para evaluar.</p>
+            </div>
+          </div>
+        </div>
+      `;
+    } else if (modNumber === 2) {
+      container.innerHTML = `
+        <div class="curr-module-card">
+          <h3>🌡️ Módulo 02: Materia y Cinética 2D</h3>
+          <div style="display: grid; grid-template-columns: 1fr 280px; gap: 1rem; margin-top: 1rem;">
+            <canvas id="canvasKineticParticles" width="460" height="260" style="width: 100%; height: 260px; background: #0F172A; border-radius: 8px;"></canvas>
+            <div style="background: #F8FAFC; border: 1px solid #E2E8F0; padding: 1rem; border-radius: 8px;">
+              <label>Temperatura: <strong id="lblKineticTemp">25.0 °C</strong></label>
+              <input type="range" id="sliderKineticTemp" min="-50" max="180" value="25" style="width: 100%; margin: 0.75rem 0;" oninput="App.updateKineticTemp(this.value)">
+              <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+                <button class="btn btn-secondary" onclick="App.updateKineticTemp(-30)">❄️ Sólido (-30 °C)</button>
+                <button class="btn btn-secondary" onclick="App.updateKineticTemp(25)">💧 Líquido (25 °C)</button>
+                <button class="btn btn-secondary" onclick="App.updateKineticTemp(130)">💨 Gas (130 °C)</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+      this.kineticSim = new SimulationCanvas.ParticleKineticSimulation('canvasKineticParticles');
+      this.kineticSim.start();
+    } else if (modNumber === 3) {
+      container.innerHTML = `
+        <div class="curr-module-card">
+          <h3>🌪️ Módulo 03: Separación de Mezclas</h3>
+          <div style="display: grid; grid-template-columns: 1fr 240px; gap: 1rem; margin-top: 1rem;">
+            <canvas id="canvasSeparation" width="460" height="280" style="width: 100%; height: 280px; background: #FFFFFF; border: 1px solid #CBD5E1; border-radius: 8px;"></canvas>
+            <div style="background: #F8FAFC; border: 1px solid #E2E8F0; padding: 1rem; border-radius: 8px;">
+              <button class="btn btn-primary" style="width: 100%; margin-top: 1rem;" onclick="App.startSeparationAction()">▶️ Iniciar Filtrado</button>
+              <button class="btn btn-secondary" style="width: 100%; margin-top: 0.5rem;" onclick="App.resetSeparationAction()">🔄 Reiniciar</button>
+            </div>
+          </div>
+        </div>
+      `;
+      this.separationSim = new SimulationCanvas.MixtureSeparationSimulation('canvasSeparation');
+      this.separationSim.start();
+    } else if (modNumber === 4) {
+      container.innerHTML = `
+        <div class="curr-module-card">
+          <h3>⚛️ Módulo 04: Estructura Atómica e Isótopos (Bohr)</h3>
+          <div style="display: grid; grid-template-columns: 1fr 280px; gap: 1rem; margin-top: 1rem;">
+            <canvas id="canvasAtomicModel" width="460" height="280" style="width: 100%; height: 280px; background: #0B1120; border-radius: 8px;"></canvas>
+            <div style="background: #F8FAFC; border: 1px solid #E2E8F0; padding: 1rem; border-radius: 8px; font-size: 0.85rem;">
+              <label>🔴 Protones (Z): <strong id="lblProtons">6</strong></label>
+              <input type="range" id="sliderProtons" min="1" max="18" value="6" style="width: 100%;" oninput="App.updateAtomBuilder()">
+              <label style="margin-top: 0.5rem; display: block;">⚪ Neutrones (N): <strong id="lblNeutrons">6</strong></label>
+              <input type="range" id="sliderNeutrones" min="0" max="22" value="6" style="width: 100%;" oninput="App.updateAtomBuilder()">
+              <label style="margin-top: 0.5rem; display: block;">🔵 Electrones (e⁻): <strong id="lblElectrons">6</strong></label>
+              <input type="range" id="sliderElectrons" min="1" max="18" value="6" style="width: 100%;" oninput="App.updateAtomBuilder()">
+            </div>
+          </div>
+        </div>
+      `;
+      this.atomicSim = new SimulationCanvas.AtomicModelVisualizer('canvasAtomicModel');
+      this.atomicSim.start();
+    } else if (modNumber === 5) {
+      container.innerHTML = `
+        <div class="curr-module-card">
+          <h3>⚡ Módulo 05: Zona Extranuclear & Moeller</h3>
+          <select id="selMoellerElement" class="form-control" style="width: 240px; margin: 1rem 0;" onchange="App.updateMoellerModule(this.value)">
+            ${Object.values(ChemEngine.elements).map(e => `<option value="${e.z}">${e.name} (${e.symbol}, Z=${e.z})</option>`).join('')}
+          </select>
+          <div id="moellerOutput" style="background: #F8FAFC; border: 1px solid #CBD5E1; padding: 1rem; border-radius: 8px;"></div>
+        </div>
+      `;
+      this.updateMoellerModule(6);
+    } else if (modNumber === 6) {
+      container.innerHTML = `
+        <div class="curr-module-card">
+          <h3>📊 Módulo 06: Tabla Periódica Interactiva</h3>
+          <div id="periodicTableCurriculumContainer" style="overflow-x: auto; margin-top: 1rem;"></div>
+        </div>
+      `;
+      this.renderPeriodicTableSim('periodicTableCurriculumContainer');
+    } else if (modNumber === 7) {
+      container.innerHTML = `
+        <div class="curr-module-card">
+          <h3>🔗 Módulo 07: Enlace Químico y Regla de Pauling</h3>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+            <select id="selBondEl1" class="form-control" onchange="App.runBondEvaluation()">
+              <option value="Na">Sodio (Na) - EN: 0.93</option>
+              <option value="H">Hidrógeno (H) - EN: 2.20</option>
+              <option value="C">Carbono (C) - EN: 2.55</option>
+            </select>
+            <select id="selBondEl2" class="form-control" onchange="App.runBondEvaluation()">
+              <option value="Cl">Cloro (Cl) - EN: 3.16</option>
+              <option value="O">Oxígeno (O) - EN: 3.44</option>
+              <option value="F">Flúor (F) - EN: 3.98</option>
+            </select>
+          </div>
+          <div id="bondResultBox" style="margin-top: 1rem; padding: 1rem; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px;"></div>
+        </div>
+      `;
+      this.runBondEvaluation();
+    } else if (modNumber === 8) {
+      container.innerHTML = `
+        <div class="curr-module-card">
+          <h3>🏷️ Módulo 08: Funciones Inorgánicas (IUPAC, Stock, Tradicional)</h3>
+          <table class="report-table" style="margin-top: 1rem;">
+            <thead><tr><th>Fórmula</th><th>Función</th><th>Tradicional</th><th>Stock</th><th>IUPAC</th></tr></thead>
+            <tbody>
+              ${ChemEngine.nomenclatures.map(n => `
+                <tr><td><strong>${n.displayFormula || n.formula}</strong></td><td>${n.type}</td><td>${n.traditional}</td><td>${n.stock}</td><td>${n.iupac}</td></tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    } else if (modNumber === 9) {
+      container.innerHTML = `
+        <div class="curr-module-card">
+          <h3>💥 Módulo 09: Reacciones Químicas y Fenomenología</h3>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin-top: 1rem;">
+            ${ChemEngine.reactions.map(r => `
+              <div style="background: #FFFFFF; border: 1px solid #CBD5E1; border-radius: 8px; padding: 1rem;">
+                <h4 style="margin: 0; color: #1E40AF;">${r.name}</h4>
+                <div style="background: #F1F5F9; padding: 0.5rem; font-family: monospace; font-weight: bold; margin: 0.5rem 0;">${r.equation}</div>
+                <p style="font-size: 0.8rem; color: #334155;">${r.phenomenon.visual}</p>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    } else if (modNumber === 10) {
+      container.innerHTML = `
+        <div class="curr-module-card">
+          <h3>🧮 Módulo 10: Estequiometría Cuantitativa</h3>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+            <div style="background: #F8FAFC; border: 1px solid #CBD5E1; padding: 1rem; border-radius: 8px;">
+              <label>Moles de H₂:</label>
+              <input type="number" id="inpStoichMolesA" class="form-control" value="4.0" step="0.5">
+              <label style="margin-top: 0.5rem;">Moles de O₂:</label>
+              <input type="number" id="inpStoichMolesB" class="form-control" value="1.5" step="0.5">
+              <button class="btn btn-primary" style="margin-top: 1rem; width: 100%;" onclick="App.runStoichiometryCalc()">📊 Calcular</button>
+            </div>
+            <div id="stoichResultBox" style="background: #EFF6FF; border: 1px solid #BFDBFE; padding: 1rem; border-radius: 8px;"></div>
+          </div>
+        </div>
+      `;
+      this.runStoichiometryCalc();
+    } else {
+      container.innerHTML = `
+        <div class="curr-module-card">
+          <h3>🔬 Módulo ${modNumber}: Química Orgánica y del Carbono</h3>
+          <p>Utilice la mesa de trabajo o el visor 3D para experimentar con estos conceptos.</p>
+          <button class="btn btn-primary" style="margin-top: 1rem;" onclick="App.switchSimSubtab('subtab-3d')">🌐 Ir a Visor Molecular 3D</button>
+        </div>
+      `;
+    }
+  },
+
+  runDensityCalc() {
+    const m = parseFloat(document.getElementById('inpDensityMass').value);
+    const v1 = parseFloat(document.getElementById('inpDensityV1').value);
+    const v2 = parseFloat(document.getElementById('inpDensityV2').value);
+    const res = ChemEngine.calculateDensity(m, v1, v2);
+    const box = document.getElementById('densityResultBox');
+    if (!box) return;
+    if (!res.success) {
+      box.innerHTML = `<p style="color: #DC2626;">${res.error}</p>`;
+      return;
+    }
+    box.innerHTML = `
+      <h4 style="margin: 0; color: #1E40AF;">Resultado Arquímedes</h4>
+      <div style="font-size: 0.85rem; margin-top: 0.5rem;">
+        • ΔV: ${res.displacedVolumeMl} mL<br>
+        • Densidad: <strong style="color: #1D4ED8;">${res.densityGml} g/cm³</strong> (${res.densityKgm3} kg/m³)
+      </div>
+    `;
+    ChemEngine.logTelemetry('density_calc', 'archimedes', res.densityGml);
+    this.refreshTelemetryUI();
+  },
+
+  updateKineticTemp(t) {
+    const num = parseFloat(t);
+    const lbl = document.getElementById('lblKineticTemp');
+    if (lbl) lbl.innerText = `${num.toFixed(1)} °C`;
+    if (this.kineticSim) this.kineticSim.setTemperature(num);
+  },
+
+  startSeparationAction() {
+    if (this.separationSim) this.separationSim.startSeparation();
+  },
+
+  resetSeparationAction() {
+    if (this.separationSim) this.separationSim.reset();
+  },
+
+  updateAtomBuilder() {
+    const p = parseInt(document.getElementById('sliderProtons').value, 10);
+    const n = parseInt(document.getElementById('sliderNeutrons').value, 10);
+    const e = parseInt(document.getElementById('sliderElectrons').value, 10);
+    document.getElementById('lblProtons').innerText = p;
+    document.getElementById('lblNeutrons').innerText = n;
+    document.getElementById('lblElectrons').innerText = e;
+    if (this.atomicSim) this.atomicSim.setComposition(p, n, e);
+  },
+
+  updateMoellerModule(z) {
+    const data = ChemEngine.getElectronConfiguration(parseInt(z, 10));
+    const box = document.getElementById('moellerOutput');
+    if (box) {
+      box.innerHTML = `
+        <div style="font-size: 1.1rem; font-family: monospace; font-weight: bold; margin-bottom: 0.5rem;">${data.fullConfig}</div>
+        <div style="font-size: 0.85rem; color: #475569;">Último electrón: n=${data.quantumNumbers.n}, l=${data.quantumNumbers.l}, ml=${data.quantumNumbers.ml}, ms=${data.quantumNumbers.ms}</div>
+      `;
+    }
+  },
+
+  runBondEvaluation() {
+    const el1 = document.getElementById('selBondEl1')?.value || 'Na';
+    const el2 = document.getElementById('selBondEl2')?.value || 'Cl';
+    const res = ChemEngine.evaluateChemicalBond(el1, el2);
+    const box = document.getElementById('bondResultBox');
+    if (box && res) {
+      box.innerHTML = `
+        <strong>ΔEN: ${res.deltaEN}</strong> — <span style="color: #2563EB; font-weight: bold;">${res.bondType}</span>
+        <p style="font-size: 0.82rem; margin-top: 0.4rem;">${res.description}</p>
+      `;
+    }
+  },
+
+  runStoichiometryCalc() {
+    const a = parseFloat(document.getElementById('inpStoichMolesA')?.value || 4.0);
+    const b = parseFloat(document.getElementById('inpStoichMolesB')?.value || 1.5);
+    const res = ChemEngine.calculateStoichiometry(a, b, 2, 1, 2.016, 31.998, 18.015, 2);
+    const box = document.getElementById('stoichResultBox');
+    if (box) {
+      box.innerHTML = `
+        <h4 style="margin: 0; color: #1E40AF;">Balance</h4>
+        <div style="font-size: 0.85rem; margin-top: 0.4rem;">
+          • Reactivo Limitante: <strong>${res.limiting === 'Reactivo A' ? 'H₂' : 'O₂'}</strong><br>
+          • H₂O Formada: <strong>${res.maxMolesProd} mol (${res.theoreticalMassG} g)</strong>
+        </div>
+      `;
+    }
+  },
+
+  select3DMolecule(key) {
+    if (this.molecular3DSim) this.molecular3DSim.setMolecule(key);
+  },
+
+  renderPeriodicTableSim(containerId) {
+    const c = document.getElementById(containerId);
+    if (!c || typeof ChemEngine === 'undefined') return;
+    let html = '<div class="ptable-grid">';
+    Object.values(ChemEngine.elements).forEach(elem => {
+      html += `
+        <div class="ptable-cell block-${elem.block}" title="${elem.name} (Z=${elem.z})">
+          <span class="pt-z">${elem.z}</span>
+          <span class="pt-sym">${elem.symbol}</span>
+          <span class="pt-mass">${elem.mass.toFixed(1)}</span>
+        </div>
+      `;
+    });
+    html += '</div>';
+    c.innerHTML = html;
+  },
+
+  loadTeacherTemplate(tplId) {
+    const box = document.getElementById('teacherPreviewContent');
+    if (tplId === 'titration') {
+      this.practiceConfig2026.title = 'Titulación Ácido-Base de HCl con NaOH 0.1 M';
+      if (box) box.innerHTML = '<strong>Plantilla 1:</strong> Titulación volumétrica analítica de 25 mL HCl con viraje de fenolftaleína.';
+    } else if (tplId === 'density') {
+      this.practiceConfig2026.title = 'Determinación de Densidad de Sólidos (Arquímedes)';
+      if (box) box.innerHTML = '<strong>Plantilla 2:</strong> Tarado de probeta y cálculo de masa/volumen de cilindro desconocido.';
+    } else if (tplId === 'separation') {
+      this.practiceConfig2026.title = 'Separación Gravitatoria por Filtración';
+      if (box) box.innerHTML = '<strong>Plantilla 3:</strong> Separación de arena insoluble y agua mediante embudo y filtro.';
+    } else {
+      this.practiceConfig2026.title = 'Modelado Molecular 3D de Hidrocarburos';
+      if (box) box.innerHTML = '<strong>Plantilla 4:</strong> Construcción espacial de enlaces sigma/pi y ángulos de hibridación.';
+    }
+  },
+
+  randomizeReagentsAntiCheat() {
+    const randomVol = parseFloat((20 + Math.random() * 10).toFixed(1));
+    this.practiceConfig2026.targetVolume = randomVol;
+    if (this.labBench && this.labBench.vessels[0]) {
+      this.labBench.vessels[0].contents.hcl = randomVol;
+    }
+    if (this.labBench) this.labBench.showToast(`🎲 Reactivos aleatorizados: Volumen de ác. requerido = ${randomVol} mL.`);
+    this.refreshTelemetryUI();
+  },
+
+  refreshTelemetryUI() {
+    const tbody = document.getElementById('telemetryTableBody');
+    if (!tbody || typeof ChemEngine === 'undefined') return;
+    const data = ChemEngine.getTelemetryJSONB();
+    tbody.innerHTML = '';
+    data.events.slice(-12).reverse().forEach(ev => {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td style="font-family: monospace; font-size: 0.75rem;">+${ev.elapsedSeconds}s</td>
+        <td><strong>${ev.action}</strong></td>
+        <td>${ev.target}</td>
+        <td>${typeof ev.value === 'object' ? JSON.stringify(ev.value) : ev.value}</td>
+      `;
+      tbody.appendChild(row);
+    });
+    const pre = document.getElementById('telemetryJsonPreview');
+    if (pre) pre.innerText = JSON.stringify(data, null, 2);
+  },
+
+  downloadTelemetryJSON() {
+    if (typeof ChemEngine === 'undefined') return;
+    const data = ChemEngine.getTelemetryJSONB();
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `telemetria_quimika_${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  },
+
   exportAdminUsersReport() {
     this.showDialog(
       `Padrón oficial consolidado de la I.E. Alexander Fleming (Tacna 2026).\n\nTotal usuarios registrados: ${this.registeredUsers.length}\nEstudiantes evaluados: ${this.registeredUsers.filter(u => u.role === 'student').length}\nPromedio institucional: 17.6 / 20\n\nEl documento oficial ha sido compilado y preparado para su firma y archivo académico.`,
       'Padrón General de Notas Generado',
       '📑'
     );
-  }
+  },
+
+  // ================= 🌐 3DMOL.JS Y REACCIONES QUÍMICAS 3D (SECCIÓN 14) =================
+  viewer3Dmol: null,
+  current3dStyle: 'ball_stick',
+  is3dSpinning: true,
+  currentReactionKey: 'custom',
+  selectedSlot: 'A',
+  currentElementA: 'Na',
+  currentElementB: 'Cl',
+
+  reaction3dCatalog: {
+    'reaction-h2o': {
+      title: 'Síntesis de Agua',
+      equation: '2H₂ (g) + O₂ (g) ➔ 2H₂O (l)',
+      r1: '2 H₂ (g)',
+      r1Meta: 'Gas Hidrógeno (EN: 2.20)',
+      r2: 'O₂ (g)',
+      r2Meta: 'Gas Oxígeno (EN: 3.44)',
+      prod: '2 H₂O (l)',
+      prodMeta: 'Agua Líquida (Masa: 36.03 g)',
+      deltaEn: 'ΔEN = 1.24 (Pauling)',
+      bondType: 'Covalente Polar',
+      massConservation: '36.03 g ➔ 36.03 g (Conserva masa)',
+      geometry: 'Angular (104.5°)',
+      hybridization: 'sp³ con 2 pares solitarios',
+      dipole: 'μ = 1.85 D (Molécula Polar)',
+      mass: '18.015 g/mol',
+      explanation: 'Los enlaces simples H-H y el doble enlace O=O se rompen al alcanzar la energía de activación. Los átomos se reorganizan en pares O-H formando moléculas de agua con ángulo de 104.5° y dipolo permanente.',
+      pubchemName: 'water',
+      reactantsSdf: `
+  3Dmol    Reactants
+H2_and_O2
+  6  3  0  0  0  0  0  0  0  0999 V2000
+   -3.2000    1.0000    0.0000 H   0  0  0  0  0  0  0  0  0  0  0  0
+   -2.4500    1.0000    0.0000 H   0  0  0  0  0  0  0  0  0  0  0  0
+   -3.2000   -1.0000    0.0000 H   0  0  0  0  0  0  0  0  0  0  0  0
+   -2.4500   -1.0000    0.0000 H   0  0  0  0  0  0  0  0  0  0  0  0
+    2.5000    0.0000    0.6000 O   0  0  0  0  0  0  0  0  0  0  0  0
+    2.5000    0.0000   -0.6000 O   0  0  0  0  0  0  0  0  0  0  0  0
+  1  2  1  0     0  0
+  3  4  1  0     0  0
+  5  6  2  0     0  0
+M  END
+$$$$`,
+      productSdf: `
+  3Dmol    Product
+2H2O
+  6  4  0  0  0  0  0  0  0  0999 V2000
+   -1.6000    0.0000    0.1173 O   0  0  0  0  0  0  0  0  0  0  0  0
+   -1.6000    0.7570   -0.4692 H   0  0  0  0  0  0  0  0  0  0  0  0
+   -1.6000   -0.7570   -0.4692 H   0  0  0  0  0  0  0  0  0  0  0  0
+    1.6000    0.0000    0.1173 O   0  0  0  0  0  0  0  0  0  0  0  0
+    1.6000    0.7570   -0.4692 H   0  0  0  0  0  0  0  0  0  0  0  0
+    1.6000   -0.7570   -0.4692 H   0  0  0  0  0  0  0  0  0  0  0  0
+  1  2  1  0     0  0
+  1  3  1  0     0  0
+  4  5  1  0     0  0
+  4  6  1  0     0  0
+M  END
+$$$$`
+    },
+    'reaction-nacl': {
+      title: 'Formación de Sal Común',
+      equation: '2Na (s) + Cl₂ (g) ➔ 2NaCl (s)',
+      r1: '2 Na (s)',
+      r1Meta: 'Sodio metálico (EN: 0.93)',
+      r2: 'Cl₂ (g)',
+      r2Meta: 'Gas Cloro (EN: 3.16)',
+      prod: '2 NaCl (s)',
+      prodMeta: 'Cloruro de Sodio (Sal Común)',
+      deltaEn: 'ΔEN = 2.23 (≥ 2.0)',
+      bondType: 'Iónico (Transferencia)',
+      massConservation: '116.88 g ➔ 116.88 g (Conserva masa)',
+      geometry: 'Red Cristalina Cúbica (FCC)',
+      hybridization: 'Enlace Iónico Coulombic',
+      dipole: 'μ = 9.0 D (Atracción iónica)',
+      mass: '58.44 g/mol',
+      explanation: 'El átomo de Sodio cede completamente su único electrón de valencia (3s¹) al átomo de Cloro (3s² 3p⁵), formándose los iones Na⁺ y Cl⁻ fuertemente atraídos electrostáticamente en una red cúbica.',
+      pubchemName: 'sodium chloride',
+      reactantsSdf: `
+  3Dmol    Reactants
+Na_and_Cl2
+  4  1  0  0  0  0  0  0  0  0999 V2000
+   -3.0000    1.0000    0.0000 Na  0  0  0  0  0  0  0  0  0  0  0  0
+   -3.0000   -1.0000    0.0000 Na  0  0  0  0  0  0  0  0  0  0  0  0
+    2.5000    0.0000    0.9900 Cl  0  0  0  0  0  0  0  0  0  0  0  0
+    2.5000    0.0000   -0.9900 Cl  0  0  0  0  0  0  0  0  0  0  0  0
+  3  4  1  0     0  0
+M  END
+$$$$`,
+      productSdf: `
+  3Dmol    Product
+NaCl_Lattice
+  8  12 0  0  0  0  0  0  0  0999 V2000
+   -1.4000   -1.4000   -1.4000 Na  0  0  0  0  0  0  0  0  0  0  0  0
+    1.4000   -1.4000   -1.4000 Cl  0  0  0  0  0  0  0  0  0  0  0  0
+    1.4000    1.4000   -1.4000 Na  0  0  0  0  0  0  0  0  0  0  0  0
+   -1.4000    1.4000   -1.4000 Cl  0  0  0  0  0  0  0  0  0  0  0  0
+   -1.4000   -1.4000    1.4000 Cl  0  0  0  0  0  0  0  0  0  0  0  0
+    1.4000   -1.4000    1.4000 Na  0  0  0  0  0  0  0  0  0  0  0  0
+    1.4000    1.4000    1.4000 Cl  0  0  0  0  0  0  0  0  0  0  0  0
+   -1.4000    1.4000    1.4000 Na  0  0  0  0  0  0  0  0  0  0  0  0
+  1  2  1  0     0  0
+  2  3  1  0     0  0
+  3  4  1  0     0  0
+  4  1  1  0     0  0
+  5  6  1  0     0  0
+  6  7  1  0     0  0
+  7  8  1  0     0  0
+  8  5  1  0     0  0
+  1  5  1  0     0  0
+  2  6  1  0     0  0
+  3  7  1  0     0  0
+  4  8  1  0     0  0
+M  END
+$$$$`
+    },
+    'reaction-ch4-combustion': {
+      title: 'Combustión de Metano',
+      equation: 'CH₄ (g) + 2O₂ (g) ➔ CO₂ (g) + 2H₂O (g)',
+      r1: 'CH₄ (g)',
+      r1Meta: 'Gas Metano (EN C: 2.55)',
+      r2: '2 O₂ (g)',
+      r2Meta: 'Gas Oxígeno (Comburente)',
+      prod: 'CO₂ + 2H₂O',
+      prodMeta: 'Dióxido de Carbono + Vapor',
+      deltaEn: 'ΔEN = 0.35 / 1.24',
+      bondType: 'Covalente (Exotérmica)',
+      massConservation: '80.05 g ➔ 80.05 g (Conserva masa)',
+      geometry: 'Lineal (CO₂) & Angular (H₂O)',
+      hybridization: 'sp (CO₂) y sp³ (H₂O)',
+      dipole: 'μ = 0 D (CO₂) / μ = 1.85 D (H₂O)',
+      mass: '44.01 g/mol (CO₂)',
+      explanation: 'Reacción de combustión altamente exotérmica. Los 4 enlaces C-H y los 2 enlaces O=O se rompen y se reorganizan en dos enlaces dobles C=O lineales y 4 enlaces O-H angulares.',
+      pubchemName: 'carbon dioxide',
+      reactantsSdf: `
+  3Dmol    Reactants
+CH4_and_2O2
+  9  6  0  0  0  0  0  0  0  0999 V2000
+   -2.5000    0.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0
+   -2.5000    1.0900    0.0000 H   0  0  0  0  0  0  0  0  0  0  0  0
+   -1.4700   -0.3600    0.0000 H   0  0  0  0  0  0  0  0  0  0  0  0
+   -3.0100   -0.3600    0.8900 H   0  0  0  0  0  0  0  0  0  0  0  0
+   -3.0100   -0.3600   -0.8900 H   0  0  0  0  0  0  0  0  0  0  0  0
+    2.2000    1.2000    0.6000 O   0  0  0  0  0  0  0  0  0  0  0  0
+    2.2000    1.2000   -0.6000 O   0  0  0  0  0  0  0  0  0  0  0  0
+    2.2000   -1.2000    0.6000 O   0  0  0  0  0  0  0  0  0  0  0  0
+    2.2000   -1.2000   -0.6000 O   0  0  0  0  0  0  0  0  0  0  0  0
+  1  2  1  0     0  0
+  1  3  1  0     0  0
+  1  4  1  0     0  0
+  1  5  1  0     0  0
+  6  7  2  0     0  0
+  8  9  2  0     0  0
+M  END
+$$$$`,
+      productSdf: `
+  3Dmol    Product
+CO2_and_H2O
+  9  6  0  0  0  0  0  0  0  0999 V2000
+    0.0000    0.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0
+    0.0000    1.1600    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0
+    0.0000   -1.1600    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0
+   -2.5000    0.0000    0.1173 O   0  0  0  0  0  0  0  0  0  0  0  0
+   -2.5000    0.7570   -0.4692 H   0  0  0  0  0  0  0  0  0  0  0  0
+   -2.5000   -0.7570   -0.4692 H   0  0  0  0  0  0  0  0  0  0  0  0
+    2.5000    0.0000    0.1173 O   0  0  0  0  0  0  0  0  0  0  0  0
+    2.5000    0.7570   -0.4692 H   0  0  0  0  0  0  0  0  0  0  0  0
+    2.5000   -0.7570   -0.4692 H   0  0  0  0  0  0  0  0  0  0  0  0
+  1  2  2  0     0  0
+  1  3  2  0     0  0
+  4  5  1  0     0  0
+  4  6  1  0     0  0
+  7  8  1  0     0  0
+  7  9  1  0     0  0
+M  END
+$$$$`
+    },
+    'reaction-co2': {
+      title: 'Formación de Dióxido de Carbono',
+      equation: 'C (s) + O₂ (g) ➔ CO₂ (g)',
+      r1: 'C (s)',
+      r1Meta: 'Carbono sólido (EN: 2.55)',
+      r2: 'O₂ (g)',
+      r2Meta: 'Gas Oxígeno (EN: 3.44)',
+      prod: 'CO₂ (g)',
+      prodMeta: 'Dióxido de Carbono (44.01 g/mol)',
+      deltaEn: 'ΔEN = 0.89 (Pauling)',
+      bondType: 'Covalente Polar Doble',
+      massConservation: '44.01 g ➔ 44.01 g (Conserva masa)',
+      geometry: 'Lineal (180.0°)',
+      hybridization: 'sp (Geometría lineal)',
+      dipole: 'μ = 0 D (Molécula Apolar)',
+      mass: '44.01 g/mol',
+      explanation: 'El átomo central de Carbono comparte dos pares de electrones con cada átomo de Oxígeno (O=C=O). Por ser perfectamente simétrica a 180°, los vectores de dipolo se anulan exactamente.',
+      pubchemName: 'carbon dioxide',
+      reactantsSdf: `
+  3Dmol    Reactants
+C_and_O2
+  3  1  0  0  0  0  0  0  0  0999 V2000
+   -2.5000    0.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0
+    2.2000    0.0000    0.6000 O   0  0  0  0  0  0  0  0  0  0  0  0
+    2.2000    0.0000   -0.6000 O   0  0  0  0  0  0  0  0  0  0  0  0
+  2  3  2  0     0  0
+M  END
+$$$$`,
+      productSdf: `
+  3Dmol    Product
+CO2
+  3  2  0  0  0  0  0  0  0  0999 V2000
+    0.0000    0.0000    0.0000 C   0  0  0  0  0  0  0  0  0  0  0  0
+    0.0000    1.1600    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0
+    0.0000   -1.1600    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0
+  1  2  2  0     0  0
+  1  3  2  0     0  0
+M  END
+$$$$`
+    },
+    'reaction-nh3': {
+      title: 'Síntesis de Amoníaco',
+      equation: 'N₂ (g) + 3H₂ (g) ➔ 2NH₃ (g)',
+      r1: 'N₂ (g)',
+      r1Meta: 'Triple enlace N≡N (EN: 3.04)',
+      r2: '3 H₂ (g)',
+      r2Meta: 'Gas Hidrógeno (EN: 2.20)',
+      prod: '2 NH₃ (g)',
+      prodMeta: 'Amoníaco (34.06 g)',
+      deltaEn: 'ΔEN = 0.84 (Pauling)',
+      bondType: 'Covalente Polar',
+      massConservation: '34.06 g ➔ 34.06 g (Conserva masa)',
+      geometry: 'Pirámide Trigonal (107.8°)',
+      hybridization: 'sp³ con 1 par libre',
+      dipole: 'μ = 1.47 D (Polar)',
+      mass: '17.031 g/mol',
+      explanation: 'El triple enlace inerte del N₂ se disocia con ayuda de catalizadores a alta presión. Los electrones del nitrógeno forman 3 enlaces simples N-H con 1 par no compartido en la cúspide.',
+      pubchemName: 'ammonia',
+      reactantsSdf: `
+  3Dmol    Reactants
+N2_and_3H2
+  8  4  0  0  0  0  0  0  0  0999 V2000
+   -2.5000    0.0000    0.5500 N   0  0  0  0  0  0  0  0  0  0  0  0
+   -2.5000    0.0000   -0.5500 N   0  0  0  0  0  0  0  0  0  0  0  0
+    2.2000    1.2000    0.3700 H   0  0  0  0  0  0  0  0  0  0  0  0
+    2.2000    1.2000   -0.3700 H   0  0  0  0  0  0  0  0  0  0  0  0
+    2.2000    0.0000    0.3700 H   0  0  0  0  0  0  0  0  0  0  0  0
+    2.2000    0.0000   -0.3700 H   0  0  0  0  0  0  0  0  0  0  0  0
+    2.2000   -1.2000    0.3700 H   0  0  0  0  0  0  0  0  0  0  0  0
+    2.2000   -1.2000   -0.3700 H   0  0  0  0  0  0  0  0  0  0  0  0
+  1  2  3  0     0  0
+  3  4  1  0     0  0
+  5  6  1  0     0  0
+  7  8  1  0     0  0
+M  END
+$$$$`,
+      productSdf: `
+  3Dmol    Product
+2NH3
+  8  6  0  0  0  0  0  0  0  0999 V2000
+   -1.6000    0.0000    0.1160 N   0  0  0  0  0  0  0  0  0  0  0  0
+   -1.6000    0.9400   -0.2700 H   0  0  0  0  0  0  0  0  0  0  0  0
+   -0.7800   -0.4700   -0.2700 H   0  0  0  0  0  0  0  0  0  0  0  0
+   -2.4200   -0.4700   -0.2700 H   0  0  0  0  0  0  0  0  0  0  0  0
+    1.6000    0.0000    0.1160 N   0  0  0  0  0  0  0  0  0  0  0  0
+    1.6000    0.9400   -0.2700 H   0  0  0  0  0  0  0  0  0  0  0  0
+    2.4200   -0.4700   -0.2700 H   0  0  0  0  0  0  0  0  0  0  0  0
+    0.7800   -0.4700   -0.2700 H   0  0  0  0  0  0  0  0  0  0  0  0
+  1  2  1  0     0  0
+  1  3  1  0     0  0
+  1  4  1  0     0  0
+  5  6  1  0     0  0
+  5  7  1  0     0  0
+  5  8  1  0     0  0
+M  END
+$$$$`
+    },
+    'reaction-neutralization': {
+      title: 'Neutralización Ácido-Base',
+      equation: 'HCl (ac) + NaOH (ac) ➔ NaCl (ac) + H₂O (l)',
+      r1: 'HCl (ac)',
+      r1Meta: 'Ácido Clorhídrico (pH 1.0)',
+      r2: 'NaOH (ac)',
+      r2Meta: 'Hidróxido de Sodio (pH 13.0)',
+      prod: 'NaCl + H₂O',
+      prodMeta: 'Disolución Neutra (pH 7.0)',
+      deltaEn: 'ΔEN = 0.96 / 2.23',
+      bondType: 'Neutralización Acuosa',
+      massConservation: '76.46 g ➔ 76.46 g (Conserva masa)',
+      geometry: 'Solución Acuosa Neutra',
+      hybridization: 'H⁺ + OH⁻ ➔ H₂O',
+      dipole: 'Equilibrio Ácido-Base',
+      mass: '58.44 + 18.01 g/mol',
+      explanation: 'El protón ácido H⁺ reacciona con el anión hidróxido OH⁻ en una reacción rapidísima de transferencia protónica que produce agua líquida pura a pH 7.0.',
+      pubchemName: 'water',
+      reactantsSdf: `
+  3Dmol    Reactants
+HCl_and_NaOH
+  5  2  0  0  0  0  0  0  0  0999 V2000
+   -2.2000    0.0000    0.0000 Cl  0  0  0  0  0  0  0  0  0  0  0  0
+   -3.4700    0.0000    0.0000 H   0  0  0  0  0  0  0  0  0  0  0  0
+    2.2000    0.0000    0.0000 Na  0  0  0  0  0  0  0  0  0  0  0  0
+    3.4000    0.0000    0.0000 O   0  0  0  0  0  0  0  0  0  0  0  0
+    4.1500    0.0000    0.4500 H   0  0  0  0  0  0  0  0  0  0  0  0
+  1  2  1  0     0  0
+  4  5  1  0     0  0
+M  END
+$$$$`,
+      productSdf: `
+  3Dmol    Product
+NaCl_H2O
+  5  3  0  0  0  0  0  0  0  0999 V2000
+   -2.0000    0.0000    0.0000 Na  0  0  0  0  0  0  0  0  0  0  0  0
+   -3.8000    0.0000    0.0000 Cl  0  0  0  0  0  0  0  0  0  0  0  0
+    2.0000    0.0000    0.1173 O   0  0  0  0  0  0  0  0  0  0  0  0
+    2.0000    0.7570   -0.4692 H   0  0  0  0  0  0  0  0  0  0  0  0
+    2.0000   -0.7570   -0.4692 H   0  0  0  0  0  0  0  0  0  0  0  0
+  1  2  1  0     0  0
+  3  4  1  0     0  0
+  3  5  1  0     0  0
+M  END
+$$$$`
+    }
+  },
+
+  init3DmolViewer() {
+    const container = document.getElementById('container3Dmol');
+    if (!container) return;
+    if (typeof $3Dmol !== 'undefined' && !this.viewer3Dmol) {
+      try {
+        this.viewer3Dmol = $3Dmol.createViewer(container, { backgroundColor: '#020617' });
+        this.populateElementDropdowns();
+        if (this.currentReactionKey === 'custom' || !this.currentReactionKey) {
+          this.evaluateCurrentCustomCombination();
+        } else {
+          this.onSelectReactionPreset(this.currentReactionKey);
+        }
+      } catch (e) {
+        console.warn('3Dmol init error:', e);
+      }
+    }
+  },
+
+  populateElementDropdowns() {
+    const selA = document.getElementById('selectElementA');
+    const selB = document.getElementById('selectElementB');
+    if (!selA || !selB || typeof ReactionEngine === 'undefined') return;
+
+    if (selA.options.length === 0 || selB.options.length === 0) {
+      const optionsHtml = Object.values(ReactionEngine.elements)
+        .map(el => `<option value="${el.symbol}">${el.symbol} - ${el.name} (Z=${el.z}, EN=${el.en})</option>`)
+        .join('');
+      selA.innerHTML = optionsHtml;
+      selB.innerHTML = optionsHtml;
+    }
+    selA.value = this.currentElementA;
+    selB.value = this.currentElementB;
+  },
+
+  setActiveElementSlot(slot) {
+    this.selectedSlot = slot;
+    const btnA = document.getElementById('btnSlotA');
+    const btnB = document.getElementById('btnSlotB');
+    const boxA = document.getElementById('boxElementA');
+    const boxB = document.getElementById('boxElementB');
+    const activeBadge = document.getElementById('activeSlotIndicatorBadge');
+
+    if (slot === 'A') {
+      if (activeBadge) {
+        activeBadge.innerText = 'Ranura A';
+        activeBadge.style.background = '#0284c7';
+      }
+      if (btnA) {
+        btnA.innerText = 'Ranura A (Activa)';
+        btnA.style.background = '#0284c7';
+        btnA.style.borderColor = '#38bdf8';
+        btnA.style.color = '#ffffff';
+      }
+      if (btnB) {
+        btnB.innerText = 'Ranura B';
+        btnB.style.background = '#1e293b';
+        btnB.style.borderColor = '#475569';
+        btnB.style.color = '#cbd5e1';
+      }
+      if (boxA) {
+        boxA.style.border = '2px solid #38bdf8';
+        boxA.style.boxShadow = '0 0 14px rgba(56, 189, 248, 0.45)';
+      }
+      if (boxB) {
+        boxB.style.border = '1px solid #475569';
+        boxB.style.boxShadow = 'none';
+      }
+    } else {
+      if (activeBadge) {
+        activeBadge.innerText = 'Ranura B';
+        activeBadge.style.background = '#ef4444';
+      }
+      if (btnA) {
+        btnA.innerText = 'Ranura A';
+        btnA.style.background = '#1e293b';
+        btnA.style.borderColor = '#475569';
+        btnA.style.color = '#cbd5e1';
+      }
+      if (btnB) {
+        btnB.innerText = 'Ranura B (Activa)';
+        btnB.style.background = '#ef4444';
+        btnB.style.borderColor = '#f87171';
+        btnB.style.color = '#ffffff';
+      }
+      if (boxA) {
+        boxA.style.border = '1px solid #475569';
+        boxA.style.boxShadow = 'none';
+      }
+      if (boxB) {
+        boxB.style.border = '2px solid #f87171';
+        boxB.style.boxShadow = '0 0 14px rgba(248, 113, 113, 0.45)';
+      }
+    }
+  },
+
+  placeElementInSlot(symbol) {
+    if (this.selectedSlot === 'A') {
+      this.currentElementA = symbol;
+      this.setActiveElementSlot('B');
+    } else {
+      this.currentElementB = symbol;
+      this.setActiveElementSlot('A');
+    }
+
+    const selA = document.getElementById('selectElementA');
+    const selB = document.getElementById('selectElementB');
+    if (selA) selA.value = this.currentElementA;
+    if (selB) selB.value = this.currentElementB;
+
+    const presetSel = document.getElementById('selectPresetReaction');
+    if (presetSel) presetSel.value = 'custom';
+    this.currentReactionKey = 'custom';
+
+    this.evaluateCurrentCustomCombination();
+  },
+
+  onSelectElementDropdown(slot, symbol) {
+    if (slot === 'A') {
+      this.currentElementA = symbol;
+    } else {
+      this.currentElementB = symbol;
+    }
+    const presetSel = document.getElementById('selectPresetReaction');
+    if (presetSel) presetSel.value = 'custom';
+    this.currentReactionKey = 'custom';
+
+    this.evaluateCurrentCustomCombination();
+  },
+
+  evaluateCurrentCustomCombination() {
+    if (typeof ReactionEngine === 'undefined') return;
+    this.populateElementDropdowns();
+
+    const result = ReactionEngine.combineElements(this.currentElementA, this.currentElementB);
+    const elA = result.elementA;
+    const elB = result.elementB;
+    const comp = result.compound;
+
+    // Actualizar Ranura A
+    const r1Name = document.getElementById('rxReactant1Name');
+    const r1Meta = document.getElementById('rxReactant1Meta');
+    if (r1Name) r1Name.innerText = elA.symbol;
+    if (r1Meta) r1Meta.innerText = `${elA.name} (EN: ${elA.en.toFixed(2)})`;
+
+    // Actualizar Ranura B
+    const r2Name = document.getElementById('rxReactant2Name');
+    const r2Meta = document.getElementById('rxReactant2Meta');
+    if (r2Name) r2Name.innerText = elB.symbol;
+    if (r2Meta) r2Meta.innerText = `${elB.name} (EN: ${elB.en.toFixed(2)})`;
+
+    // Actualizar Compuesto Predicho
+    const prodName = document.getElementById('rxProductName');
+    const prodMeta = document.getElementById('rxProductMeta');
+    const geoBrief = document.getElementById('rxGeoBrief');
+    if (prodName) prodName.innerText = comp.formula;
+    if (prodMeta) prodMeta.innerText = `${comp.name} (${comp.mass} g/mol)`;
+    if (geoBrief) geoBrief.innerText = comp.geo;
+
+    // Badges de Enlace & Conservación de Masa
+    const deltaEn = document.getElementById('rxDeltaEn');
+    const bondBadge = document.getElementById('rxBondBadge');
+    const massLaw = document.getElementById('rxMassConservation');
+    if (deltaEn) deltaEn.innerText = `ΔEN = ${result.deltaEN.toFixed(2)} (Pauling)`;
+    if (bondBadge) {
+      bondBadge.innerText = result.bondType;
+      if (result.category === 'ionic') {
+        bondBadge.style.background = '#15803d';
+      } else if (result.category === 'covalent-polar') {
+        bondBadge.style.background = '#0369a1';
+      } else {
+        bondBadge.style.background = '#7c3aed';
+      }
+    }
+    if (massLaw) {
+      const sumReactants = (elA.mass + elB.mass).toFixed(2);
+      massLaw.innerText = `Reactivos: ${sumReactants} g ➔ ${comp.formula}: Conserva masa (Lavoisier)`;
+    }
+
+    // Ficha 3D inferior
+    const titleEl = document.getElementById('rx3dProductTitle');
+    const geoEl = document.getElementById('rx3dGeometry');
+    const hybEl = document.getElementById('rx3dHybridization');
+    const dipEl = document.getElementById('rx3dDipole');
+    const massEl = document.getElementById('rx3dMass');
+    const expEl = document.getElementById('rx3dExplanation');
+
+    if (titleEl) titleEl.innerText = `${comp.name} (${comp.formula})`;
+    if (geoEl) geoEl.innerText = comp.geo;
+    if (hybEl) hybEl.innerText = result.category === 'ionic' ? 'Atracción Coulombica Electroestática' : 'Compartición de Orbitales Moleculares';
+    if (dipEl) dipEl.innerText = result.category === 'ionic' ? 'μ > 8 D (Iónico Permanente)' : (result.category === 'covalent-polar' ? 'Dipolo Permanente (Polar)' : 'μ = 0 D (Apolar Simétrico)');
+    if (massEl) massEl.innerText = `${comp.mass} g/mol`;
+    if (expEl) expEl.innerText = result.explanation;
+
+    // Actualizar Fase 1
+    const badge = document.getElementById('rxStageBadge');
+    const notice = document.getElementById('rxStatusNotice');
+    if (badge) {
+      badge.innerText = '● Fase 1: Átomos Separados en el Espacio 3D';
+      badge.style.background = '#0284c7';
+    }
+    if (notice) {
+      notice.innerText = `💡 Átomos de ${elA.name} [A] y ${elB.name} [B] colocados en el espacio 3D. Pulse "⚡ ¡Hacer Reaccionar!" para combinarlos y ver la formación del enlace en 3D.`;
+    }
+
+    // Renderizar átomos separados en 3D
+    this.renderSeparatedAtoms3D(elA, elB);
+  },
+
+  renderSeparatedAtoms3D(elA, elB) {
+    if (!this.viewer3Dmol) this.init3DmolViewer();
+    if (!this.viewer3Dmol) return;
+
+    const symA = (elA && elA.symbol) || 'H';
+    const symB = (elB && elB.symbol) || 'O';
+
+    const sdf = `
+  3Dmol    Separated
+${symA}_and_${symB}
+
+  2  0  0  0  0  0  0  0  0  0999 V2000
+   -2.2000    0.0000    0.0000 ${symA.padEnd(3)} 0  0  0  0  0  0  0  0  0  0  0  0
+    2.2000    0.0000    0.0000 ${symB.padEnd(3)} 0  0  0  0  0  0  0  0  0  0  0  0
+M  END
+$$$$`;
+
+    this.viewer3Dmol.clear();
+    this.viewer3Dmol.addModel(sdf, 'sdf');
+    this.apply3dStyle();
+    this.viewer3Dmol.zoomTo();
+    if (this.is3dSpinning) {
+      this.viewer3Dmol.spin('y', 0.8);
+    }
+    this.viewer3Dmol.render();
+  },
+
+  buildSynthesizedSdf(compound, elA, elB) {
+    const symA = elA.symbol;
+    const symB = elB.symbol;
+    const pair = [symA, symB].sort().join('-');
+    const deltaEN = Math.abs(elA.en - elB.en);
+
+    function pad(num, size) {
+      let s = String(num);
+      while (s.length < size) s = ' ' + s;
+      return s;
+    }
+    function padCoord(n) {
+      let s = Number(n).toFixed(4);
+      return pad(s, 10);
+    }
+    function atomLine(x, y, z, sym) {
+      return padCoord(x) + padCoord(y) + padCoord(z) + ' ' + sym.padEnd(3) + ' 0  0  0  0  0  0  0  0  0  0  0  0';
+    }
+    function bondLine(a1, a2, order) {
+      return pad(a1, 3) + pad(a2, 3) + pad(order, 3) + '  0     0  0';
+    }
+
+    // 1. Red Cúbica FCC (ej. NaCl, KCl, LiF cuando deltaEN >= 2.0 y 1:1)
+    if (pair === 'Cl-Na' || pair === 'Cl-K' || (deltaEN >= 2.0 && elA.valence === 1 && elB.valence === 1)) {
+      const sA = elA.en < elB.en ? symA : symB;
+      const sB = elA.en < elB.en ? symB : symA;
+      const d = 1.35;
+      const atoms = [
+        atomLine(-d, -d, -d, sA),
+        atomLine( d, -d, -d, sB),
+        atomLine( d,  d, -d, sA),
+        atomLine(-d,  d, -d, sB),
+        atomLine(-d, -d,  d, sB),
+        atomLine( d, -d,  d, sA),
+        atomLine( d,  d,  d, sB),
+        atomLine(-d,  d,  d, sA)
+      ];
+      const bonds = [
+        bondLine(1, 2, 1), bondLine(2, 3, 1), bondLine(3, 4, 1), bondLine(4, 1, 1),
+        bondLine(5, 6, 1), bondLine(6, 7, 1), bondLine(7, 8, 1), bondLine(8, 5, 1),
+        bondLine(1, 5, 1), bondLine(2, 6, 1), bondLine(3, 7, 1), bondLine(4, 8, 1)
+      ];
+      return '  3Dmol    FCC Lattice\n' + compound.formula + '\n\n' +
+        pad(atoms.length, 3) + pad(bonds.length, 3) + '  0  0  0  0  0  0  0  0999 V2000\n' +
+        atoms.join('\n') + '\n' + bonds.join('\n') + '\nM  END\n$$$$\n';
+    }
+
+    // 2. Bent A2B (ej. H2O, H2S)
+    if (pair === 'H-O' || pair === 'H-S') {
+      const central = symA === 'H' ? symB : symA;
+      const ligand = symA === 'H' ? symA : symB;
+      const atoms = [
+        atomLine(0.0, 0.0, 0.1173, central),
+        atomLine(0.0, 0.7570, -0.4692, ligand),
+        atomLine(0.0, -0.7570, -0.4692, ligand)
+      ];
+      const bonds = [ bondLine(1, 2, 1), bondLine(1, 3, 1) ];
+      return '  3Dmol    Bent\n' + compound.formula + '\n\n  3  2  0  0  0  0  0  0  0  0999 V2000\n' +
+        atoms.join('\n') + '\n' + bonds.join('\n') + '\nM  END\n$$$$\n';
+    }
+
+    // 3. Linear AB2 (ej. CO2, SiO2)
+    if (pair === 'C-O' || pair === 'O-Si') {
+      const central = symA === 'O' ? symB : symA;
+      const ligand = 'O';
+      const atoms = [
+        atomLine(0.0, 0.0, 0.0, central),
+        atomLine(0.0, 1.16, 0.0, ligand),
+        atomLine(0.0, -1.16, 0.0, ligand)
+      ];
+      const bonds = [ bondLine(1, 2, 2), bondLine(1, 3, 2) ];
+      return '  3Dmol    Linear\n' + compound.formula + '\n\n  3  2  0  0  0  0  0  0  0  0999 V2000\n' +
+        atoms.join('\n') + '\n' + bonds.join('\n') + '\nM  END\n$$$$\n';
+    }
+
+    // 4. Tetrahedral AB4 (ej. CH4, CCl4)
+    if (pair === 'C-H' || pair === 'C-Cl') {
+      const central = 'C';
+      const ligand = symA === 'C' ? symB : symA;
+      const r = 1.09;
+      const atoms = [
+        atomLine(0.0, 0.0, 0.0, central),
+        atomLine( r * 0.577,  r * 0.577,  r * 0.577, ligand),
+        atomLine(-r * 0.577, -r * 0.577,  r * 0.577, ligand),
+        atomLine(-r * 0.577,  r * 0.577, -r * 0.577, ligand),
+        atomLine( r * 0.577, -r * 0.577, -r * 0.577, ligand)
+      ];
+      const bonds = [ bondLine(1, 2, 1), bondLine(1, 3, 1), bondLine(1, 4, 1), bondLine(1, 5, 1) ];
+      return '  3Dmol    Tetrahedral\n' + compound.formula + '\n\n  5  4  0  0  0  0  0  0  0  0999 V2000\n' +
+        atoms.join('\n') + '\n' + bonds.join('\n') + '\nM  END\n$$$$\n';
+    }
+
+    // 5. Pyramidal AB3 (ej. NH3)
+    if (pair === 'H-N') {
+      const central = 'N';
+      const ligand = 'H';
+      const atoms = [
+        atomLine(0.0, 0.0, 0.116, central),
+        atomLine(0.0, 0.94, -0.27, ligand),
+        atomLine(-0.81, -0.47, -0.27, ligand),
+        atomLine(0.81, -0.47, -0.27, ligand)
+      ];
+      const bonds = [ bondLine(1, 2, 1), bondLine(1, 3, 1), bondLine(1, 4, 1) ];
+      return '  3Dmol    Pyramidal\n' + compound.formula + '\n\n  4  3  0  0  0  0  0  0  0  0999 V2000\n' +
+        atoms.join('\n') + '\n' + bonds.join('\n') + '\nM  END\n$$$$\n';
+    }
+
+    // 6. Diatómica (HF, HCl, HBr, HI, H2, O2, N2, Cl2, CaO, MgO, CuS, etc.)
+    const bondOrder = (pair === 'O-O') ? 2 : ((pair === 'N-N') ? 3 : 1);
+    const atoms = [
+      atomLine(-0.95, 0.0, 0.0, symA),
+      atomLine( 0.95, 0.0, 0.0, symB)
+    ];
+    const bonds = [ bondLine(1, 2, bondOrder) ];
+    return '  3Dmol    Diatomic\n' + compound.formula + '\n\n  2  1  0  0  0  0  0  0  0  0999 V2000\n' +
+      atoms.join('\n') + '\n' + bonds.join('\n') + '\nM  END\n$$$$\n';
+  },
+
+  onSelectReactionPreset(key) {
+    if (key === 'custom') {
+      this.currentReactionKey = 'custom';
+      this.evaluateCurrentCustomCombination();
+      return;
+    }
+
+    const rx = this.reaction3dCatalog[key];
+    if (!rx) {
+      this.currentReactionKey = 'custom';
+      this.evaluateCurrentCustomCombination();
+      return;
+    }
+
+    this.currentReactionKey = key;
+    if (key === 'reaction-nacl') {
+      this.currentElementA = 'Na';
+      this.currentElementB = 'Cl';
+    } else if (key === 'reaction-h2o') {
+      this.currentElementA = 'H';
+      this.currentElementB = 'O';
+    } else if (key === 'reaction-co2') {
+      this.currentElementA = 'C';
+      this.currentElementB = 'O';
+    } else if (key === 'reaction-nh3') {
+      this.currentElementA = 'N';
+      this.currentElementB = 'H';
+    } else if (key === 'reaction-ch4-combustion') {
+      this.currentElementA = 'C';
+      this.currentElementB = 'H';
+    }
+
+    const selA = document.getElementById('selectElementA');
+    const selB = document.getElementById('selectElementB');
+    if (selA) selA.value = this.currentElementA;
+    if (selB) selB.value = this.currentElementB;
+
+    const r1Name = document.getElementById('rxReactant1Name');
+    const r1Meta = document.getElementById('rxReactant1Meta');
+    const r2Name = document.getElementById('rxReactant2Name');
+    const r2Meta = document.getElementById('rxReactant2Meta');
+    const prodName = document.getElementById('rxProductName');
+    const prodMeta = document.getElementById('rxProductMeta');
+    const deltaEn = document.getElementById('rxDeltaEn');
+    const bondBadge = document.getElementById('rxBondBadge');
+    const massLaw = document.getElementById('rxMassConservation');
+    const notice = document.getElementById('rxStatusNotice');
+
+    if (r1Name) r1Name.innerText = rx.r1;
+    if (r1Meta) r1Meta.innerText = rx.r1Meta;
+    if (r2Name) r2Name.innerText = rx.r2;
+    if (r2Meta) r2Meta.innerText = rx.r2Meta;
+    if (prodName) prodName.innerText = rx.prod;
+    if (prodMeta) prodMeta.innerText = rx.prodMeta;
+    if (deltaEn) deltaEn.innerText = rx.deltaEn;
+    if (bondBadge) bondBadge.innerText = rx.bondType;
+    if (massLaw) massLaw.innerText = rx.massConservation;
+    if (notice) notice.innerText = '💡 Fase 1: Reactivos colocados en el espacio 3D. Pulse "¡Hacer Reaccionar!" para iniciar.';
+
+    const titleEl = document.getElementById('rx3dProductTitle');
+    const geoEl = document.getElementById('rx3dGeometry');
+    const hybEl = document.getElementById('rx3dHybridization');
+    const dipEl = document.getElementById('rx3dDipole');
+    const massEl = document.getElementById('rx3dMass');
+    const expEl = document.getElementById('rx3dExplanation');
+
+    if (titleEl) titleEl.innerText = `${rx.title} (${rx.prod})`;
+    if (geoEl) geoEl.innerText = rx.geometry;
+    if (hybEl) hybEl.innerText = rx.hybridization;
+    if (dipEl) dipEl.innerText = rx.dipole;
+    if (massEl) massEl.innerText = rx.mass;
+    if (expEl) expEl.innerText = rx.explanation;
+
+    this.resetReactionState();
+  },
+
+  resetReactionState() {
+    if (this.currentReactionKey === 'custom' || !this.reaction3dCatalog[this.currentReactionKey]) {
+      this.evaluateCurrentCustomCombination();
+      return;
+    }
+
+    const rx = this.reaction3dCatalog[this.currentReactionKey] || this.reaction3dCatalog['reaction-h2o'];
+    const badge = document.getElementById('rxStageBadge');
+    const notice = document.getElementById('rxStatusNotice');
+    if (badge) {
+      badge.innerText = '● Fase 1: Reactivos Separados';
+      badge.style.background = '#0284c7';
+    }
+    if (notice) notice.innerText = '💡 Reactivos separados en el espacio 3D. Pulse "¡Hacer Reaccionar!" para activar el choque eficaz.';
+
+    if (!this.viewer3Dmol) this.init3DmolViewer();
+    if (this.viewer3Dmol) {
+      this.viewer3Dmol.clear();
+      this.viewer3Dmol.addModel(rx.reactantsSdf, 'sdf');
+      this.apply3dStyle();
+      this.viewer3Dmol.zoomTo();
+      if (this.is3dSpinning) {
+        this.viewer3Dmol.spin('y', 0.8);
+      }
+      this.viewer3Dmol.render();
+    }
+  },
+
+  async triggerAtomicReaction3D() {
+    const badge = document.getElementById('rxStageBadge');
+    const notice = document.getElementById('rxStatusNotice');
+    const overlay = document.getElementById('rxFlashOverlay');
+
+    if (badge) {
+      badge.innerText = '⚡ Fase 2: Choque Eficaz y Ruptura de Enlaces...';
+      badge.style.background = '#eab308';
+    }
+    if (notice) notice.innerText = '⚡ ¡Energía de activación alcanzada! Choque cinético eficaz, ruptura de enlaces y reorganización electrónica...';
+
+    if (overlay) overlay.style.opacity = '1';
+    if (typeof playBeep === 'function') {
+      playBeep(520, 0.12);
+    }
+
+    setTimeout(() => {
+      if (overlay) overlay.style.opacity = '0';
+    }, 400);
+
+    setTimeout(async () => {
+      if (!this.viewer3Dmol) this.init3DmolViewer();
+
+      if (this.currentReactionKey === 'custom' || !this.reaction3dCatalog[this.currentReactionKey]) {
+        const result = ReactionEngine.combineElements(this.currentElementA, this.currentElementB);
+        const comp = result.compound;
+        const elA = result.elementA;
+        const elB = result.elementB;
+
+        if (badge) {
+          badge.innerText = `🌟 Fase 3: Enlace Formado con Éxito (${comp.formula})`;
+          badge.style.background = '#16a34a';
+        }
+        if (notice) {
+          notice.innerText = `✨ ¡Reacción completada con éxito! Formado: ${comp.name} (${comp.formula}). Observe la molécula 3D girando abajo.`;
+        }
+
+        if (this.viewer3Dmol) {
+          this.viewer3Dmol.clear();
+          let loaded = false;
+          if (comp.pubchem) {
+            try {
+              const resp = await fetch(`/api/pubchem/sdf?name=${encodeURIComponent(comp.pubchem)}`);
+              if (resp.ok) {
+                const data = await resp.json();
+                if (data && data.sdf) {
+                  this.viewer3Dmol.addModel(data.sdf, 'sdf');
+                  loaded = true;
+                }
+              }
+            } catch (e) {
+              console.warn('PubChem fetch fallback:', e);
+            }
+          }
+
+          if (!loaded) {
+            const synthSdf = this.buildSynthesizedSdf(comp, elA, elB);
+            this.viewer3Dmol.addModel(synthSdf, 'sdf');
+          }
+
+          this.apply3dStyle();
+          this.viewer3Dmol.zoomTo();
+          if (this.is3dSpinning) {
+            this.viewer3Dmol.spin('y', 0.8);
+          }
+          this.viewer3Dmol.render();
+        }
+
+        if (typeof ChemEngine !== 'undefined' && ChemEngine.logTelemetry) {
+          ChemEngine.logTelemetry('atomic_reaction_3d', `${this.currentElementA}-${this.currentElementB}`, 1, {
+            elementA: this.currentElementA,
+            elementB: this.currentElementB,
+            product: comp.formula,
+            bondType: result.bondType,
+            deltaEN: result.deltaEN
+          });
+        }
+      } else {
+        const rx = this.reaction3dCatalog[this.currentReactionKey];
+        if (badge) {
+          badge.innerText = '🌟 Fase 3: Producto 3D Formado con Éxito';
+          badge.style.background = '#16a34a';
+        }
+        if (notice) notice.innerText = `✨ ¡Reacción completada con éxito! Formado: ${rx.prod}. Observe la geometría tridimensional 3D abajo.`;
+
+        if (this.viewer3Dmol) {
+          this.viewer3Dmol.clear();
+
+          let loaded = false;
+          try {
+            const resp = await fetch(`/api/pubchem/sdf?name=${encodeURIComponent(rx.pubchemName)}`);
+            if (resp.ok) {
+              const data = await resp.json();
+              if (data && data.sdf) {
+                this.viewer3Dmol.addModel(data.sdf, 'sdf');
+                loaded = true;
+              }
+            }
+          } catch (e) {
+            console.warn('PubChem fetch fallback:', e);
+          }
+
+          if (!loaded) {
+            this.viewer3Dmol.addModel(rx.productSdf, 'sdf');
+          }
+
+          this.apply3dStyle();
+          this.viewer3Dmol.zoomTo();
+          if (this.is3dSpinning) {
+            this.viewer3Dmol.spin('y', 0.8);
+          }
+          this.viewer3Dmol.render();
+        }
+
+        if (typeof ChemEngine !== 'undefined' && ChemEngine.logTelemetry) {
+          ChemEngine.logTelemetry('atomic_reaction_3d', this.currentReactionKey, 1, {
+            equation: rx.equation,
+            product: rx.prod
+          });
+        }
+      }
+    }, 600);
+  },
+
+  toggle3dSpin() {
+    this.is3dSpinning = !this.is3dSpinning;
+    const btn = document.getElementById('btnToggle3dSpin');
+    if (btn) btn.innerText = this.is3dSpinning ? '🔄 Rotación: ON' : '⏸️ Rotación: OFF';
+    if (this.viewer3Dmol) {
+      if (this.is3dSpinning) {
+        this.viewer3Dmol.spin('y', 0.8);
+      } else {
+        this.viewer3Dmol.spin(false);
+      }
+      this.viewer3Dmol.render();
+    }
+  },
+
+  set3dRepresentation(style) {
+    this.current3dStyle = style;
+    this.apply3dStyle();
+  },
+
+  apply3dStyle() {
+    if (!this.viewer3Dmol) return;
+    if (this.current3dStyle === 'stick') {
+      this.viewer3Dmol.setStyle({}, { stick: { radius: 0.25 } });
+    } else if (this.current3dStyle === 'sphere') {
+      this.viewer3Dmol.setStyle({}, { sphere: { scale: 0.85 } });
+    } else {
+      this.viewer3Dmol.setStyle({}, { stick: { radius: 0.16 }, sphere: { scale: 0.32 } });
+    }
+    this.viewer3Dmol.render();
+  },
+
+  async searchPubChemMolecule() {
+    const input = document.getElementById('inputPubChemSearch');
+    const query = input ? input.value.trim() : '';
+    if (!query) return;
+    await this.fetchPubChemDirect(query, query.toUpperCase());
+  },
+
+  async fetchPubChemDirect(moleculeName, displayName) {
+    if (!this.viewer3Dmol) {
+      this.init3DmolViewer();
+    }
+
+    const titleEl = document.getElementById('rx3dProductTitle');
+    const noticeEl = document.getElementById('rxStatusNotice');
+    if (titleEl) titleEl.innerText = displayName || moleculeName.toUpperCase();
+    if (noticeEl) noticeEl.innerText = `🔍 Molécula PubChem cargada: ${displayName || moleculeName}`;
+
+    try {
+      const resp = await fetch(`/api/pubchem/sdf?name=${encodeURIComponent(moleculeName)}`);
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data && data.sdf && this.viewer3Dmol) {
+          this.viewer3Dmol.clear();
+          this.viewer3Dmol.addModel(data.sdf, 'sdf');
+          this.apply3dStyle();
+          this.viewer3Dmol.zoomTo();
+          if (this.is3dSpinning) {
+            this.viewer3Dmol.spin('y', 0.8);
+          }
+          this.viewer3Dmol.render();
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn('PubChem fetch error, using fallback:', e);
+    }
+
+    this.loadBuiltinSdf(moleculeName);
+  },
+
+  loadBuiltinSdf(name) {
+    if (!this.viewer3Dmol) return;
+    const waterSdf = `
+  3Dmol    01102616002D 1   1.00000     0.00000     0
+H2O
+  3  2  0  0  0  0  0  0  0  0999 V2000
+    0.0000    0.0000    0.1173 O   0  0  0  0  0  0  0  0  0  0  0  0
+    0.0000    0.7570   -0.4692 H   0  0  0  0  0  0  0  0  0  0  0  0
+    0.0000   -0.7570   -0.4692 H   0  0  0  0  0  0  0  0  0  0  0  0
+  1  2  1  0     0  0
+  1  3  1  0     0  0
+M  END
+$$$$`;
+    this.viewer3Dmol.clear();
+    this.viewer3Dmol.addModel(waterSdf, 'sdf');
+    this.apply3dStyle();
+    this.viewer3Dmol.zoomTo();
+    if (this.is3dSpinning) {
+      this.viewer3Dmol.spin('y', 0.8);
+    }
+    this.viewer3Dmol.render();
+  },
+
+  // ================= 📄 FICHAS SGA / FDS DE SEGURIDAD =================
+  showSGAModal(reagentId) {
+    if (typeof ChemEngine === 'undefined') return;
+    const r = ChemEngine.reagents[reagentId];
+    if (!r) return;
+    const modal = document.getElementById('modalSGA');
+    const titleEl = document.getElementById('modalSgaTitle');
+    const contentEl = document.getElementById('modalSgaContent');
+    if (!modal) return;
+    if (titleEl) titleEl.innerHTML = `📄 Ficha de Datos de Seguridad: ${r.name} (${r.formula})`;
+    if (contentEl) {
+      const molarMass = r.molarMass || r.molecularWeight || 0;
+      const sgaName = (r.sga && r.sga.name) || 'Clasificación SGA';
+      const sgaDesc = (r.sga && (r.sga.desc || r.sga.hPhrases)) || 'Manipular con equipo de protección adecuado.';
+      const sgaPpe = (r.fds && r.fds.ppe) || 'Lentes de protección y guantes de nitrilo.';
+      const sgaFirstAid = (r.fds && r.fds.firstAid) || 'Lavar con abundante agua corriente.';
+
+      contentEl.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 1rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.75rem; margin-bottom: 0.85rem;">
+          <div style="font-size: 2.5rem;">${r.sga ? r.sga.icon : '🛡️'}</div>
+          <div>
+            <div style="font-size: 1rem; font-weight: 700; color: #0f172a;">${r.name}</div>
+            <div style="font-size: 0.82rem; color: #64748b; font-family: monospace;">Fórmula: ${r.formula} • Masa molar: ${molarMass} g/mol • Densidad: ${r.density || 1.0} g/mL</div>
+            <div style="display: inline-block; background: #fee2e2; color: #991b1b; padding: 0.15rem 0.5rem; border-radius: 12px; font-weight: 700; font-size: 0.72rem; margin-top: 0.25rem;">
+              ${sgaName}
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 0.75rem;">
+          <strong style="color: #b91c1c; display: block; margin-bottom: 0.25rem;">⚠️ Indicaciones y Riesgos (SGA):</strong>
+          <div style="background: #fff1f2; border-left: 3px solid #f43f5e; padding: 0.5rem 0.75rem; border-radius: 0 6px 6px 0; font-size: 0.82rem; color: #881337;">
+            ${sgaDesc}
+          </div>
+        </div>
+
+        <div>
+          <strong style="color: #0369a1; display: block; margin-bottom: 0.25rem;">🛡️ Equipamiento de Protección (EPP) & Primeros Auxilios:</strong>
+          <div style="background: #f0f9ff; border-left: 3px solid #0284c7; padding: 0.5rem 0.75rem; border-radius: 0 6px 6px 0; font-size: 0.82rem; color: #075985;">
+            <strong>EPP:</strong> ${sgaPpe}<br>
+            <strong>Primeros Auxilios:</strong> ${sgaFirstAid}
+          </div>
+        </div>
+      `;
+    }
+    modal.style.display = 'flex';
+  },
+
+  closeSGAModal() {
+    const modal = document.getElementById('modalSGA');
+    if (modal) modal.style.display = 'none';
+  },
+
+
+  // ================= ◀/▶ TOGGLE DE PANEL LATERAL DE REACTIVOS E INSTRUMENTAL =================
+  isLeftSidebarCollapsed: false,
+  toggleBenchSidebar(side = 'left') {
+    const grid = document.getElementById('labBenchGrid');
+    const iconEl = document.getElementById('iconToggleLeftSidebar');
+    const labelEl = document.getElementById('labelToggleSidebar');
+    const btnToggle = document.getElementById('btnToggleLeftSidebar');
+    if (!grid) return;
+
+    this.isLeftSidebarCollapsed = !this.isLeftSidebarCollapsed;
+    grid.classList.toggle('sidebar-left-collapsed', this.isLeftSidebarCollapsed);
+
+    if (this.isLeftSidebarCollapsed) {
+      if (iconEl) iconEl.innerText = '❯';
+      if (labelEl) labelEl.innerText = '▶ Mostrar Panel';
+      if (btnToggle) btnToggle.title = 'Mostrar reactivos e instrumental';
+    } else {
+      if (iconEl) iconEl.innerText = '❮';
+      if (labelEl) labelEl.innerText = '◀ Ocultar Panel';
+      if (btnToggle) btnToggle.title = 'Ocultar reactivos e instrumental';
+    }
+
+    setTimeout(() => {
+      if (this.labBench && typeof this.labBench.render === 'function') {
+        this.labBench.render();
+      }
+    }, 260);
+  },
+
+
+  // ================= 📊 PANELES PLEGABLES INDEPENDIENTES ESTILO POWER BI =================
+  togglePowerBiPanel(panelType) {
+    const panelId = panelType === 'reagents' ? 'panelReagents' : 'panelInstruments';
+    const panel = document.getElementById(panelId);
+    if (!panel) return;
+
+    const isExpanded = panel.getAttribute('data-expanded') === 'true';
+    panel.setAttribute('data-expanded', (!isExpanded).toString());
+
+    setTimeout(() => {
+      if (this.labBench && typeof this.labBench.render === 'function') {
+        this.labBench.render();
+      }
+    }, 240);
+  },
+
+  filterReagents(query) {
+    const q = (query || '').toLowerCase().trim();
+    const container = document.getElementById('reagentsShelf');
+    if (!container) return;
+
+    const cards = container.querySelectorAll('.reagent-card');
+    cards.forEach(card => {
+      const name = card.querySelector('.reagent-name')?.innerText?.toLowerCase() || '';
+      const formula = card.querySelector('.reagent-formula')?.innerText?.toLowerCase() || '';
+      const match = !q || name.includes(q) || formula.includes(q);
+      card.style.display = match ? 'flex' : 'none';
+    });
+  },
+
+  filterInstruments(query) {
+    const q = (query || '').toLowerCase().trim();
+    const container = document.getElementById('instrumentsRack');
+    if (!container) return;
+
+    const items = container.querySelectorAll('.tool-rack-item');
+    items.forEach(item => {
+      const name = item.querySelector('.tool-name')?.innerText?.toLowerCase() || '';
+      const cat = item.querySelector('.tool-cat')?.innerText?.toLowerCase() || '';
+      const match = !q || name.includes(q) || cat.includes(q);
+      item.style.display = match ? 'flex' : 'none';
+    });
+  },
+
 };
 
 // Iniciar al cargar el DOM
