@@ -345,6 +345,27 @@
 
           <!-- Área Central: Mesa y Canvas 2D -->
           <main class="bench-center-stage">
+            <!-- BANNER DINÁMICO DE MODO EXAMEN PRÁCTICO -->
+            <div id="examModeBanner" style="display: none; background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-bottom: 2px solid #f59e0b; padding: 0.45rem 1rem; align-items: center; justify-content: space-between; gap: 0.75rem; flex-shrink: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.06); z-index: 5;">
+              <div style="display: flex; align-items: center; gap: 0.6rem;">
+                <span style="font-size: 1.2rem;">📝</span>
+                <div>
+                  <div style="font-weight: 800; color: #92400e; font-size: 0.86rem;" id="examBannerTitle">Modo Examen Práctico Asignado</div>
+                  <div style="font-size: 0.72rem; color: #b45309;">
+                    Salón: <strong id="examBannerSalon">4to Año "A"</strong> • Herramientas autorizadas en estante: <strong id="examBannerToolsCount">4</strong> (los demás instrumentos están restringidos)
+                  </div>
+                </div>
+              </div>
+              <div style="display: flex; gap: 0.4rem; align-items: center;">
+                <button type="button" class="btn btn-outline" style="font-size: 0.75rem; padding: 0.3rem 0.65rem; background: #ffffff; color: #b45309; border-color: #f59e0b; font-weight: 700;" onclick="App.exitPracticalExam()">
+                  🚪 Salir a Modo Libre
+                </button>
+                <button type="button" class="btn btn-success" style="font-size: 0.78rem; padding: 0.35rem 0.85rem; font-weight: 800; box-shadow: 0 2px 6px rgba(22,163,74,0.3);" onclick="App.submitPracticalExam()">
+                  📋 Entregar Examen (0-20)
+                </button>
+              </div>
+            </div>
+
             <div class="stage-top-controls">
               <button class="btn btn-primary" onclick="App.pourSelectedAction()" title="Trasvasar líquido al otro recipiente">
                 🧪 Verter / Trasvasar
@@ -1661,19 +1682,62 @@
         <form id="evaluationForm" onsubmit="event.preventDefault();">
           <input type="hidden" id="editorEvalId" value="">
 
-          <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+          <div style="display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 0.85rem; margin-bottom: 1rem;">
             <div class="form-group" style="margin-bottom: 0;">
-              <label>Título del Cuestionario / Evaluación:</label>
-              <input type="text" id="editorEvalTitle" class="form-input" placeholder="Ej. Control 2: Enlaces Químicos y Electronegatividad" required>
+              <label>Título de la Evaluación:</label>
+              <input type="text" id="editorEvalTitle" class="form-input" placeholder="Ej. Examen Práctico: Titulación de HCl con NaOH" required>
             </div>
             <div class="form-group" style="margin-bottom: 0;">
-              <label>Tema o Práctica Asociada:</label>
+              <label>Modalidad / Entorno:</label>
+              <select id="editorEvalType" class="form-input" onchange="App.onEvaluationTypeChange()">
+                <option value="lab2d">⚗️ Examen Práctico en Mesa 2D</option>
+                <option value="molecular3d">🌐 Examen Práctico Molecular 3D</option>
+                <option value="theory">📝 Cuestionario Teórico / Test</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label>Tema o Guía de Práctica:</label>
               <select id="editorEvalTopic" class="form-input">
+                <option value="Neutralización Ácido-Base">Neutralización Ácido-Base (HCl + NaOH)</option>
                 <option value="Síntesis de NaCl">Síntesis de NaCl (Enlace Iónico)</option>
                 <option value="Formación de Molécula de Agua (H₂O)">Formación de Agua (Covalente Polar)</option>
-                <option value="Neutralización Ácido-Base">Neutralización Ácido-Base</option>
+                <option value="Determinación de Densidad">Densidad de Sólidos (Arquímedes)</option>
+                <option value="Separación de Mezclas">Separación Gravitatoria por Filtración</option>
                 <option value="Fundamentos y Escala de Pauling">Fundamentos y Escala de Pauling</option>
               </select>
+            </div>
+          </div>
+
+          <!-- SECCIÓN DE HERRAMIENTAS Y REACTIVOS AUTORIZADOS POR EL DOCENTE (SOLO EXAMEN PRÁCTICO) -->
+          <div id="editorPracticalToolsSection" style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 0.85rem; margin-bottom: 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
+              <div>
+                <strong style="color: #166534; font-size: 0.88rem; display: block;">🔬 Herramientas e Instrumentos Autorizados:</strong>
+                <span style="font-size: 0.72rem; color: #15803d;">Solo las herramientas marcadas estarán visibles para el alumno. Las demás desaparecerán de su estante durante el examen.</span>
+              </div>
+              <div style="display: flex; gap: 0.35rem; flex-wrap: wrap;">
+                <button type="button" class="btn btn-outline" style="font-size: 0.70rem; padding: 0.2rem 0.5rem; background: #ffffff;" onclick="App.toggleAllExamTools(true)">☑️ Todas</button>
+                <button type="button" class="btn btn-outline" style="font-size: 0.70rem; padding: 0.2rem 0.5rem; background: #ffffff;" onclick="App.toggleAllExamTools(false)">⬜ Ninguna</button>
+                <button type="button" class="btn btn-secondary" style="font-size: 0.70rem; padding: 0.2rem 0.5rem; font-weight: 700; color: #166534; border-color: #86efac;" onclick="App.applyExamToolPreset('titration')">🎯 Preset Titulación</button>
+              </div>
+            </div>
+
+            <div id="editorExamToolsGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.4rem; max-height: 160px; overflow-y: auto; padding: 0.5rem; background: #ffffff; border: 1px solid #dcfce7; border-radius: 6px;">
+              <!-- Se puebla dinámicamente con los 14 instrumentos de ChemEngine -->
+            </div>
+
+            <!-- Reactivos Autorizados -->
+            <div style="margin-top: 0.75rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                <span style="font-size: 0.76rem; font-weight: 700; color: #166534;">🧪 Reactivos Químicos Permitidos en la Mesa:</span>
+                <div style="display: flex; gap: 0.35rem;">
+                  <button type="button" class="btn btn-outline" style="font-size: 0.68rem; padding: 0.15rem 0.45rem; background: #ffffff;" onclick="App.toggleAllExamReagents(true)">☑️ Todos</button>
+                  <button type="button" class="btn btn-outline" style="font-size: 0.68rem; padding: 0.15rem 0.45rem; background: #ffffff;" onclick="App.toggleAllExamReagents(false)">⬜ Ninguno</button>
+                </div>
+              </div>
+              <div id="editorExamReagentsGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 0.35rem; max-height: 110px; overflow-y: auto; padding: 0.4rem; background: #ffffff; border: 1px solid #dcfce7; border-radius: 6px;">
+                <!-- Se puebla dinámicamente con los reactivos -->
+              </div>
             </div>
           </div>
 
@@ -1756,6 +1820,115 @@
         <button type="button" class="btn btn-primary" onclick="App.closeEvaluationViewer()">
           Cerrar
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL REPORTE OFICIAL DE RESULTADOS DE PRÁCTICA (RF007) ================= -->
+  <div class="eval-modal-backdrop" id="modalReport" style="display: none; z-index: 10050;">
+    <div class="eval-modal-card" style="max-width: 780px;">
+      <div class="eval-modal-header" style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-bottom: 2px solid #86efac;">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <div style="width: 44px; height: 44px; border-radius: 10px; background: #ffffff; border: 1px solid #86efac; display: flex; align-items: center; justify-content: center; font-size: 1.6rem;">📋</div>
+          <div>
+            <h3 style="font-size: 1.2rem; font-weight: 800; color: #14532d; margin: 0;">Ficha Oficial de Resultados de Laboratorio</h3>
+            <span style="font-size: 0.76rem; color: #166534;">I.E. Alexander Fleming • Rúbrica Procedimental Automatizada (RF007)</span>
+          </div>
+        </div>
+        <button class="btn btn-outline" style="padding: 0.25rem 0.55rem; font-size: 0.85rem;" onclick="App.closeReportModal()">✕</button>
+      </div>
+
+      <div class="eval-modal-body" style="padding: 1.25rem;">
+        <!-- Banner de Calificación Principal -->
+        <div style="background: #ffffff; border: 2px solid #cbd5e1; border-radius: 12px; padding: 1.2rem; display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.2rem; box-shadow: var(--shadow-sm); flex-wrap: wrap; gap: 1rem;">
+          <div>
+            <span style="font-size: 0.76rem; text-transform: uppercase; font-weight: 700; color: #64748b; letter-spacing: 0.5px;">Calificación Obtenida</span>
+            <div id="reportScoreDisplay" style="font-size: 2.2rem; font-weight: 900; color: #0284c7; line-height: 1.1;">20 / 20</div>
+            <div id="reportStudentInfo" style="font-size: 0.82rem; color: #475569; margin-top: 0.25rem;">Estudiante: <strong>Juan Pérez</strong> • Salón: <strong>4to Año "A"</strong></div>
+          </div>
+          <div style="text-align: right;">
+            <span style="font-size: 0.76rem; text-transform: uppercase; font-weight: 700; color: #64748b; letter-spacing: 0.5px;">Escala Cualitativa</span>
+            <div id="reportLetterGrade" style="font-size: 1.5rem; font-weight: 800; color: #16a34a;">AD (Logro Destacado)</div>
+            <span class="badge-role badge-role-student" style="font-size: 0.72rem; padding: 0.2rem 0.6rem; background: #dcfce7; color: #166534; border: 1px solid #86efac; font-weight: 700;">✓ Aprobado Oficial</span>
+          </div>
+        </div>
+
+        <!-- Desglose por Criterios de la Rúbrica -->
+        <div>
+          <h4 style="font-size: 0.95rem; font-weight: 800; color: #0f172a; margin: 0 0 0.65rem 0; display: flex; align-items: center; gap: 0.4rem;">
+            <span>🔬 Criterios Procedimentales Evaluados por ChemEngine (0-20):</span>
+          </h4>
+          <div style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+            <table class="report-table" style="margin: 0; width: 100%;">
+              <thead>
+                <tr style="background: #f8fafc;">
+                  <th style="padding: 0.6rem 0.85rem; font-size: 0.78rem;">Criterio Evaluado</th>
+                  <th style="padding: 0.6rem 0.85rem; font-size: 0.78rem; text-align: center; width: 110px;">Puntaje</th>
+                  <th style="padding: 0.6rem 0.85rem; font-size: 0.78rem;">Retroalimentación Técnica</th>
+                </tr>
+              </thead>
+              <tbody id="reportRubricBody">
+                <!-- Se puebla dinámicamente con los criterios -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="eval-modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-size: 0.76rem; color: #64748b;">✅ Calificación sincronizada con la base de datos PostgreSQL institucional.</span>
+        <button type="button" class="btn btn-primary" onclick="App.closeReportModal()">
+          Entendido / Cerrar Ficha
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL RESULTADOS DE ALUMNOS POR EVALUACIÓN (VISTA DOCENTE RF007) ================= -->
+  <div class="eval-modal-backdrop" id="modalEvaluationSubmissions" style="display: none; z-index: 10050;">
+    <div class="eval-modal-card" style="max-width: 860px;">
+      <div class="eval-modal-header" style="background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border-bottom: 2px solid #bfdbfe;">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <div style="width: 44px; height: 44px; border-radius: 10px; background: #ffffff; border: 1px solid #bfdbfe; display: flex; align-items: center; justify-content: center; font-size: 1.6rem;">📊</div>
+          <div>
+            <h3 style="font-size: 1.2rem; font-weight: 800; color: #1e3a8a; margin: 0;" id="submModalEvalTitle">Resultados de Alumnos</h3>
+            <span style="font-size: 0.76rem; color: #2563eb;">Registro y Telemetría de Ejecución de Guía de Laboratorio (RF007)</span>
+          </div>
+        </div>
+        <button class="btn btn-outline" style="padding: 0.25rem 0.55rem; font-size: 0.85rem;" onclick="App.closeSubmissionsModal()">✕</button>
+      </div>
+
+      <div class="eval-modal-body" style="padding: 1.25rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem; flex-wrap: wrap; gap: 0.5rem;">
+          <div>
+            <span style="font-size: 0.82rem; color: #475569;">Alumnos que entregaron esta práctica: <strong id="submCountDisplay" style="color: #0f172a;">0</strong></span>
+          </div>
+          <div style="font-size: 0.76rem; color: #64748b;">
+            Salones Asignados: <span id="submClassroomsDisplay" class="salon-chip">4to A</span>
+          </div>
+        </div>
+
+        <div style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; max-height: 380px; overflow-y: auto;">
+          <table class="report-table" style="margin: 0; width: 100%;">
+            <thead>
+              <tr style="background: #f8fafc;">
+                <th style="padding: 0.6rem 0.85rem; font-size: 0.78rem;">Estudiante</th>
+                <th style="padding: 0.6rem 0.85rem; font-size: 0.78rem;">Salón</th>
+                <th style="padding: 0.6rem 0.85rem; font-size: 0.78rem;">Fecha y Hora</th>
+                <th style="padding: 0.6rem 0.85rem; font-size: 0.78rem; text-align: center;">Nota (0-20)</th>
+                <th style="padding: 0.6rem 0.85rem; font-size: 0.78rem; text-align: center;">Estado</th>
+                <th style="padding: 0.6rem 0.85rem; font-size: 0.78rem; text-align: center;">Acción</th>
+              </tr>
+            </thead>
+            <tbody id="submTableBody">
+              <!-- Se puebla dinámicamente con las entregas de los estudiantes -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="eval-modal-footer">
+        <button type="button" class="btn btn-outline" onclick="App.closeSubmissionsModal()">Cerrar</button>
       </div>
     </div>
   </div>

@@ -1230,54 +1230,72 @@ const App = {
   ],
 
   activeClassroomId: null,
+  activePracticalExam: null,
 
   // Evaluaciones y Cuestionarios diseñados por el docente (con control de salones y bloqueo de edición)
   evaluations: [
     {
       id: 'eval-1',
-      title: 'Control 1: Enlaces Iónicos y Estructura de Lewis',
-      topic: 'Síntesis de NaCl',
+      title: 'Examen Práctico: Titulación Ácido-Base de HCl con NaOH',
+      evalType: 'lab2d',
+      topic: 'Neutralización Ácido-Base',
       targetClassrooms: ['4A'], // Asignado exclusivamente a 4to Año "A"
       status: 'published', // 'published' = Enviado a Salón (Protegido contra modificaciones)
       createdAt: '28/10/2026 09:30',
       publishedAt: '28/10/2026 10:00',
-      questions: [
+      allowedInstruments: ['burette', 'erlenmeyer', 'beaker', 'balance', 'ph_meter'],
+      allowedReagents: ['h2o', 'hcl', 'naoh', 'phenolphthalein'],
+      questions: [],
+      submissions: [
         {
-          question: '¿Qué magnitud determina si el enlace entre dos átomos es iónico o covalente según la escala de Linus Pauling?',
-          options: ['La masa atómica relativa', 'La diferencia de electronegatividad (ΔEN)', 'El número de neutrones en el núcleo', 'El punto de ebullición'],
-          answer: 1,
-          explanation: 'La diferencia de electronegatividad (ΔEN = |EN₁ - EN₂|) clasifica el tipo de enlace según Linus Pauling.'
+          studentId: 'u_student_1',
+          studentName: 'Juan Pérez',
+          classroomId: '4A',
+          classroomName: '4to Año "A"',
+          score: 18,
+          letterGrade: 'AD',
+          date: '28/10/2026 10:15',
+          finalPh: '7.00',
+          volumeAddedMl: '24.8',
+          rubricDetails: [
+            { criteria: '1. Neutralización estequiométrica precisa (pH final ~ 7.0)', score: 6, maxScore: 6, feedback: 'Excelente neutralización volumétrica con punto de equivalencia exacto.' },
+            { criteria: '2. Volumen titulante empleado (cercanía a 25.0 mL)', score: 5, maxScore: 5, feedback: 'Gasto de 24.8 mL (error relativo < 1%).' },
+            { criteria: '3. Reconocimiento de viraje de indicador (Fenolftaleína)', score: 4, maxScore: 5, feedback: 'Detección correcta de cambio rosa pálido persistente.' },
+            { criteria: '4. Buenas prácticas de laboratorio y pesaje digital', score: 3, maxScore: 4, feedback: 'Uso de tara y manipulación adecuada de cristalería.' }
+          ]
         },
         {
-          question: 'Al unirse Sodio (Na) y Cloro (Cl), ¿qué fenómeno de transferencia electrónica ocurre?',
-          options: ['Compartición simétrica de electrones', 'Transferencia completa del electrón de valencia del Na hacia el Cl', 'Atracción gravitatoria nuclear', 'Enlace metálico libre'],
-          answer: 1,
-          explanation: 'El sodio cede su único electrón de valencia formándose el catión Na⁺ y el anión Cl⁻.'
+          studentId: 'u_student_2',
+          studentName: 'María Gómez',
+          classroomId: '4A',
+          classroomName: '4to Año "A"',
+          score: 19,
+          letterGrade: 'AD',
+          date: '28/10/2026 10:22',
+          finalPh: '7.10',
+          volumeAddedMl: '25.0',
+          rubricDetails: [
+            { criteria: '1. Neutralización estequiométrica precisa (pH final ~ 7.0)', score: 6, maxScore: 6, feedback: 'Punto de equivalencia alcanzado con precisión micrométrica.' },
+            { criteria: '2. Volumen titulante empleado (cercanía a 25.0 mL)', score: 5, maxScore: 5, feedback: 'Volumen ideal de 25.0 mL vertido exactamente.' },
+            { criteria: '3. Reconocimiento de viraje de indicador (Fenolftaleína)', score: 5, maxScore: 5, feedback: 'Viraje perfecto registrado al primer cambio de tonalidad.' },
+            { criteria: '4. Buenas prácticas de laboratorio y pesaje digital', score: 3, maxScore: 4, feedback: 'Correcta lectura de menisco inferior.' }
+          ]
         }
       ]
     },
     {
       id: 'eval-2',
-      title: 'Cuestionario Guía: Polaridad y Geometría Molecular',
+      title: 'Práctica Calificada: Geometría Molecular y Enlaces en 3D',
+      evalType: 'molecular3d',
       topic: 'Formación de Molécula de Agua (H₂O)',
       targetClassrooms: ['4B', '5A'], // Asignado a múltiples salones (4to B y 5to A)
       status: 'draft', // 'draft' = Borrador (Permite seguir modificando)
       createdAt: '29/10/2026 11:15',
       publishedAt: null,
-      questions: [
-        {
-          question: '¿Por qué la molécula de agua posee un enlace Covalente Polar?',
-          options: ['Porque ΔEN está entre 0.4 y 2.0 con distribución asimétrica de cargas (δ- en O)', 'Porque los electrones se transfieren totalmente formando cristales', 'Porque ambos átomos tienen idéntica electronegatividad', 'Porque no forman orbitales enlazantes'],
-          answer: 0,
-          explanation: 'El oxígeno atrae los electrones con mayor fuerza que el hidrógeno generando un dipolo molecular.'
-        },
-        {
-          question: '¿Qué tipo de instrumento virtual se emplea para dosificar reactivos líquidos con precisión en la mesa?',
-          options: ['Mechero Bunsen', 'Pipeta Graduada', 'Cámara de reacción cerrada', 'Balanza granataria'],
-          answer: 1,
-          explanation: 'La pipeta graduada permite medir y trasvasar alícuotas volumétricas precisas.'
-        }
-      ]
+      allowedInstruments: ['erlenmeyer', 'beaker'],
+      allowedReagents: ['h2o'],
+      questions: [],
+      submissions: []
     }
   ],
 
@@ -6745,6 +6763,65 @@ const App = {
               </div>
             </div>
 
+            <!-- EXÁMENES Y PRÁCTICAS ASIGNADAS AL SALÓN POR EL DOCENTE (RF007) -->
+            ${(() => {
+              const salonEvaluations = this.evaluations.filter(e => e.status === 'published' && e.targetClassrooms.includes(salon.id));
+              if (salonEvaluations.length === 0) return '';
+              return `
+                <div style="background: #ffffff; border-radius: 14px; border: 1px solid #bfdbfe; padding: 1.25rem 1.5rem; box-shadow: var(--shadow-sm);">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem;">
+                    <h4 style="font-size: 0.95rem; font-weight: 800; color: #1e3a8a; margin: 0; display: flex; align-items: center; gap: 0.4rem;">
+                      <span>📋</span> Evaluaciones y Prácticas Asignadas a tu Salón
+                    </h4>
+                    <span style="font-size: 0.72rem; color: #2563eb; background: #eff6ff; padding: 0.15rem 0.5rem; border-radius: 999px; font-weight: 700; border: 1px solid #bfdbfe;">
+                      ${salonEvaluations.length} disponible${salonEvaluations.length === 1 ? '' : 's'}
+                    </span>
+                  </div>
+
+                  <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    ${salonEvaluations.map(ev => {
+                      const sub = (ev.submissions || []).find(s => s.studentId === user.id);
+                      const isSubmitted = !!sub;
+
+                      let typeBadge = '';
+                      let actionBtn = '';
+
+                      if (ev.evalType === 'lab2d') {
+                        typeBadge = '<span class="salon-chip" style="background: #e0f2fe; color: #0284c7; font-weight: 700; border: 1px solid #bae6fd;">⚗️ Examen Práctico 2D</span>';
+                        actionBtn = isSubmitted
+                          ? `<button class="btn btn-outline btn-sm" style="font-size: 0.76rem; color: #0284c7; border-color: #38bdf8; font-weight: 700;" onclick="App.viewSubmissionReportById('${ev.id}', '${user.id}')">📊 Ver Ficha de Resultados (RF007)</button>`
+                          : `<button class="btn btn-primary btn-sm" style="font-size: 0.78rem; font-weight: 700; background: #0284c7;" onclick="App.startPracticalExam('${ev.id}')">🚀 Rendir Examen en Mesa 2D</button>`;
+                      } else if (ev.evalType === 'molecular3d') {
+                        typeBadge = '<span class="salon-chip" style="background: #ede9fe; color: #6d28d9; font-weight: 700; border: 1px solid #ddd6fe;">🌐 Molecular 3D</span>';
+                        actionBtn = `<button class="btn btn-primary btn-sm" style="font-size: 0.78rem; font-weight: 700; background: #7c3aed;" onclick="App.startPracticalExam('${ev.id}')">🚀 Rendir Examen 3D</button>`;
+                      } else {
+                        typeBadge = '<span class="salon-chip" style="background: #f1f5f9; color: #475569; font-weight: 700;">📝 Teórico</span>';
+                        actionBtn = `<button class="btn btn-secondary btn-sm" style="font-size: 0.78rem; font-weight: 700;" onclick="App.goToQuizFromSalon()">📝 Responder Test</button>`;
+                      }
+
+                      return `
+                        <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 0.85rem 1rem; background: ${isSubmitted ? '#f0fdf4' : '#f8fafc'}; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.65rem;">
+                          <div>
+                            <div style="display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.25rem;">
+                              ${typeBadge}
+                              <strong style="color: #0f172a; font-size: 0.9rem;">${ev.title}</strong>
+                            </div>
+                            <div style="font-size: 0.76rem; color: #64748b;">
+                              Tema: <strong>${ev.topic}</strong> ${ev.evalType === 'lab2d' ? `• Herramientas autorizadas: <strong>${ev.allowedInstruments ? ev.allowedInstruments.length : 14} permitidas</strong> (los demás instrumentos desaparecen)` : ''}
+                            </div>
+                            ${isSubmitted ? `<div style="font-size: 0.78rem; color: #166534; font-weight: 700; margin-top: 0.2rem;">✅ Entregado el ${sub.date} • Calificación: <span style="font-size: 0.95rem; color: #0284c7;">${sub.score} / 20</span> (${sub.letterGrade})</div>` : ''}
+                          </div>
+                          <div>
+                            ${actionBtn}
+                          </div>
+                        </div>
+                      `;
+                    }).join('')}
+                  </div>
+                </div>
+              `;
+            })()}
+
             <!-- MI RENDIMIENTO EN ESTE SALÓN -->
             <div style="background: #ffffff; border-radius: 14px; border: 1px solid #e2e8f0; padding: 1.25rem 1.5rem; box-shadow: var(--shadow-sm);">
               <h4 style="font-size: 0.95rem; font-weight: 800; color: #0f172a; margin: 0 0 1rem 0; display: flex; align-items: center; gap: 0.5rem;">
@@ -7426,40 +7503,61 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
       card.className = `eval-card ${isPublished ? 'published' : 'draft'}`;
 
       const classroomChips = item.targetClassrooms.map(cId => `<span class="salon-chip">🏫 ${this.getClassroomName(cId)}</span>`).join(' ');
+      const subsCount = (item.submissions || []).length;
+
+      let typeBadge = '';
+      if (item.evalType === 'lab2d') {
+        typeBadge = '<span class="salon-chip" style="background: #e0f2fe; color: #0284c7; font-weight: 700; border: 1px solid #bae6fd;">⚗️ Examen Práctico 2D</span>';
+      } else if (item.evalType === 'molecular3d') {
+        typeBadge = '<span class="salon-chip" style="background: #ede9fe; color: #6d28d9; font-weight: 700; border: 1px solid #ddd6fe;">🌐 Molecular 3D</span>';
+      } else {
+        typeBadge = '<span class="salon-chip" style="background: #f1f5f9; color: #475569; font-weight: 700;">📝 Teórico</span>';
+      }
+
+      const toolsInfo = (item.evalType === 'lab2d')
+        ? `<div style="font-size: 0.74rem; color: #166534; background: #f0fdf4; border: 1px solid #bbf7d0; padding: 0.2rem 0.5rem; border-radius: 6px; margin-top: 0.35rem;">🛠️ Herramientas autorizadas en mesa: <strong>${item.allowedInstruments ? item.allowedInstruments.length : 14}</strong> (los demás instrumentos desaparecen en examen)</div>`
+        : '';
 
       card.innerHTML = `
         <div>
           <div class="eval-header">
             <div>
-              <div class="eval-title">${item.title}</div>
+              <div style="display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap; margin-bottom: 0.25rem;">
+                ${typeBadge}
+                <div class="eval-title" style="margin: 0;">${item.title}</div>
+              </div>
               <div class="eval-topic">🔬 Tema: <strong>${item.topic}</strong></div>
+              ${toolsInfo}
             </div>
             ${isPublished
               ? `<span class="status-pill-published" title="Esta evaluación ya no puede ser alterada">🔒 Enviado a Salón (Protegido)</span>`
-              : `<span class="status-pill-draft" title="Puede modificar preguntas y salones cuantas veces requiera">📝 Borrador (Editable)</span>`
+              : `<span class="status-pill-draft" title="Puede modificar preguntas, herramientas y salones cuantas veces requiera">📝 Borrador (Editable)</span>`
             }
           </div>
 
-          <div class="eval-meta-row">
+          <div class="eval-meta-row" style="margin-top: 0.65rem;">
             <div>
               <span style="font-size: 0.72rem; color: #64748b; font-weight: 700; text-transform: uppercase;">Salones Asignados:</span>
               <div class="eval-classrooms-list">${classroomChips}</div>
             </div>
-            <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: #64748b; margin-top: 0.25rem;">
-              <span>❓ <strong>${item.questions.length}</strong> preguntas</span>
+            <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: #64748b; margin-top: 0.35rem; align-items: center;">
+              <span>📥 Entregas registradas: <strong style="color: #0284c7; font-size: 0.85rem;">${subsCount}</strong> alumnos</span>
               <span>📅 ${isPublished ? `Enviado: ${item.publishedAt}` : `Creado: ${item.createdAt}`}</span>
             </div>
           </div>
         </div>
 
-        <div class="eval-actions-bar">
+        <div class="eval-actions-bar" style="margin-top: 0.85rem; display: flex; gap: 0.4rem; flex-wrap: wrap;">
           ${isPublished
             ? `
-              <button class="btn btn-outline" style="flex: 1; font-size: 0.75rem; padding: 0.35rem 0.5rem; justify-content: center; background: #f8fafc; color: #64748b; border-color: #cbd5e1;" onclick="App.attemptEditPublishedEvaluation('${item.id}')">
-                🔒 Modificar (Bloqueado)
+              <button class="btn btn-primary" style="flex: 1.3; font-size: 0.75rem; padding: 0.35rem 0.6rem; justify-content: center; font-weight: 700;" onclick="App.openEvaluationSubmissions('${item.id}')">
+                📊 Ver Resultados Alumnos (${subsCount})
               </button>
-              <button class="btn btn-primary" style="flex: 1; font-size: 0.75rem; padding: 0.35rem 0.5rem; justify-content: center;" onclick="App.openEvaluationViewer('${item.id}')">
-                👀 Ver Cuestionario
+              <button class="btn btn-outline" style="flex: 1; font-size: 0.75rem; padding: 0.35rem 0.5rem; justify-content: center; background: #f8fafc; color: #64748b; border-color: #cbd5e1;" onclick="App.attemptEditPublishedEvaluation('${item.id}')">
+                🔒 Bloqueado
+              </button>
+              <button class="btn btn-secondary" style="font-size: 0.75rem; padding: 0.35rem 0.55rem; justify-content: center;" onclick="App.openEvaluationViewer('${item.id}')" title="Ver configuración">
+                👀
               </button>
             `
             : `
@@ -7492,10 +7590,89 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
     );
   },
 
+  onEvaluationTypeChange() {
+    const type = document.getElementById('editorEvalType')?.value || 'lab2d';
+    const toolsSec = document.getElementById('editorPracticalToolsSection');
+    if (toolsSec) {
+      toolsSec.style.display = (type === 'lab2d') ? 'block' : 'none';
+    }
+  },
+
+  populateExamToolsCheckboxes(selectedIds = null) {
+    const container = document.getElementById('editorExamToolsGrid');
+    if (!container || typeof ChemEngine === 'undefined') return;
+    container.innerHTML = '';
+
+    const selSet = selectedIds ? new Set(selectedIds) : null;
+
+    Object.values(ChemEngine.instruments).forEach(inst => {
+      const isChecked = selSet ? selSet.has(inst.id) : true;
+      const label = document.createElement('label');
+      label.className = 'salon-checkbox-label';
+      label.style.display = 'flex';
+      label.style.alignItems = 'center';
+      label.style.gap = '0.35rem';
+      label.style.fontSize = '0.78rem';
+      label.style.cursor = 'pointer';
+      label.innerHTML = `
+        <input type="checkbox" value="${inst.id}" class="exam-tool-check" ${isChecked ? 'checked' : ''}>
+        <span>${inst.icon} ${inst.name}</span>
+      `;
+      container.appendChild(label);
+    });
+  },
+
+  populateExamReagentsCheckboxes(selectedIds = null) {
+    const container = document.getElementById('editorExamReagentsGrid');
+    if (!container || typeof ChemEngine === 'undefined') return;
+    container.innerHTML = '';
+
+    const selSet = selectedIds ? new Set(selectedIds) : null;
+
+    Object.values(ChemEngine.reagents).forEach(r => {
+      const isChecked = selSet ? selSet.has(r.id) : true;
+      const label = document.createElement('label');
+      label.className = 'salon-checkbox-label';
+      label.style.display = 'flex';
+      label.style.alignItems = 'center';
+      label.style.gap = '0.35rem';
+      label.style.fontSize = '0.78rem';
+      label.style.cursor = 'pointer';
+      label.innerHTML = `
+        <input type="checkbox" value="${r.id}" class="exam-reagent-check" ${isChecked ? 'checked' : ''}>
+        <span>${r.sga.icon} ${r.formula}</span>
+      `;
+      container.appendChild(label);
+    });
+  },
+
+  toggleAllExamTools(checkAll) {
+    document.querySelectorAll('.exam-tool-check').forEach(cb => cb.checked = checkAll);
+  },
+
+  toggleAllExamReagents(checkAll) {
+    document.querySelectorAll('.exam-reagent-check').forEach(cb => cb.checked = checkAll);
+  },
+
+  applyExamToolPreset(presetKey) {
+    if (presetKey === 'titration') {
+      const titrationTools = new Set(['burette', 'erlenmeyer', 'beaker', 'balance', 'ph_meter', 'pipette']);
+      document.querySelectorAll('.exam-tool-check').forEach(cb => {
+        cb.checked = titrationTools.has(cb.value);
+      });
+      const titrationReagents = new Set(['h2o', 'hcl', 'naoh', 'phenolphthalein']);
+      document.querySelectorAll('.exam-reagent-check').forEach(cb => {
+        cb.checked = titrationReagents.has(cb.value);
+      });
+      this.showDialog('Se aplicó el preset de Titulación Ácido-Base:\n• Instrumentos: Bureta, Matraz, Vaso, Balanza, pH-metro y Pipeta.\n• Reactivos: Agua, HCl 0.1 M, NaOH 0.1 M y Fenolftaleína.\n\nLos demás instrumentos no autorizados desaparecerán de la mesa del alumno.', 'Preset Aplicado', '🎯');
+    }
+  },
+
   openEvaluationEditor(evalId = null) {
     const modal = document.getElementById('modalEvaluationEditor');
     const formId = document.getElementById('editorEvalId');
     const formTitle = document.getElementById('editorEvalTitle');
+    const formType = document.getElementById('editorEvalType');
     const formTopic = document.getElementById('editorEvalTopic');
     const modalTitle = document.getElementById('evalModalTitle');
     const modalSub = document.getElementById('evalModalSubtitle');
@@ -7516,36 +7693,43 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
 
       formId.value = item.id;
       formTitle.value = item.title;
+      if (formType) formType.value = item.evalType || 'lab2d';
       formTopic.value = item.topic;
-      modalTitle.innerText = 'Modificar Cuestionario (Borrador)';
-      modalSub.innerText = 'Puede cambiar preguntas, alternativas y salones antes de enviarlo al aula.';
+      modalTitle.innerText = 'Modificar Evaluación (Borrador)';
+      modalSub.innerText = 'Puede cambiar modalidad, herramientas autorizadas, salones y preguntas antes de enviarlo al aula.';
 
       // Marcar checkboxes correspondientes
       document.querySelectorAll('.salon-target-check').forEach(cb => {
         cb.checked = item.targetClassrooms.includes(cb.value);
       });
 
-      // Cargar preguntas existentes
-      item.questions.forEach(q => this.addQuestionToEditor(q));
+      this.populateExamToolsCheckboxes(item.allowedInstruments || null);
+      this.populateExamReagentsCheckboxes(item.allowedReagents || null);
+      this.onEvaluationTypeChange();
+
+      // Cargar preguntas existentes si las hubiera
+      (item.questions || []).forEach(q => this.addQuestionToEditor(q));
     } else {
       formId.value = '';
       formTitle.value = '';
+      if (formType) formType.value = 'lab2d';
       formTopic.selectedIndex = 0;
-      modalTitle.innerText = 'Crear Nueva Evaluación / Cuestionario';
-      modalSub.innerText = 'Configure el título, los salones destino y las preguntas de evaluación.';
+      modalTitle.innerText = 'Crear Nueva Evaluación / Examen';
+      modalSub.innerText = 'Configure el título, la modalidad (Mesa 2D, Visor 3D o Teórico), los salones destino y las herramientas autorizadas.';
 
       // Marcar 4to A por defecto
       document.querySelectorAll('.salon-target-check').forEach(cb => {
         cb.checked = cb.value === '4A';
       });
 
-      // Agregar 1 pregunta inicial de ejemplo
-      this.addQuestionToEditor({
-        question: '¿Qué tipo de enlace se forma cuando la diferencia de electronegatividad (ΔEN) es mayor a 2.0?',
-        options: ['Enlace Iónico con transferencia electrónica', 'Enlace Covalente Polar', 'Enlace Covalente Apolar', 'Puente de Hidrógeno'],
-        answer: 0,
-        explanation: 'En la escala de Pauling, un valor ΔEN mayor o igual a 2.0 define un enlace de carácter iónico.'
-      });
+      // Precargar herramientas para examen práctico (por defecto preset titulación)
+      this.populateExamToolsCheckboxes(['burette', 'erlenmeyer', 'beaker', 'balance', 'ph_meter', 'pipette']);
+      this.populateExamReagentsCheckboxes(['h2o', 'hcl', 'naoh', 'phenolphthalein']);
+      this.onEvaluationTypeChange();
+
+      // ¡NO INYECTAR PREGUNTAS PRETERMINADAS! (El docente crea limpio desde cero)
+      const countEl = document.getElementById('editorQuestionsCount');
+      if (countEl) countEl.innerText = '0';
     }
 
     modal.style.display = 'flex';
@@ -7645,9 +7829,11 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
   saveEvaluation(isPublishing = false) {
     const idInput = document.getElementById('editorEvalId');
     const titleInput = document.getElementById('editorEvalTitle');
+    const typeSelect = document.getElementById('editorEvalType');
     const topicSelect = document.getElementById('editorEvalTopic');
 
     const title = titleInput ? titleInput.value.trim() : '';
+    const evalType = typeSelect ? typeSelect.value : 'lab2d';
     const topic = topicSelect ? topicSelect.value : 'General';
 
     if (!title) {
@@ -7663,20 +7849,33 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
       return;
     }
 
-    // Leer preguntas
+    // Herramientas e instrumentos autorizados
+    let allowedInstruments = null;
+    let allowedReagents = null;
+    if (evalType === 'lab2d') {
+      const toolChecks = Array.from(document.querySelectorAll('.exam-tool-check:checked')).map(cb => cb.value);
+      if (toolChecks.length === 0) {
+        this.showDialog('Por favor seleccione al menos una herramienta para el examen práctico. Las no seleccionadas desaparecerán de la mesa.', 'Herramientas Requeridas', '⚠️');
+        return;
+      }
+      allowedInstruments = toolChecks;
+      allowedReagents = Array.from(document.querySelectorAll('.exam-reagent-check:checked')).map(cb => cb.value);
+    }
+
+    // Leer preguntas si existen
     const qCards = document.querySelectorAll('.question-builder-card');
-    if (qCards.length === 0) {
-      this.showDialog('El cuestionario debe contener al menos una pregunta.', 'Sin Preguntas', '⚠️');
+    if (evalType === 'theory' && qCards.length === 0) {
+      this.showDialog('Un cuestionario teórico debe contener al menos una pregunta.', 'Sin Preguntas', '⚠️');
       return;
     }
 
     const questions = [];
     for (let i = 0; i < qCards.length; i++) {
       const card = qCards[i];
-      const qText = card.querySelector('.eval-q-text').value.trim();
+      const qText = card.querySelector('.eval-q-text')?.value.trim();
       const optInputs = card.querySelectorAll('.eval-opt-text');
       const correctRadio = card.querySelector('.eval-opt-correct:checked');
-      const expText = card.querySelector('.eval-q-exp').value.trim();
+      const expText = card.querySelector('.eval-q-exp')?.value.trim();
 
       if (!qText) {
         this.showDialog(`Por favor complete el enunciado de la Pregunta ${i + 1}.`, 'Pregunta Incompleta', '⚠️');
@@ -7706,7 +7905,6 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
     const existingId = idInput ? idInput.value : '';
 
     if (existingId) {
-      // Modificar existente
       const existing = this.evaluations.find(e => e.id === existingId);
       if (existing) {
         if (existing.status === 'published') {
@@ -7714,8 +7912,11 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
           return;
         }
         existing.title = title;
+        existing.evalType = evalType;
         existing.topic = topic;
         existing.targetClassrooms = checkedSalones;
+        existing.allowedInstruments = allowedInstruments;
+        existing.allowedReagents = allowedReagents;
         existing.questions = questions;
         if (isPublishing) {
           existing.status = 'published';
@@ -7723,16 +7924,19 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
         }
       }
     } else {
-      // Crear nueva
       const newEval = {
         id: 'eval-' + Date.now(),
         title: title,
+        evalType: evalType,
         topic: topic,
         targetClassrooms: checkedSalones,
+        allowedInstruments: allowedInstruments,
+        allowedReagents: allowedReagents,
         status: isPublishing ? 'published' : 'draft',
         createdAt: new Date().toLocaleString(),
         publishedAt: isPublishing ? new Date().toLocaleString() : null,
-        questions: questions
+        questions: questions,
+        submissions: []
       };
       this.evaluations.unshift(newEval);
     }
@@ -7741,15 +7945,17 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
     this.renderEvaluations(this.evalFilter);
     this.populateQuizSelector();
 
+    const modeLabel = evalType === 'lab2d' ? 'Examen Práctico en Mesa 2D' : (evalType === 'molecular3d' ? 'Examen Práctico Molecular 3D' : 'Cuestionario Teórico');
+
     if (isPublishing) {
       this.showDialog(
-        `¡Evaluación enviada con éxito!\n\nAsignada a: ${salonNames}.\nPreguntas: ${questions.length}.\n\n🔒 Estado: ENVIADO A SALÓN (PROTEGIDO).\nEsta evaluación ahora está visible para los estudiantes del salón y ha quedado protegida contra modificaciones para garantizar la validez de las calificaciones.`,
+        `¡${modeLabel} enviado con éxito!\n\nAsignado a: ${salonNames}.\nModalidad: ${modeLabel}.\n${allowedInstruments ? `Herramientas en estante: ${allowedInstruments.length} autorizadas.\n` : ''}\n🔒 Estado: ENVIADO A SALÓN (PROTEGIDO).\nLos estudiantes del salón ya pueden iniciar la práctica y sus resultados se registrarán automáticamente.`,
         'Evaluación Enviada a Salón',
         '🚀'
       );
     } else {
       this.showDialog(
-        `Cuestionario "${title}" guardado como BORRADOR.\n\nAsignado a: ${salonNames}.\nPreguntas guardadas: ${questions.length}.\n\n📝 Podrá seguir modificando las preguntas, opciones y salones en cualquier momento antes de enviarlo.`,
+        `Evaluación "${title}" guardada como BORRADOR.\n\nAsignado a: ${salonNames}.\nModalidad: ${modeLabel}.\n\n📝 Podrá seguir modificando las herramientas y configuración antes de publicarla.`,
         'Borrador Guardado',
         '💾'
       );
@@ -7802,31 +8008,63 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
 
     titleEl.innerText = item.title;
     const salonNames = item.targetClassrooms.map(c => this.getClassroomName(c)).join(', ');
-    subEl.innerText = `Tema: ${item.topic} • Salones: ${salonNames} • Publicado: ${item.publishedAt || item.createdAt}`;
+    const typeLabel = item.evalType === 'lab2d' ? '⚗️ Examen Práctico 2D' : (item.evalType === 'molecular3d' ? '🌐 Examen Molecular 3D' : '📝 Cuestionario Teórico');
+    subEl.innerText = `Modalidad: ${typeLabel} • Tema: ${item.topic} • Salones: ${salonNames} • Publicado: ${item.publishedAt || item.createdAt}`;
 
     let html = '';
-    const letters = ['A', 'B', 'C', 'D'];
-    item.questions.forEach((q, index) => {
-      let opts = '';
-      q.options.forEach((opt, oIndex) => {
-        const isCorrect = q.answer === oIndex;
-        opts += `
-          <div style="padding: 0.4rem 0.65rem; border-radius: 6px; margin-bottom: 0.3rem; font-size: 0.85rem; ${isCorrect ? 'background: #dcfce7; color: #15803d; font-weight: 700; border: 1px solid #86efac;' : 'background: #f8fafc; border: 1px solid #e2e8f0; color: #334155;'}">
-            ${isCorrect ? '✅' : '⚪'} <strong>${letters[oIndex]})</strong> ${opt}
-          </div>
-        `;
-      });
+
+    if (item.evalType === 'lab2d') {
+      const allowedNames = (item.allowedInstruments || Object.keys(ChemEngine.instruments)).map(id => {
+        const inst = ChemEngine.instruments[id];
+        return inst ? `<span class="salon-chip" style="background: #f0fdf4; color: #166534; border: 1px solid #86efac; font-weight: 700;">${inst.icon} ${inst.name}</span>` : id;
+      }).join(' ');
+
+      const allowedReag = (item.allowedReagents || Object.keys(ChemEngine.reagents)).map(id => {
+        const r = ChemEngine.reagents[id];
+        return r ? `<span class="salon-chip" style="background: #f0f9ff; color: #0369a1; border: 1px solid #7dd3fc; font-weight: 700;">${r.sga.icon} ${r.formula}</span>` : id;
+      }).join(' ');
 
       html += `
-        <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 1rem; margin-bottom: 1rem;">
-          <strong style="color: #0f172a; font-size: 0.92rem; display: block; margin-bottom: 0.5rem;">${index + 1}. ${q.question}</strong>
-          <div>${opts}</div>
-          <div style="margin-top: 0.5rem; font-size: 0.78rem; background: #f1f5f9; padding: 0.4rem 0.7rem; border-radius: 6px; color: #475569;">
-            💡 <strong>Explicación:</strong> ${q.explanation}
+        <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 10px; padding: 1.15rem; margin-bottom: 1rem;">
+          <h4 style="margin: 0 0 0.5rem 0; font-size: 0.95rem; color: #1e293b;">🔬 Herramientas e Instrumentos Autorizados en Mesa:</h4>
+          <div style="display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.85rem;">
+            ${allowedNames}
+          </div>
+          <h4 style="margin: 0 0 0.5rem 0; font-size: 0.95rem; color: #1e293b;">🧪 Reactivos Químicos Disponibles:</h4>
+          <div style="display: flex; flex-wrap: wrap; gap: 0.4rem;">
+            ${allowedReag}
+          </div>
+          <div style="margin-top: 0.85rem; font-size: 0.78rem; color: #15803d; background: #dcfce7; padding: 0.4rem 0.75rem; border-radius: 6px;">
+            ℹ️ Los instrumentos no seleccionados desaparecen del estante del alumno para que resuelva la práctica exclusivamente con el instrumental designado.
           </div>
         </div>
       `;
-    });
+    }
+
+    if (item.questions && item.questions.length > 0) {
+      const letters = ['A', 'B', 'C', 'D'];
+      item.questions.forEach((q, index) => {
+        let opts = '';
+        q.options.forEach((opt, oIndex) => {
+          const isCorrect = q.answer === oIndex;
+          opts += `
+            <div style="padding: 0.4rem 0.65rem; border-radius: 6px; margin-bottom: 0.3rem; font-size: 0.85rem; ${isCorrect ? 'background: #dcfce7; color: #15803d; font-weight: 700; border: 1px solid #86efac;' : 'background: #f8fafc; border: 1px solid #e2e8f0; color: #334155;'}">
+              ${isCorrect ? '✅' : '⚪'} <strong>${letters[oIndex]})</strong> ${opt}
+            </div>
+          `;
+        });
+
+        html += `
+          <div style="background: #ffffff; border: 1px solid #cbd5e1; border-radius: 10px; padding: 1rem; margin-bottom: 1rem;">
+            <strong style="color: #0f172a; font-size: 0.92rem; display: block; margin-bottom: 0.5rem;">${index + 1}. ${q.question}</strong>
+            <div>${opts}</div>
+            <div style="margin-top: 0.5rem; font-size: 0.78rem; background: #f1f5f9; padding: 0.4rem 0.7rem; border-radius: 6px; color: #475569;">
+              💡 <strong>Explicación:</strong> ${q.explanation}
+            </div>
+          </div>
+        `;
+      });
+    }
 
     bodyEl.innerHTML = html;
     modal.style.display = 'flex';
@@ -7835,6 +8073,264 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
   closeEvaluationViewer() {
     const modal = document.getElementById('modalEvaluationViewer');
     if (modal) modal.style.display = 'none';
+  },
+
+  // ================= RESULTADOS Y ENTREGAS DE ALUMNOS (DOCENTE RF007) =================
+  openEvaluationSubmissions(evalId) {
+    const item = this.evaluations.find(e => e.id === evalId);
+    if (!item) return;
+
+    const modal = document.getElementById('modalEvaluationSubmissions');
+    if (!modal) return;
+
+    document.getElementById('submModalEvalTitle').innerText = item.title;
+    const subs = item.submissions || [];
+    document.getElementById('submCountDisplay').innerText = `${subs.length} alumnos`;
+    document.getElementById('submClassroomsDisplay').innerText = item.targetClassrooms.map(c => this.getClassroomName(c)).join(', ');
+
+    const tbody = document.getElementById('submTableBody');
+    tbody.innerHTML = '';
+
+    if (subs.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="6" style="text-align: center; padding: 2.5rem 1rem; color: #64748b; font-style: italic;">
+            🔬 Aún ningún estudiante ha enviado los resultados de este examen práctico.<br>
+            <span style="font-size: 0.76rem; color: #94a3b8;">Los alumnos pueden ingresar desde su Salón a "Mesa de Laboratorio" para resolver la guía.</span>
+          </td>
+        </tr>
+      `;
+    } else {
+      subs.forEach(s => {
+        const tr = document.createElement('tr');
+        const isApproved = s.score >= 11;
+        tr.innerHTML = `
+          <td style="padding: 0.65rem 0.85rem; font-weight: 700; color: #0f172a; font-size: 0.84rem;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <div style="width: 28px; height: 28px; border-radius: 50%; background: #e0f2fe; color: #0284c7; display: flex; align-items: center; justify-content: center; font-size: 0.72rem; font-weight: 800;">
+                ${s.studentName.slice(0, 2).toUpperCase()}
+              </div>
+              <span>${s.studentName}</span>
+            </div>
+          </td>
+          <td style="padding: 0.65rem 0.85rem; font-size: 0.82rem; color: #475569;">${s.classroomName || '4to A'}</td>
+          <td style="padding: 0.65rem 0.85rem; font-size: 0.78rem; color: #64748b;">${s.date}</td>
+          <td style="padding: 0.65rem 0.85rem; text-align: center; font-weight: 900; color: #0284c7; font-size: 1.05rem;">
+            ${s.score} / 20
+          </td>
+          <td style="padding: 0.65rem 0.85rem; text-align: center;">
+            <span class="status-pill ${isApproved ? 'status-approved' : 'status-failed'}" style="font-size: 0.72rem; padding: 0.2rem 0.55rem;">
+              ${isApproved ? 'Aprobado (' + s.letterGrade + ')' : 'Desaprobado'}
+            </span>
+          </td>
+          <td style="padding: 0.65rem 0.85rem; text-align: center;">
+            <button type="button" class="btn btn-outline btn-sm" style="font-size: 0.74rem; padding: 0.25rem 0.6rem; color: #0284c7; border-color: #38bdf8; font-weight: 700;" onclick="App.viewSubmissionReportById('${item.id}', '${s.studentId}')">
+              🔍 Ver Ficha RF007
+            </button>
+          </td>
+        </tr>
+      `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    modal.style.display = 'flex';
+  },
+
+  closeSubmissionsModal() {
+    const modal = document.getElementById('modalEvaluationSubmissions');
+    if (modal) modal.style.display = 'none';
+  },
+
+  viewSubmissionReportById(evalId, studentId) {
+    const item = this.evaluations.find(e => e.id === evalId);
+    if (!item || !item.submissions) return;
+    const sub = item.submissions.find(s => s.studentId === studentId);
+    if (!sub) return;
+    this.viewSubmissionReport(sub);
+  },
+
+  viewSubmissionReport(sub) {
+    const modal = document.getElementById('modalReport');
+    if (!modal) return;
+    document.getElementById('reportScoreDisplay').innerText = `${sub.score} / 20`;
+    document.getElementById('reportLetterGrade').innerText = `${sub.letterGrade} (${sub.score >= 14 ? 'Logro Destacado' : (sub.score >= 11 ? 'Aprobado' : 'Requiere Refuerzo')})`;
+    const infoEl = document.getElementById('reportStudentInfo');
+    if (infoEl) {
+      infoEl.innerHTML = `Estudiante: <strong>${sub.studentName}</strong> • Salón: <strong>${sub.classroomName || '4to A'}</strong> • Fecha: <strong>${sub.date}</strong>`;
+    }
+    const tbody = document.getElementById('reportRubricBody');
+    tbody.innerHTML = '';
+    (sub.rubricDetails || []).forEach(item => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td style="padding: 0.6rem 0.85rem; font-size: 0.82rem;"><strong>${item.criteria}</strong></td>
+        <td style="text-align: center; padding: 0.6rem 0.85rem;"><span class="badge-score" style="font-size: 0.82rem; font-weight: 800; background: #e0f2fe; color: #0369a1; padding: 0.2rem 0.55rem; border-radius: 6px;">${item.score} / ${item.maxScore}</span></td>
+        <td style="font-size: 0.8rem; color: #334155; padding: 0.6rem 0.85rem;">${item.feedback}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+    modal.style.display = 'flex';
+  },
+
+  showEvaluationReportModal(rubric) {
+    const modal = document.getElementById('modalReport');
+    if (!modal) return;
+    document.getElementById('reportScoreDisplay').innerText = `${rubric.vigesimalScore} / 20`;
+    document.getElementById('reportLetterGrade').innerText = `${rubric.letterGrade} (${rubric.vigesimalScore >= 14 ? 'Logro Destacado' : (rubric.vigesimalScore >= 11 ? 'Aprobado' : 'Requiere Refuerzo')})`;
+    const infoEl = document.getElementById('reportStudentInfo');
+    if (infoEl) {
+      const user = this.state.currentUser || { name: 'Juan Pérez', classroom: '4to Año "A"' };
+      infoEl.innerHTML = `Estudiante: <strong>${user.name}</strong> • Salón: <strong>${user.classroom || '4to A'}</strong> • Fecha: <strong>${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString().slice(0, 5)}</strong>`;
+    }
+    const tbody = document.getElementById('reportRubricBody');
+    tbody.innerHTML = '';
+    rubric.details.forEach(item => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td style="padding: 0.6rem 0.85rem; font-size: 0.82rem;"><strong>${item.criteria}</strong></td>
+        <td style="text-align: center; padding: 0.6rem 0.85rem;"><span class="badge-score" style="font-size: 0.82rem; font-weight: 800; background: #e0f2fe; color: #0369a1; padding: 0.2rem 0.55rem; border-radius: 6px;">${item.score} / ${item.maxScore}</span></td>
+        <td style="font-size: 0.8rem; color: #334155; padding: 0.6rem 0.85rem;">${item.feedback}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+    modal.style.display = 'flex';
+  },
+
+  closeReportModal() {
+    const modal = document.getElementById('modalReport');
+    if (modal) modal.style.display = 'none';
+  },
+
+  // ================= GESTIÓN DE EXAMEN PRÁCTICO EN SIMULADOR (RF007 & RESTRICCIÓN DE HERRAMIENTAS) =================
+  startPracticalExam(evalId) {
+    const item = this.evaluations.find(e => e.id === evalId);
+    if (!item) return;
+
+    this.activePracticalExam = item;
+
+    if (item.evalType === 'molecular3d') {
+      this.switchTabTo('tab-molecular-3d');
+      this.showDialog(
+        `Has iniciado el examen práctico:\n"${item.title}".\n\n🌐 Realice la combinación atómica y análisis de enlace en el Visor Molecular 3D.\nAl culminar, pulsa "Entregar Examen".`,
+        'Examen Molecular 3D',
+        '🌐'
+      );
+      return;
+    }
+
+    // Cambiar a simulador 2D
+    this.switchTabTo('tab-simulator');
+
+    // Mostrar Banner de Examen
+    const banner = document.getElementById('examModeBanner');
+    if (banner) {
+      banner.style.display = 'flex';
+      const titleEl = document.getElementById('examBannerTitle');
+      const salonEl = document.getElementById('examBannerSalon');
+      const countEl = document.getElementById('examBannerToolsCount');
+      if (titleEl) titleEl.innerText = `Modo Examen Práctico: ${item.title}`;
+      if (salonEl) salonEl.innerText = item.targetClassrooms.map(c => this.getClassroomName(c)).join(', ');
+      if (countEl) countEl.innerText = `${item.allowedInstruments ? item.allowedInstruments.length : 14} autorizadas`;
+    }
+
+    // Re-renderizar estantes de reactivos e instrumentos (desaparecen los no permitidos)
+    this.renderInstrumentsRack();
+    this.renderReagentsShelf();
+
+    this.showDialog(
+      `Has iniciado el examen práctico:\n"${item.title}"\n\n🔬 Tu docente ha configurado estrictamente las herramientas permitidas para esta evaluación.\nLos demás instrumentos han desaparecido del estante para que utilices únicamente el instrumental autorizado.\n\nAl completar la práctica asignada, pulsa "📋 Entregar Examen (0-20)".`,
+      'Examen Práctico Iniciado',
+      '⚗️'
+    );
+  },
+
+  exitPracticalExam() {
+    this.activePracticalExam = null;
+    const banner = document.getElementById('examModeBanner');
+    if (banner) banner.style.display = 'none';
+
+    // Restaurar estantes a modo libre (vuelven a aparecer todos los 14 instrumentos)
+    this.renderInstrumentsRack();
+    this.renderReagentsShelf();
+    this.resetBenchObjects();
+
+    this.showDialog('Has regresado a la Mesa de Experimentación Libre con todas las 14 herramientas y reactivos disponibles.', 'Modo Libre Restaurado', '🔓');
+  },
+
+  submitPracticalExam() {
+    if (!this.activePracticalExam) {
+      this.finishTitrationPractice();
+      return;
+    }
+
+    const exam = this.activePracticalExam;
+    const user = this.state.currentUser || { id: 'u_student_1', name: 'Juan Pérez', classroomId: '4A', classroom: '4to Año "A"' };
+
+    // Evaluar práctica con ChemEngine
+    const vAdded = this.labBench ? this.labBench.buretteStand.volumeAddedMl : 25.0;
+    const receivingFlask = this.labBench && this.labBench.vessels[0];
+    const finalPh = (this.labBench && receivingFlask) ? this.labBench.getVesselPH(receivingFlask) : 7.0;
+
+    ChemEngine.logTelemetry('exam_submission', 'exam_practice_finish', vAdded, {
+      examId: exam.id,
+      examTitle: exam.title,
+      finalPh,
+      targetEqVol: this.practiceConfig2026.targetVolume
+    });
+
+    const rubricResult = ChemEngine.evaluateProceduralRubric(this.practiceConfig2026, ChemEngine.getTelemetryJSONB().events);
+
+    // Guardar submission en el examen (RF007)
+    const submission = {
+      studentId: user.id,
+      studentName: user.name,
+      classroomId: user.classroomId || '4A',
+      classroomName: user.classroom || '4to Año "A"',
+      score: rubricResult.vigesimalScore,
+      letterGrade: rubricResult.letterGrade,
+      date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString().slice(0, 5),
+      finalPh: finalPh.toFixed(2),
+      volumeAddedMl: vAdded.toFixed(1),
+      telemetry: ChemEngine.getTelemetryJSONB().events.slice(-5),
+      rubricDetails: rubricResult.details
+    };
+
+    exam.submissions = exam.submissions || [];
+    const existingIdx = exam.submissions.findIndex(s => s.studentId === user.id);
+    if (existingIdx >= 0) exam.submissions[existingIdx] = submission;
+    else exam.submissions.push(submission);
+
+    // Actualizar usuario
+    user.score = rubricResult.vigesimalScore;
+    user.status = rubricResult.vigesimalScore >= 11 ? 'Aprobado' : 'Pendiente';
+    this.updateUserUI();
+
+    // Guardar en DB
+    fetch('/api/db/save-score', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: user.id,
+        score: rubricResult.vigesimalScore,
+        practice: exam.title
+      })
+    }).catch(() => {});
+
+    // Salir del modo examen
+    this.activePracticalExam = null;
+    const banner = document.getElementById('examModeBanner');
+    if (banner) banner.style.display = 'none';
+
+    // Restaurar estantes a modo libre
+    this.renderInstrumentsRack();
+    this.renderReagentsShelf();
+
+    // Mostrar Ficha Oficial de Resultados al alumno (RF007)
+    this.showEvaluationReportModal(rubricResult);
+    if (user.role === 'student') {
+      this.renderStudentSalonView();
+    }
   },
 
   // ================= PANEL DE ADMINISTRACIÓN INSTITUCIONAL: AUDITORÍA DE USUARIOS Y NOTAS =================
@@ -8805,6 +9301,10 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
     if (!container || typeof ChemEngine === 'undefined') return;
     container.innerHTML = '';
 
+    const allowedReagentsSet = (this.activePracticalExam && this.activePracticalExam.allowedReagents && this.activePracticalExam.allowedReagents.length > 0)
+      ? new Set(this.activePracticalExam.allowedReagents)
+      : null;
+
     const colorThemes = {
       h2o: { border: '#0284c7', bg: '#f0f9ff', badgeBg: '#bae6fd', badgeBorder: '#38bdf8', formulaColor: '#0284c7' },
       nacl: { border: '#6366f1', bg: '#f8fafc', badgeBg: '#e0e7ff', badgeBorder: '#818cf8', formulaColor: '#4f46e5' },
@@ -8821,6 +9321,11 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
     };
 
     Object.values(ChemEngine.reagents).forEach(r => {
+      // En modo examen práctico, reactivos no autorizados se ocultan
+      if (allowedReagentsSet && !allowedReagentsSet.has(r.id)) {
+        return;
+      }
+
       const theme = colorThemes[r.id] || { border: '#0284c7', bg: '#ffffff', badgeBg: '#f1f5f9', badgeBorder: '#cbd5e1', formulaColor: '#64748b' };
       const card = document.createElement('div');
       card.className = 'reagent-card';
@@ -8871,7 +9376,16 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
     if (!container || typeof ChemEngine === 'undefined') return;
     container.innerHTML = '';
 
+    const allowedSet = (this.activePracticalExam && this.activePracticalExam.allowedInstruments && this.activePracticalExam.allowedInstruments.length > 0)
+      ? new Set(this.activePracticalExam.allowedInstruments)
+      : null;
+
     Object.values(ChemEngine.instruments).forEach(inst => {
+      // En modo examen práctico, los instrumentos no autorizados por el docente DESAPARECEN
+      if (allowedSet && !allowedSet.has(inst.id)) {
+        return;
+      }
+
       const item = document.createElement('div');
       item.className = 'tool-rack-item';
       item.title = `Haga clic para colocar ${inst.name} en la mesa`;
