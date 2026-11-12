@@ -1,0 +1,392 @@
+{
+  "users": [
+    {
+      "id": "usr-razself",
+      "name": "Stevie Marca",
+      "email": "razself@gmail.com",
+      "password": "123",
+      "role": "student",
+      "classroom": "4to Año \"A\"",
+      "classroomId": "4A",
+      "practice": "Síntesis de NaCl (Enlace Iónico)",
+      "attempts": 1,
+      "score": 19,
+      "status": "Aprobado",
+      "date": "28/10/2026 12:00",
+      "registeredAt": "20/10/2026",
+      "notesHistory": [
+        {
+          "test": "Evaluación Diagnóstica: Materia y Enlaces",
+          "score": 18,
+          "date": "22/10/2026"
+        },
+        {
+          "test": "Control 1: Enlaces Iónicos y Lewis",
+          "score": 19,
+          "date": "28/10/2026"
+        }
+      ]
+    },
+    {
+      "id": "usr-std-1",
+      "name": "Juan Pérez",
+      "email": "estudiante@fleming.edu.pe",
+      "password": "123",
+      "role": "student",
+      "classroom": "4to Año \"A\"",
+      "classroomId": "4A",
+      "practice": "Síntesis de NaCl (Enlace Iónico)",
+      "attempts": 1,
+      "score": 18,
+      "status": "Aprobado",
+      "date": "28/10/2026 10:15",
+      "registeredAt": "20/10/2026",
+      "notesHistory": [
+        {
+          "test": "Evaluación Diagnóstica: Materia y Enlaces",
+          "score": 17,
+          "date": "22/10/2026"
+        },
+        {
+          "test": "Control 1: Enlaces Iónicos y Lewis",
+          "score": 18,
+          "date": "28/10/2026"
+        }
+      ]
+    },
+    {
+      "id": "usr-std-2",
+      "name": "María Gómez",
+      "email": "maria@fleming.edu.pe",
+      "password": "123",
+      "role": "student",
+      "classroom": "4to Año \"A\"",
+      "classroomId": "4A",
+      "practice": "Síntesis de NaCl (Enlace Iónico)",
+      "attempts": 2,
+      "score": 19,
+      "status": "Aprobado",
+      "date": "28/10/2026 10:22",
+      "registeredAt": "20/10/2026",
+      "notesHistory": [
+        {
+          "test": "Evaluación Diagnóstica: Materia y Enlaces",
+          "score": 19,
+          "date": "22/10/2026"
+        }
+      ]
+    },
+    {
+      "id": "usr-prof-1",
+      "name": "Prof. Midori Judith Castillo Peralta",
+      "email": "profesora@fleming.edu.pe",
+      "password": "123",
+      "role": "teacher",
+      "classroom": "Docente de Laboratorio",
+      "classroomId": "ALL",
+      "practice": "Todas las Unidades",
+      "attempts": "-",
+      "score": "-",
+      "status": "Docente Activo",
+      "date": "28/10/2026",
+      "registeredAt": "15/10/2026"
+    },
+    {
+      "id": "usr-admin-1",
+      "name": "Administrador Fleming",
+      "email": "admin@fleming.edu.pe",
+      "password": "123",
+      "role": "admin",
+      "classroom": "Dirección General",
+      "classroomId": "ALL",
+      "practice": "Gestión Global",
+      "attempts": "-",
+      "score": "-",
+      "status": "Superadministrador",
+      "date": "28/10/2026",
+      "registeredAt": "01/10/2026"
+    }
+  ],
+  "classrooms": [
+    {
+      "id": "4A",
+      "name": "4to Año \"A\"",
+      "level": "Secundaria - Turno Mañana",
+      "assignedPractice": "Síntesis de NaCl (Enlace Iónico)",
+      "totalCapacity": 15,
+      "tutor": "Prof. Midori Judith Castillo Peralta",
+      "students": [
+        {
+          "name": "Juan Pérez (Tú)",
+          "practice": "Síntesis de NaCl",
+          "attempts": 1,
+          "score": 18,
+          "status": "Aprobado",
+          "date": "28/10/2026 10:15"
+        },
+        {
+          "name": "María Gómez",
+          "practice": "Síntesis de NaCl",
+          "attempts": 2,
+          "score": 19,
+          "status": "Aprobado",
+          "date": "28/10/2026 10:22"
+        },
+        {
+          "name": "Carlos Ramos",
+          "practice": "Síntesis de NaCl",
+          "attempts": 1,
+          "score": 16,
+          "status": "Aprobado",
+          "date": "28/10/2026 11:05"
+        },
+        {
+          "name": "Diego Mamani",
+          "practice": "Síntesis de NaCl",
+          "attempts": 1,
+          "score": 17,
+          "status": "Aprobado",
+          "date": "28/10/2026 11:18"
+        },
+        {
+          "name": "Camila Torres",
+          "practice": "Síntesis de NaCl",
+          "attempts": 2,
+          "score": 18,
+          "status": "Aprobado",
+          "date": "28/10/2026 11:40"
+        }
+      ]
+    },
+    {
+      "id": "4B",
+      "name": "4to Año \"B\"",
+      "level": "Secundaria - Turno Mañana",
+      "assignedPractice": "Formación de Molécula de Agua (H₂O)",
+      "totalCapacity": 15,
+      "tutor": "Prof. Midori Judith Castillo Peralta",
+      "students": [
+        {
+          "name": "Lucía Fernández",
+          "practice": "Formación de H₂O",
+          "attempts": 1,
+          "score": 20,
+          "status": "Aprobado",
+          "date": "28/10/2026 11:30"
+        },
+        {
+          "name": "Mateo Quispe",
+          "practice": "Formación de H₂O",
+          "attempts": 2,
+          "score": 15,
+          "status": "Aprobado",
+          "date": "28/10/2026 12:10"
+        },
+        {
+          "name": "Sofía Condori",
+          "practice": "Formación de H₂O",
+          "attempts": 1,
+          "score": 12,
+          "status": "Desaprobado",
+          "date": "28/10/2026 12:45"
+        },
+        {
+          "name": "Rodrigo Vargas",
+          "practice": "Formación de H₂O",
+          "attempts": 1,
+          "score": 16,
+          "status": "Aprobado",
+          "date": "28/10/2026 13:02"
+        },
+        {
+          "name": "Valeria Castro",
+          "practice": "Formación de H₂O",
+          "attempts": 1,
+          "score": 19,
+          "status": "Aprobado",
+          "date": "28/10/2026 13:15"
+        }
+      ]
+    },
+    {
+      "id": "5A",
+      "name": "5to Año \"A\"",
+      "level": "Secundaria - Turno Tarde",
+      "assignedPractice": "Neutralización Ácido-Base (HCl + NaOH)",
+      "totalCapacity": 12,
+      "tutor": "Prof. Midori Judith Castillo Peralta",
+      "students": [
+        {
+          "name": "Alejandro Morales",
+          "practice": "Neutralización Ácido-Base",
+          "attempts": 1,
+          "score": 19,
+          "status": "Aprobado",
+          "date": "29/10/2026 08:30"
+        },
+        {
+          "name": "Gabriela Zegarra",
+          "practice": "Neutralización Ácido-Base",
+          "attempts": 1,
+          "score": 20,
+          "status": "Aprobado",
+          "date": "29/10/2026 08:45"
+        },
+        {
+          "name": "Sebastián Huanca",
+          "practice": "Neutralización Ácido-Base",
+          "attempts": 2,
+          "score": 17,
+          "status": "Aprobado",
+          "date": "29/10/2026 09:10"
+        },
+        {
+          "name": "Daniela Cáceres",
+          "practice": "Neutralización Ácido-Base",
+          "attempts": 1,
+          "score": 18,
+          "status": "Aprobado",
+          "date": "29/10/2026 09:25"
+        }
+      ]
+    }
+  ],
+  "evaluations": [
+    {
+      "id": "eval-1794508935450",
+      "title": "aa",
+      "evalType": "lab2d",
+      "topic": "Neutralización Ácido-Base",
+      "description": "Determinar el punto de equivalencia titulando una alícuota de 25 mL de HCl 0.1 M con NaOH 0.1 M usando fenolftaleína. Se debe medir el volumen gastado exacto y alcanzar un pH neutro (~7.00) con viraje de incoloro a rosa persistente.",
+      "targetClassrooms": [
+        "4A",
+        "4B",
+        "5A"
+      ],
+      "allowedInstruments": [
+        "beaker",
+        "erlenmeyer",
+        "pipette",
+        "burette",
+        "ph_meter"
+      ],
+      "allowedReagents": [
+        "h2o",
+        "hcl",
+        "naoh",
+        "phenolphthalein"
+      ],
+      "status": "published",
+      "createdAt": "12/11/2026, 1:42:15 p.m.",
+      "publishedAt": "12/11/2026, 1:42:15 p.m.",
+      "questions": [],
+      "submissions": [
+        {
+          "studentId": "usr-razself",
+          "studentName": "Stevie Marca",
+          "classroomId": "4A",
+          "classroomName": "4to Año \"A\"",
+          "topic": "Neutralización Ácido-Base",
+          "problemStatement": "Determinar el punto de equivalencia titulando una alícuota de 25 mL de HCl 0.1 M con NaOH 0.1 M usando fenolftaleína. Se debe medir el volumen gastado exacto y alcanzar un pH neutro (~7.00) con viraje de incoloro a rosa persistente.",
+          "score": 11,
+          "letterGrade": "B",
+          "proceduralScore": 7,
+          "quizScore": 20,
+          "date": "12/11/2026 2:51:",
+          "finalPh": "1.30",
+          "volumeAddedMl": "0.0",
+          "temperature": "25.0 °C",
+          "reactionEquation": "HCl + NaOH → NaCl + H₂O",
+          "phenomenonObservation": "Solución en estado ácido inicial remanente.",
+          "verdict": "✅ Objetivo cumplido: El resultado experimental (0.0 mL de adición volumétrica, pH 1.30) y el cuestionario interactivo (20/20) resuelven satisfactoriamente la práctica de laboratorio.",
+          "telemetry": [
+            {
+              "timestamp": "2026-11-12T19:45:11.587Z",
+              "elapsedSeconds": 0.3,
+              "action": "session_start",
+              "target": "lab_platform",
+              "value": "Fleming-2026",
+              "details": {
+                "integration": "Quimi-K Full"
+              }
+            },
+            {
+              "timestamp": "2026-11-12T19:51:03.860Z",
+              "elapsedSeconds": 352.5,
+              "action": "exam_submission",
+              "target": "exam_practice_finish",
+              "value": 0,
+              "details": {
+                "examId": "eval-1794508935450",
+                "examTitle": "aa",
+                "finalPh": 1.301029995663981,
+                "targetEqVol": 25
+              }
+            }
+          ],
+          "rubricDetails": [
+            {
+              "criteria": "1. Selección de instrumentos y bioseguridad SGA",
+              "maxScore": 3,
+              "score": 0,
+              "feedback": "Omitió la consulta de la ficha SGA antes de manipular el reactivo corrosivo."
+            },
+            {
+              "criteria": "2. Procedimiento experimental y técnica de dosificación",
+              "maxScore": 5,
+              "score": 0,
+              "feedback": "Debe recordar siempre purgar la bureta para eliminar burbujas de aire y dosificar gota a gota."
+            },
+            {
+              "criteria": "3. Mediciones y toma de datos (Menisco y Balanza)",
+              "maxScore": 4,
+              "score": 0,
+              "feedback": "No realizó la lectura óptica ampliada del menisco de la probeta/bureta."
+            },
+            {
+              "criteria": "4. Exactitud cuantitativa de resultados y estequiometría",
+              "maxScore": 5,
+              "score": 5,
+              "feedback": "Margen de error experimental obtenido: 0.0% (Tolerancia aceptada: ± 5%)."
+            },
+            {
+              "criteria": "5. Conocimiento científico y fundamentación teórica",
+              "maxScore": 3,
+              "score": 2,
+              "feedback": "Respondió satisfactoriamente 2 de 3 preguntas conceptuales."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "eval-1",
+      "title": "Examen Práctico: Titulación Ácido-Base de HCl con NaOH",
+      "evalType": "lab2d",
+      "topic": "Neutralización Ácido-Base",
+      "description": "Determinar el punto de equivalencia titulando una alícuota de 25 mL de HCl 0.1 M con NaOH 0.1 M usando fenolftaleína. Se debe medir el volumen gastado exacto y alcanzar un pH neutro (~7.00) con viraje de incoloro a rosa persistente.",
+      "targetClassrooms": [
+        "4A"
+      ],
+      "status": "published",
+      "createdAt": "28/10/2026 09:30",
+      "publishedAt": "28/10/2026 10:00",
+      "allowedInstruments": [
+        "burette",
+        "erlenmeyer",
+        "beaker",
+        "balance",
+        "ph_meter"
+      ],
+      "allowedReagents": [
+        "h2o",
+        "hcl",
+        "naoh",
+        "phenolphthalein"
+      ],
+      "questions": [],
+      "submissions": []
+    }
+  ],
+  "engine": "Base de Datos Local Persistente"
+}

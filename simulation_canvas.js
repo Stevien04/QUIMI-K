@@ -239,24 +239,42 @@ const SimulationCanvas = (function () {
     // =======================================================================
     update() {
       // 1. Goteo de bureta
-      if (this.buretteStand && this.buretteStand.visible !== false && this.buretteStand.isDripping && this.buretteStand.volumeAddedMl < 50.0) {
-        this.buretteStand.volumeAddedMl = Math.min(50.0, this.buretteStand.volumeAddedMl + this.buretteStand.dripRate);
-        this.dripAnimY += 12;
+      if (this.buretteStand && this.buretteStand.visible !== false && this.buretteStand.isDripping) {
+        if (this.buretteStand.volumeAddedMl >= 50.0) {
+          this.buretteStand.isDripping = false;
+          this.showToast('⚠️ La bureta se ha vaciado (50 mL dosificados). Pulse [Rellenar Bureta] para recargarla.');
+          if (window.App && window.App.updateDigitalSensorsUI) window.App.updateDigitalSensorsUI();
+        } else {
+          this.buretteStand.volumeAddedMl = Math.min(50.0, this.buretteStand.volumeAddedMl + this.buretteStand.dripRate);
+          this.dripAnimY += 12;
 
-        // Comprobar si hay un recipiente bajo la punta de la bureta
-        const tipX = this.buretteStand.tipX;
-        const tipY = this.buretteStand.tipY;
-        const receivingVessel = this.vessels.find(v => (
-          tipX >= v.x && tipX <= v.x + v.width &&
-          v.y >= tipY && v.y <= tipY + 120
-        ));
+          // Comprobar si hay un recipiente bajo la punta de la bureta (zona ampliada)
+          const tipX = this.buretteStand.tipX;
+          const tipY = this.buretteStand.tipY;
+          const receivingVessel = this.vessels.find(v => (
+            tipX >= v.x - 12 && tipX <= v.x + v.width + 12 &&
+            v.y >= tipY && v.y <= tipY + 140
+          ));
 
-        if (this.dripAnimY > 60) {
-          this.dripAnimY = 0;
-          if (receivingVessel) {
-            // Añadir NaOH 0.1 M al recipiente
-            receivingVessel.contents.naoh += this.buretteStand.dripRate * 5;
-            this.recordTitrationStep(receivingVessel);
+          if (this.dripAnimY > 60) {
+            this.dripAnimY = 0;
+            if (receivingVessel) {
+              const rid = this.buretteStand.reagentId || 'naoh';
+              if (!receivingVessel.contents) {
+                receivingVessel.contents = { water: 0, hcl: 0, naoh: 0, indicator: 0, kmno4: 0, vinegar: 0, ethanol: 0, oil: 0, phenolphthalein: 0, nacl: 0, sand: 0, nahco3: 0, cuso4: 0 };
+              }
+              const dose = this.buretteStand.dripRate * 5;
+              if (rid === 'naoh') receivingVessel.contents.naoh += dose;
+              else if (rid === 'hcl') receivingVessel.contents.hcl += dose;
+              else if (rid === 'h2o') receivingVessel.contents.water += dose;
+              else if (receivingVessel.contents[rid] !== undefined) receivingVessel.contents[rid] += dose;
+              else receivingVessel.contents.naoh += dose;
+
+              if (receivingVessel.volume < receivingVessel.capacity) {
+                receivingVessel.volume = Math.min(receivingVessel.capacity, receivingVessel.volume + dose);
+              }
+              this.recordTitrationStep(receivingVessel);
+            }
           }
         }
       }
@@ -514,6 +532,19 @@ const SimulationCanvas = (function () {
     // 4. AGREGAR REACTIVOS DIRECTAMENTE A UN RECIPIENTE
     // =======================================================================
     addReagentToVessel(vessel, reagentId, amount = 25) {
+      // 1. Si la bureta está seleccionada o especificada, cargar o rellenar la bureta
+      if (this.selectedInstrument === 'burette' || vessel === 'burette') {
+        const r = ChemEngine.reagents[reagentId] || { name: 'Hidróxido de Sodio (NaOH 0.1 M)' };
+        this.buretteStand.reagentId = reagentId;
+        this.buretteStand.reagentName = r.name;
+        // Restablecer el volumen dosificado a 0 (bureta 100% llena con 50.0 mL)
+        this.buretteStand.volumeAddedMl = 0.0;
+        this.buretteStand.isDripping = false;
+        this.showToast(`🧪 Bureta enrasada y rellenada al tope: 50.0 mL de ${r.name}.`);
+        if (window.App && window.App.updateDigitalSensorsUI) window.App.updateDigitalSensorsUI();
+        return;
+      }
+
       if (!vessel) {
         if (this.selectedVessel) vessel = this.selectedVessel;
         else if (this.vessels.length > 0) vessel = this.vessels[0];
@@ -541,6 +572,36 @@ const SimulationCanvas = (function () {
 
       this.showToast(`🧪 Añadido +${amount} ${r.state === 'solid' ? 'g' : 'mL'} de ${r.name} a ${vessel.name} (Total: ${this.getVesselTotalVolume(vessel).toFixed(1)} mL).`);
       ChemEngine.logTelemetry('add_reagent_vessel', reagentId, vessel.id, { amount });
+    }
+
+    refillBurette(reagentId = null) {
+      if (!this.buretteStand) return;
+      const rid = reagentId || this.buretteStand.reagentId || 'naoh';
+      const r = ChemEngine.reagents[rid] || { name: 'Hidróxido de Sodio (NaOH 0.1 M)' };
+      this.buretteStand.reagentId = rid;
+      this.buretteStand.reagentName = r.name;
+      this.buretteStand.volumeAddedMl = 0.0;
+      this.buretteStand.isDripping = false;
+      this.showToast(`✨ Bureta rellenada y enrasada al tope (50.0 mL de ${r.name}).`);
+      if (window.App && window.App.updateDigitalSensorsUI) window.App.updateDigitalSensorsUI();
+    }
+
+    alignVesselUnderBurette(vessel = null) {
+      if (!this.buretteStand || this.buretteStand.visible === false) {
+        this.showToast('⚠️ No hay bureta colocada en la mesa.');
+        return;
+      }
+      const target = vessel || this.selectedVessel || this.vessels.find(v => v.type === 'erlenmeyer') || this.vessels[0];
+      if (!target) {
+        this.showToast('⚠️ No hay ningún matraz o vaso en la mesa. Coloque uno desde el estante.');
+        return;
+      }
+      target.x = this.buretteStand.tipX - target.width / 2;
+      target.y = 405; // Base normal sobre la encimera
+      this.selectedVessel = target;
+      this.selectedInstrument = null;
+      this.showToast(`🎯 ${target.name} posicionado exactamente bajo la punta de la bureta.`);
+      if (window.App && window.App.updateDigitalSensorsUI) window.App.updateDigitalSensorsUI();
     }
 
     // =======================================================================
@@ -786,6 +847,45 @@ const SimulationCanvas = (function () {
         ctx.arc(s.tipX, s.tipY + (this.dripAnimY % 45), 3, 0, Math.PI * 2);
         ctx.fill();
       }
+
+      // Placa identificadora del reactivo cargado en la parte superior de la bureta
+      ctx.save();
+      const tagX = bx + bw / 2;
+      const tagY = by - 10;
+      const chemName = s.reagentName || 'Hidróxido de Sodio (NaOH 0.1 M)';
+      const tagText = chemName.length > 22 ? chemName.slice(0, 20) + '...' : chemName;
+      const tagVol = `${Math.max(0, 50.0 - s.volumeAddedMl).toFixed(1)} / 50 mL`;
+
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
+      ctx.strokeStyle = '#0284C7';
+      ctx.lineWidth = 1.5;
+      const boxW = Math.max(105, ctx.measureText ? ctx.measureText(tagText).width + 24 : 105);
+      const boxH = 24;
+      const boxX = tagX - boxW / 2;
+      const boxY = tagY - boxH;
+      ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(boxX, boxY, boxW, boxH, 4);
+      else ctx.rect(boxX, boxY, boxW, boxH);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = '#38BDF8';
+      ctx.font = 'bold 9px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(tagText, tagX, boxY + 10);
+      ctx.fillStyle = '#F8FAFC';
+      ctx.font = 'bold 8.5px monospace';
+      ctx.fillText(tagVol, tagX, boxY + 20);
+
+      // Rótulo descriptivo completo al pie del soporte universal
+      ctx.fillStyle = '#0F172A';
+      ctx.font = 'bold 10px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(`Bureta: ${chemName}`, s.baseX + s.baseW / 2, s.baseY + s.baseH + 13);
+      ctx.fillStyle = s.isDripping ? '#16A34A' : '#475569';
+      ctx.font = 'bold 9px monospace';
+      ctx.fillText(`Dosificado: ${s.volumeAddedMl.toFixed(1)} mL | ${s.isDripping ? '💧 FLUJO ACTIVO' : '⏸️ LLAVE CERRADA'}`, s.baseX + s.baseW / 2, s.baseY + s.baseH + 25);
+      ctx.restore();
     }
 
     renderVessel(ctx, v) {
@@ -1148,6 +1248,19 @@ const SimulationCanvas = (function () {
       ctx.font = '9px monospace';
       ctx.fillText(`pH: ${this.getVesselPH(v).toFixed(1)} | ${v.temperature.toFixed(0)}°C`, v.x + v.width / 2, v.y + v.height + 26);
 
+      // Mostrar el contenido químico debajo del recipiente
+      const summary = this.getVesselContentsSummary(v);
+      if (summary.length > 0) {
+        ctx.fillStyle = '#0284C7';
+        ctx.font = 'bold 8.5px sans-serif';
+        const chemNames = summary.map(item => item.name.split('(')[0].trim()).slice(0, 2).join(' + ');
+        ctx.fillText(chemNames, v.x + v.width / 2, v.y + v.height + 38);
+      } else {
+        ctx.fillStyle = '#94A3B8';
+        ctx.font = 'italic 8.5px sans-serif';
+        ctx.fillText('(Vacío)', v.x + v.width / 2, v.y + v.height + 38);
+      }
+
       ctx.restore();
     }
 
@@ -1333,6 +1446,15 @@ const SimulationCanvas = (function () {
       ctx.lineTo(w - 10, meniscusY + 18);
       ctx.stroke();
       ctx.setLineDash([]);
+
+      // Identificador del reactivo dentro de la lente de aumento
+      ctx.fillStyle = '#0F172A';
+      ctx.font = 'bold 9px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('NaOH 0.1 M (Base)', cx, 20);
+      ctx.fillStyle = '#0284C7';
+      ctx.font = 'bold 9.5px monospace';
+      ctx.fillText(`V: ${curV.toFixed(2)} mL`, cx, h - 12);
 
       ctx.restore();
 
@@ -1524,8 +1646,20 @@ const SimulationCanvas = (function () {
         const pos = getPos(e);
         if (this.draggedVessel) {
           if (e.cancelable) e.preventDefault();
-          this.draggedVessel.x = Math.max(10, Math.min(this.benchCanvas.width - this.draggedVessel.width - 10, pos.x - this.dragOffsetX));
-          this.draggedVessel.y = Math.max(40, Math.min(this.benchCanvas.height - this.draggedVessel.height - 10, pos.y - this.dragOffsetY));
+          let targetX = Math.max(10, Math.min(this.benchCanvas.width - this.draggedVessel.width - 10, pos.x - this.dragOffsetX));
+          let targetY = Math.max(40, Math.min(this.benchCanvas.height - this.draggedVessel.height - 10, pos.y - this.dragOffsetY));
+
+          // Magnetismo / Snap si se acerca a la punta de la bureta
+          if (this.buretteStand && this.buretteStand.visible !== false) {
+            const underBuretteX = this.buretteStand.tipX - this.draggedVessel.width / 2;
+            if (Math.abs(targetX - underBuretteX) < 32 && targetY >= this.buretteStand.tipY - 15) {
+              targetX = underBuretteX;
+              targetY = 405; // Centrado perfecto sobre la mesa
+            }
+          }
+
+          this.draggedVessel.x = targetX;
+          this.draggedVessel.y = targetY;
           this.benchCanvas.style.cursor = 'grabbing';
         } else if (this.draggedInstrument === 'balance') {
           if (e.cancelable) e.preventDefault();

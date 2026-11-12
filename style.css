@@ -3375,8 +3375,6 @@ body.simulator-active .top-context-bar {
   max-height: 48px !important;
   box-sizing: border-box !important;
 }
-  overflow: hidden !important;
-}
 
 /* Fichas Interactivas de Elementos Químicos */
 .btn-elem-chip {
@@ -3426,4 +3424,355 @@ body.simulator-active .top-context-bar {
 .btn-elem-chip:hover .z {
   color: #e0f2fe;
 }
+
+/* ==========================================================================
+   RF009: GUÍA DE USO CORRECTO Y PELIGROS DE INSTRUMENTAL (BIOSEGURIDAD)
+   ========================================================================== */
+.btn-card-guide-corner {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 0.15rem 0.45rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  transition: all 0.18s ease;
+  line-height: 1.2;
+}
+.btn-card-guide-corner:hover {
+  background: #dbeafe;
+  color: #1e40af;
+  border-color: #93c5fd;
+  transform: scale(1.04);
+}
+
+.tool-guide-inline-card {
+  margin-top: 0.65rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.6rem;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.tool-guide-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.45rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.tool-guide-header-title {
+  font-size: 0.74rem;
+  font-weight: 800;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.tool-guide-body {
+  display: flex;
+  gap: 0.65rem;
+  align-items: flex-start;
+}
+
+.tool-guide-svg-box {
+  width: 72px;
+  height: 72px;
+  min-width: 72px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+.tool-guide-svg-box svg {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.tool-guide-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.tool-guide-section-label {
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: #0369a1;
+  text-transform: uppercase;
+  margin-bottom: 0.2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.tool-guide-step-list {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.70rem;
+  color: #334155;
+  line-height: 1.35;
+}
+
+.tool-guide-step-list li {
+  margin-bottom: 0.2rem;
+}
+
+.tool-guide-hazard-box {
+  margin-top: 0.45rem;
+  background: #fff1f2;
+  border: 1px solid #fecdd3;
+  border-radius: 6px;
+  padding: 0.4rem 0.55rem;
+}
+
+.tool-guide-hazard-title {
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: #be123c;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-bottom: 0.15rem;
+}
+
+.tool-guide-hazard-text {
+  font-size: 0.68rem;
+  color: #9f1239;
+  line-height: 1.3;
+  margin: 0;
+}
+
+.tool-guide-ppe-row {
+  margin-top: 0.35rem;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.66rem;
+  color: #475569;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 0.2rem 0.45rem;
+}
+
+/* ==========================================================================
+   RF012: BOTÓN DEL ROBOT Y MODAL DE FLUJO INTUITIVO GUIADO POR IA
+   ========================================================================== */
+.btn-topbar-robot {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  color: #f8fafc;
+  border: 1.5px solid #38bdf8;
+  border-radius: 999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(56, 189, 248, 0.25);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+}
+
+.btn-topbar-robot:hover {
+  background: linear-gradient(135deg, #1e293b 0%, #0369a1 100%);
+  border-color: #7dd3fc;
+  box-shadow: 0 4px 14px rgba(56, 189, 248, 0.45);
+  transform: translateY(-1px);
+}
+
+.robot-avatar-emoji {
+  font-size: 1.15rem;
+  animation: robotBounce 2.5s infinite ease-in-out;
+  display: inline-block;
+}
+
+@keyframes robotBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+.robot-btn-text {
+  font-weight: 700;
+  color: #f8fafc;
+  letter-spacing: 0.02em;
+}
+
+.robot-status-pill {
+  background: #0284c7;
+  color: #ffffff;
+  font-size: 0.62rem;
+  font-weight: 800;
+  padding: 0.12rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid #38bdf8;
+  animation: pulsePill 2s infinite;
+}
+
+@keyframes pulsePill {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.85; transform: scale(1.05); }
+}
+
+.flow-step-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 8px;
+  margin-bottom: 0.45rem;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.flow-step-item.completed {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+.flow-step-item.active {
+  background: #f0f9ff;
+  border-color: #38bdf8;
+  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.15);
+}
+
+.flow-step-item.pending {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+  opacity: 0.75;
+}
+
+.flow-step-badge {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.flow-step-item.completed .flow-step-badge {
+  background: #22c55e;
+  color: white;
+}
+
+.flow-step-item.active .flow-step-badge {
+  background: #0284c7;
+  color: white;
+  animation: pulsePill 1.8s infinite;
+}
+
+.flow-step-item.pending .flow-step-badge {
+  background: #cbd5e1;
+  color: #475569;
+}
+
+/* ==========================================================================
+   RF011: BOTÓN Y MODAL DE CONSULTA CONTEXTUAL DE LABORATORIO CON REVISIÓN ORTOGRÁFICA
+   ========================================================================== */
+.btn-topbar-consult {
+  background: linear-gradient(135deg, #065f46 0%, #047857 100%);
+  color: #f0fdf4;
+  border: 1.5px solid #34d399;
+  border-radius: 999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(52, 211, 153, 0.25);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+}
+
+.btn-topbar-consult:hover {
+  background: linear-gradient(135deg, #047857 0%, #059669 100%);
+  border-color: #6ee7b7;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(52, 211, 153, 0.4);
+}
+
+.consult-emoji {
+  font-size: 1.1rem;
+}
+
+.consult-text {
+  font-weight: 700;
+  color: #f0fdf4;
+  letter-spacing: 0.02em;
+}
+
+.ortho-tip-box {
+  background: #fefce8;
+  border: 1.5px solid #fde047;
+  border-radius: 8px;
+  padding: 0.65rem 0.85rem;
+  margin-bottom: 0.65rem;
+  box-shadow: 0 2px 6px rgba(234, 179, 8, 0.12);
+}
+
+.lab-consult-bubble {
+  max-width: 85%;
+  padding: 0.75rem 0.95rem;
+  border-radius: 12px;
+  margin-bottom: 0.65rem;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  animation: fadeIn 0.25s ease-out;
+}
+
+.lab-consult-bubble.user {
+  margin-left: auto;
+  background: #0284c7;
+  color: #ffffff;
+  border-bottom-right-radius: 2px;
+}
+
+.lab-consult-bubble.bot {
+  margin-right: auto;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #1e293b;
+  border-bottom-left-radius: 2px;
+}
+
+.lab-consult-preset-chip {
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  color: #166534;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.lab-consult-preset-chip:hover {
+  background: #dcfce7;
+  border-color: #4ade80;
+  transform: translateY(-1px);
+}
+
 

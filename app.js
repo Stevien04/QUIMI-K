@@ -1317,9 +1317,73 @@ const App = {
   activeTakingQuizType: 'practice',
 
   // Inicialización de la aplicación
+  // ================= PERSISTENCIA LOCAL Y BASE DE DATOS =================
+  saveEvaluationsLocally() {
+    try {
+      localStorage.setItem('quimik_evaluations', JSON.stringify(this.evaluations));
+    } catch (e) {
+      console.warn('Error guardando evaluaciones en localStorage:', e);
+    }
+  },
+
+  saveUsersLocally() {
+    try {
+      localStorage.setItem('quimik_registered_users', JSON.stringify(this.registeredUsers));
+    } catch (e) {
+      console.warn('Error guardando usuarios en localStorage:', e);
+    }
+  },
+
+  saveClassroomsLocally() {
+    try {
+      localStorage.setItem('quimik_classrooms', JSON.stringify(this.classrooms));
+    } catch (e) {
+      console.warn('Error guardando salones en localStorage:', e);
+    }
+  },
+
+  loadLocalState() {
+    try {
+      // 1. Cargar evaluaciones guardadas localmente
+      const evRaw = localStorage.getItem('quimik_evaluations');
+      if (evRaw) {
+        const parsed = JSON.parse(evRaw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // Fusionar con las evaluaciones existentes asegurando que los exámenes creados prevalezcan
+          const existingIds = new Set(parsed.map(p => p.id));
+          const defaults = this.evaluations.filter(d => !existingIds.has(d.id));
+          this.evaluations = [...parsed, ...defaults];
+        }
+      }
+
+      // 2. Cargar usuarios guardados localmente
+      const uRaw = localStorage.getItem('quimik_registered_users');
+      if (uRaw) {
+        const parsed = JSON.parse(uRaw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          this.registeredUsers = parsed;
+        }
+      }
+
+      // 3. Cargar salones guardados localmente
+      const clRaw = localStorage.getItem('quimik_classrooms');
+      if (clRaw) {
+        const parsed = JSON.parse(clRaw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          this.classrooms = parsed;
+        }
+      }
+    } catch (err) {
+      console.warn('Aviso al cargar estado de localStorage:', err);
+    }
+  },
+
   init() {
     // Sobrescribir alert del navegador con el diálogo cuadrado centrado
     window.alert = (msg) => this.showDialog(msg);
+
+    // Cargar inmediatamente desde almacenamiento local permanente
+    this.loadLocalState();
 
     this.setupNavigation();
     this.setupCanvas();
@@ -1338,7 +1402,7 @@ const App = {
     // Exigir Login al entrar a la página
     this.openAuthModal('login');
 
-    // Cargar y sincronizar con PostgreSQL 16
+    // Cargar y sincronizar con PostgreSQL 16 / Backend
     this.initDatabase();
 
     console.log('QUIMI-K Inicializado con éxito con gestión de salones y creador de evaluaciones.');
@@ -1352,20 +1416,28 @@ const App = {
         const json = await res.json();
         if (json.success && json.data) {
           if (Array.isArray(json.data.users) && json.data.users.length > 0) {
+            // Combinar notas y usuarios
             this.registeredUsers = json.data.users;
+            this.saveUsersLocally();
           }
           if (Array.isArray(json.data.classrooms) && json.data.classrooms.length > 0) {
             this.classrooms = json.data.classrooms;
+            this.saveClassroomsLocally();
           }
           if (Array.isArray(json.data.evaluations) && json.data.evaluations.length > 0) {
-            this.evaluations = json.data.evaluations;
+            // Fusionar con exámenes locales para no perder creaciones recientes
+            const dbIds = new Set(json.data.evaluations.map(e => e.id));
+            const localOnly = this.evaluations.filter(e => !dbIds.has(e.id));
+            this.evaluations = [...localOnly, ...json.data.evaluations];
+            this.saveEvaluationsLocally();
           }
-          console.log('[PostgreSQL 16] Datos cargados con éxito desde quimik_db:', {
+          console.log('[Base de Datos] Datos sincronizados con éxito:', {
             usuarios: this.registeredUsers.length,
             salones: this.classrooms.length,
             evaluaciones: this.evaluations.length
           });
           this.renderClassroomsOverview();
+          this.renderEvaluations();
           this.renderAdminUsers();
           if (this.state.currentUser && this.state.currentUser.role === 'student') {
             this.renderStudentSalonView();
@@ -1373,46 +1445,78 @@ const App = {
         }
       }
     } catch (err) {
-      console.warn('[PostgreSQL 16] Modo offline o fallback local:', err);
+      console.warn('[Base de Datos] Modo offline o fallback local:', err);
     }
   },
 
   async syncClassroomToDb(classroom) {
+    this.saveClassroomsLocally();
     try {
       await fetch('/api/db/save-classroom', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(classroom)
       });
-      console.log(`[PostgreSQL 16] Salón '${classroom.name}' sincronizado con éxito.`);
+      console.log(`[Base de Datos] Salón '${classroom.name}' sincronizado con éxito.`);
     } catch (err) {
-      console.warn('[PostgreSQL 16] Fallo al sincronizar salón:', err);
+      console.warn('[Base de Datos] Fallo al sincronizar salón:', err);
     }
   },
 
   async syncUserToDb(user) {
+    this.saveUsersLocally();
     try {
       await fetch('/api/db/save-user', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(user)
       });
-      console.log(`[PostgreSQL 16] Usuario '${user.name}' sincronizado con éxito.`);
+      console.log(`[Base de Datos] Usuario '${user.name}' sincronizado con éxito.`);
     } catch (err) {
-      console.warn('[PostgreSQL 16] Fallo al sincronizar usuario:', err);
+      console.warn('[Base de Datos] Fallo al sincronizar usuario:', err);
+    }
+  },
+
+  async syncEvaluationToDb(evaluation) {
+    this.saveEvaluationsLocally();
+    try {
+      await fetch('/api/db/save-evaluation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(evaluation)
+      });
+      console.log(`[Base de Datos] Evaluación '${evaluation.title}' sincronizada con éxito.`);
+    } catch (err) {
+      console.warn('[Base de Datos] Fallo al sincronizar evaluación:', err);
+    }
+  },
+
+  async deleteEvaluationFromDb(evalId) {
+    this.saveEvaluationsLocally();
+    try {
+      await fetch('/api/db/delete-evaluation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: evalId })
+      });
+      console.log(`[Base de Datos] Evaluación '${evalId}' eliminada en servidor.`);
+    } catch (err) {
+      console.warn('[Base de Datos] Fallo al eliminar evaluación en servidor:', err);
     }
   },
 
   async syncScoreToDb(scorePayload) {
+    this.saveUsersLocally();
+    this.saveClassroomsLocally();
     try {
       await fetch('/api/db/save-score', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(scorePayload)
       });
-      console.log(`[PostgreSQL 16] Calificación guardada en PostgreSQL:`, scorePayload);
+      console.log(`[Base de Datos] Calificación guardada:`, scorePayload);
     } catch (err) {
-      console.warn('[PostgreSQL 16] Fallo al sincronizar nota:', err);
+      console.warn('[Base de Datos] Fallo al sincronizar nota:', err);
     }
   },
 
@@ -2002,6 +2106,7 @@ const App = {
       const pane = document.getElementById(tabId);
       if (pane) pane.classList.add('active');
     }
+    this.updateRobotFlowAdvisorVisibility();
   },
 
   // Configurar la navegación de la barra lateral izquierda y vistas
@@ -2078,8 +2183,14 @@ const App = {
         if (targetId === 'tab-simulator') {
           setTimeout(() => App.resizeCanvas(), 50);
         }
+
+        // Actualizar visibilidad condicional del botón de Quimi (solo visible en Mesa 2D)
+        App.updateRobotFlowAdvisorVisibility();
       });
     });
+
+    // Estado inicial de visibilidad al cargar
+    this.updateRobotFlowAdvisorVisibility();
   },
 
   // Compatibilidad de selector de rol
@@ -2517,6 +2628,386 @@ const App = {
   },
 
   // ================= RF008 & RF009: HERRAMIENTAS VIRTUALES Y USO GUIADO =================
+  TOOL_GUIDES_DB: {
+    burette: {
+      id: 'burette',
+      name: 'Soporte Universal con Bureta Graduada (50 mL)',
+      category: 'Volumétrico de Precisión',
+      icon: '💧',
+      capacity: '50 mL (Resolución ±0.02 mL)',
+      svg: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="44" y="8" width="12" height="70" rx="2" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5"/><rect x="46" y="24" width="8" height="54" fill="#38bdf8" opacity="0.75"/><line x1="52" y1="16" x2="56" y2="16" stroke="#0369a1" stroke-width="1"/><line x1="50" y1="26" x2="56" y2="26" stroke="#0369a1" stroke-width="1.2"/><line x1="52" y1="36" x2="56" y2="36" stroke="#0369a1" stroke-width="1"/><line x1="50" y1="46" x2="56" y2="46" stroke="#0369a1" stroke-width="1.2"/><polygon points="45,78 55,78 52,88 48,88" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.2"/><rect x="41" y="79" width="18" height="4" rx="2" fill="#ef4444"/><circle cx="50" cy="94" r="2" fill="#0284c7"/><rect x="24" y="6" width="5" height="88" fill="#334155"/><rect x="14" y="92" width="36" height="6" rx="2" fill="#1e293b"/><line x1="29" y1="20" x2="44" y2="20" stroke="#475569" stroke-width="2.5"/><line x1="29" y1="60" x2="44" y2="60" stroke="#475569" stroke-width="2.5"/></svg>`,
+      correctUsage: [
+        'Fijación vertical: Asegurar la bureta con la doble nuez al soporte universal en posición perfectamente vertical.',
+        'Purga de burbujas: Llenar por encima del aforo cero y abrir brevemente la llave para expulsar bolsas de aire de la punta.',
+        'Enrase del menisco: Ajustar el volumen tangencial inferior de la curva del líquido a la altura de los ojos.',
+        'Dispensación controlada: Abrazar el cilindro con la mano no dominante para regular la llave de teflón mientras se agita el matraz.'
+      ],
+      hazards: [
+        'Rotura del tubo de vidrio por exceso de torque en las pinzas metálicas.',
+        'Proyecciones de titulante cáustico (NaOH) o ácido concentrado al purgar bruscamente.',
+        'Derrame sobre la mesa si se recarga la bureta con la llave de teflón abierta.'
+      ],
+      sgaCodes: ['SGA05 Corrosivo', 'SGA07 Toxicidad aguda'],
+      ppe: ['🥽 Gafas de seguridad', '🧤 Guantes de nitrilo', '🥼 Mandil de laboratorio'],
+      goldenRule: 'Nunca fuerce la llave si está trabada y enjuague siempre con agua destilada al finalizar la titulación.'
+    },
+    erlenmeyer: {
+      id: 'erlenmeyer',
+      name: 'Matraz Erlenmeyer (250 mL)',
+      category: 'Titulación y Reacción',
+      icon: '⚗️',
+      capacity: '250 mL (Pyrex borosilicato)',
+      svg: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><ellipse cx="50" cy="90" rx="35" ry="6" fill="#cbd5e1"/><path d="M44 14 L56 14 L56 38 L80 84 A6 6 0 0 1 75 90 L25 90 A6 6 0 0 1 20 84 L44 38 Z" fill="#e0f2fe" stroke="#0284c7" stroke-width="2"/><ellipse cx="50" cy="14" rx="7" ry="2.5" fill="#f8fafc" stroke="#0284c7" stroke-width="1.5"/><path d="M28 72 L72 72 L76 86 Q50 92 24 86 Z" fill="#38bdf8" opacity="0.85"/><circle cx="42" cy="78" r="2" fill="#ffffff" opacity="0.8"/><circle cx="58" cy="81" r="2.5" fill="#ffffff" opacity="0.8"/><line x1="54" y1="52" x2="62" y2="52" stroke="#0369a1" stroke-width="1.5"/><line x1="58" y1="65" x2="68" y2="65" stroke="#0369a1" stroke-width="1.5"/></svg>`,
+      correctUsage: [
+        'Inspección visual: Verificar que la base y cuello del vidrio Pyrex no presenten fisuras antes de verter.',
+        'Sujeción correcta: Tomar el matraz por el tercio superior del cuello usando los dedos pulgar e índice.',
+        'Agitación orbital: Describir giros suaves de muñeca sin despegar la base para crear un vórtice sin salpicaduras.',
+        'Detección de viraje: Colocar sobre fondo o loseta blanca para notar el cambio de color de indicadores.'
+      ],
+      hazards: [
+        'PROHIBIDO calentar cerrado herméticamente con tapón (estallido violento por sobrepresión).',
+        'Choque térmico por apoyar el fondo caliente directamente sobre la encimera fría o húmeda.'
+      ],
+      sgaCodes: ['SGA07 Irritante'],
+      ppe: ['🥽 Gafas de seguridad', '🧤 Guantes térmicos (si calienta)', '🥼 Mandil'],
+      goldenRule: 'Deje enfriar sobre rejilla con asbesto y nunca apunte la boca abierta hacia el rostro.'
+    },
+    beaker: {
+      id: 'beaker',
+      name: 'Vaso de precipitados (250 mL)',
+      category: 'Contención y Disolución',
+      icon: '🥛',
+      capacity: '250 mL (Aproximado ±5%)',
+      svg: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><ellipse cx="50" cy="90" rx="30" ry="5" fill="#cbd5e1"/><path d="M24 16 L20 18 L24 20 L24 84 A6 6 0 0 0 30 90 L70 90 A6 6 0 0 0 76 84 L76 16 Z" fill="#e0f2fe" stroke="#0284c7" stroke-width="2"/><ellipse cx="50" cy="16" rx="26" ry="4" fill="#f8fafc" stroke="#0284c7" stroke-width="1.5"/><rect x="26" y="44" width="48" height="42" rx="4" fill="#60a5fa" opacity="0.85"/><ellipse cx="50" cy="44" rx="24" ry="3.5" fill="#93c5fd"/><line x1="60" y1="36" x2="72" y2="36" stroke="#0369a1" stroke-width="1.5"/><line x1="55" y1="52" x2="72" y2="52" stroke="#ffffff" stroke-width="1.5"/><line x1="55" y1="68" x2="72" y2="68" stroke="#ffffff" stroke-width="1.5"/><line x1="30" y1="10" x2="66" y2="88" stroke="#94a3b8" stroke-width="3" stroke-linecap="round"/></svg>`,
+      correctUsage: [
+        'Disolución: Emplear varilla de vidrio para agitar mezclas sin golpear el fondo del vaso.',
+        'Vertido sin derrames: Apoyar la varilla de vidrio en el pico vertedor para guiar el flujo laminar.',
+        'Uso no volumétrico: No utilizar las líneas graduadas para mediciones analíticas exactas (error de ±5%).'
+      ],
+      hazards: [
+        'Salpicaduras químicas al verter líquidos rápidamente sin varilla guía.',
+        'Ebullición violenta y proyecciones si se calienta sin perlas o núcleos de ebullición.'
+      ],
+      sgaCodes: ['SGA05 Corrosivo (con ácidos/bases)'],
+      ppe: ['🥽 Gafas protectoras', '🧤 Guantes de nitrilo', '🥼 Mandil'],
+      goldenRule: 'Nunca añada agua sobre ácido concentrado: vierta siempre ácido sobre agua lentamente.'
+    },
+    graduated_cylinder: {
+      id: 'graduated_cylinder',
+      name: 'Probeta graduada (100 mL)',
+      category: 'Medición Rápida de Volumen',
+      icon: '📏',
+      capacity: '100 mL (Resolución ±0.5 mL)',
+      svg: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><polygon points="26,94 74,94 68,88 32,88" fill="#475569"/><rect x="40" y="12" width="20" height="76" rx="2" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.8"/><rect x="42" y="38" width="16" height="50" fill="#38bdf8" opacity="0.8"/><ellipse cx="50" cy="38" rx="8" ry="2" fill="#7dd3fc"/><line x1="48" y1="24" x2="58" y2="24" stroke="#0369a1" stroke-width="1.5"/><line x1="50" y1="34" x2="58" y2="34" stroke="#0369a1" stroke-width="1"/><line x1="48" y1="44" x2="58" y2="44" stroke="#0369a1" stroke-width="1.5"/><line x1="50" y1="54" x2="58" y2="54" stroke="#0369a1" stroke-width="1"/><line x1="48" y1="64" x2="58" y2="64" stroke="#0369a1" stroke-width="1.5"/><line x1="50" y1="74" x2="58" y2="74" stroke="#0369a1" stroke-width="1"/><rect x="36" y="10" width="28" height="4" rx="2" fill="#f87171" opacity="0.85"/></svg>`,
+      correctUsage: [
+        'Nivelación horizontal: Colocar sobre una mesa firme y horizontal antes de realizar cualquier lectura.',
+        'Llenado por pared: Inclinar suavemente y dejar resbalar el líquido para evitar turbulencia y espuma.',
+        'Lectura tangencial: Alinear la vista horizontalmente con el menisco cóncavo (evitar error de paralaje).'
+      ],
+      hazards: [
+        'Vuelco y rotura fácil por base estrecha (mantenga el anillo de parachoques cerca de la boca).',
+        'PROHIBIDO calentar directamente al mechero (el vidrio grueso se quiebra por choque térmico).'
+      ],
+      sgaCodes: ['SGA07 Irritante'],
+      ppe: ['🥽 Gafas de seguridad', '🥼 Mandil cerrado'],
+      goldenRule: 'Nunca prepare reacciones exotérmicas dentro de una probeta graduada.'
+    },
+    test_tubes: {
+      id: 'test_tubes',
+      name: 'Tubos de ensayo con gradilla',
+      category: 'Microescala y Cualitativo',
+      icon: '🧪',
+      capacity: '20 mL por tubo',
+      svg: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="18" y="78" width="64" height="12" rx="3" fill="#d97706"/><rect x="22" y="44" width="8" height="34" fill="#b45309"/><rect x="70" y="44" width="8" height="34" fill="#b45309"/><rect x="18" y="40" width="64" height="6" rx="2" fill="#d97706"/><rect x="34" y="16" width="12" height="62" rx="6" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5"/><rect x="35" y="42" width="10" height="32" rx="4" fill="#38bdf8" opacity="0.85"/><rect x="54" y="20" width="12" height="58" rx="6" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5"/><rect x="55" y="50" width="10" height="24" rx="4" fill="#f59e0b" opacity="0.85"/></svg>`,
+      correctUsage: [
+        'Soporte en gradilla: Mantener los tubos colocados en los orificios verticales de la gradilla.',
+        'Volumen de seguridad: Llenar como máximo un tercio (1/3) de la altura para permitir mezcla adecuada.',
+        'Calentamiento con pinza: Usar pinzas de madera en el tercio superior e inclinar a 45° con movimiento continuo.',
+        'Orientación de la boca: Apuntar la boca del tubo hacia una pared sin personas presentes.'
+      ],
+      hazards: [
+        'Proyección repentina de líquido hirviendo hacia el rostro ("bumping").',
+        'Quemaduras en dedos si se toma con la mano desnuda mientras se calienta.'
+      ],
+      sgaCodes: ['SGA07 Irritante', 'SGA05 Corrosivo'],
+      ppe: ['🥽 Gafas con protección lateral', '🧤 Guantes de nitrilo', '🪵 Pinza de madera'],
+      goldenRule: 'Nunca mire directamente al interior de un tubo por su abertura superior.'
+    },
+    pipette: {
+      id: 'pipette',
+      name: 'Pipeta graduada con propipeta',
+      category: 'Transferencia Exacta',
+      icon: '💉',
+      capacity: '10 mL (Resolución ±0.05 mL)',
+      svg: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="18" r="12" fill="#ef4444" stroke="#b91c1c" stroke-width="1.5"/><rect x="47" y="30" width="6" height="52" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5"/><rect x="48" y="46" width="4" height="36" fill="#38bdf8"/><line x1="49" y1="40" x2="52" y2="40" stroke="#0369a1" stroke-width="1"/><line x1="48" y1="50" x2="52" y2="50" stroke="#dc2626" stroke-width="1.5"/><line x1="49" y1="60" x2="52" y2="60" stroke="#0369a1" stroke-width="1"/><polygon points="47,82 53,82 51,94 49,94" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.2"/><circle cx="50" cy="97" r="1.5" fill="#0284c7"/></svg>`,
+      correctUsage: [
+        'Ambientación: Enjuagar las paredes internas con una porción pequeña del reactivo a medir.',
+        'Succión con propipeta: Emplear la pera de goma de 3 vías (válvulas A, S y E) para aspirar el líquido.',
+        'Enrase exacto: Dejar descender el menisco hasta la marca de aforo manteniendo los ojos en línea recta.',
+        'Descarga apoyada: Apoyar la punta a 45° sobre la pared del vaso receptor; no soplar la última gota retenida.'
+      ],
+      hazards: [
+        'PROHIBICIÓN ESTRICTA: Jamás succione o aspire con la boca (peligro mortal de intoxicación).',
+        'Rotura del vidrio y corte en las manos al insertar la propipeta ejerciendo fuerza indebida.'
+      ],
+      sgaCodes: ['SGA06 Tóxico', 'SGA05 Corrosivo'],
+      ppe: ['🥽 Gafas de seguridad', '🧤 Guantes de nitrilo', '🔴 Propipeta de 3 vías'],
+      goldenRule: 'Toda pipeta debe manejarse siempre con dispositivo de succión mecánica o de goma.'
+    },
+    digital_balance: {
+      id: 'digital_balance',
+      name: 'Balanza analítica digital',
+      category: 'Gravimétrico y Pesaje',
+      icon: '⚖️',
+      capacity: 'Precisión ±0.01 g',
+      svg: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="18" y="48" width="64" height="38" rx="6" fill="#334155" stroke="#1e293b" stroke-width="2"/><ellipse cx="50" cy="44" rx="24" ry="4" fill="#cbd5e1" stroke="#94a3b8" stroke-width="1.5"/><rect x="48" y="44" width="4" height="6" fill="#64748b"/><rect x="28" y="58" width="44" height="16" rx="3" fill="#0f172a"/><text x="50" y="70" font-family="monospace" font-size="9" font-weight="bold" fill="#38bdf8" text-anchor="middle">0.00 g</text><rect x="22" y="77" width="10" height="6" rx="2" fill="#2563eb"/><text x="27" y="82" font-size="4" font-weight="bold" fill="#ffffff" text-anchor="middle">TARA</text></svg>`,
+      correctUsage: [
+        'Nivelación y encendido: Comprobar la burbuja de nivelación en el centro antes de encender.',
+        'Contenedor porta-muestra: Situar un vaso limpio, vidrio de reloj o papel satinado en el centro del plato.',
+        'Función TARA: Pulsar [TARA] para restar el peso del recipiente y llevar el visor digital a 0.00 g.',
+        'Dosificación con espátula: Añadir el reactivo sólido en porciones milimétricas y cerrar las puertas cortaviento.'
+      ],
+      hazards: [
+        'Corrosión química del sensor si se vierten sales o reactivos directamente en el plato metálico.',
+        'Error por corrientes de convección si se pesan recipientes calientes (dejar enfriar primero).'
+      ],
+      sgaCodes: ['SGA07 Irritante'],
+      ppe: ['🥽 Gafas de seguridad', '🧤 Guantes limpios', '🥄 Espátula inoxidable'],
+      goldenRule: 'Nunca deposite sustancias químicas sin recipiente y limpie el plato con brocha suave.'
+    },
+    digital_thermometer: {
+      id: 'digital_thermometer',
+      name: 'Termómetro digital (-20 a 150 °C)',
+      category: 'Medición Física Térmica',
+      icon: '🌡️',
+      capacity: 'Rango -20 a 150 °C (±0.1 °C)',
+      svg: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="36" y="10" width="28" height="42" rx="6" fill="#1e293b" stroke="#0f172a" stroke-width="1.5"/><rect x="42" y="16" width="16" height="12" rx="2" fill="#000000"/><text x="50" y="25" font-family="monospace" font-size="7" font-weight="bold" fill="#f87171" text-anchor="middle">22.5°</text><circle cx="50" cy="38" r="3" fill="#ef4444"/><rect x="48" y="52" width="4" height="38" rx="2" fill="#cbd5e1" stroke="#64748b" stroke-width="1"/><polygon points="48,88 52,88 50,95" fill="#ef4444"/></svg>`,
+      correctUsage: [
+        'Inmersión suspendida: Sumergir la sonda de acero en el centro del líquido sin tocar el fondo ni las paredes.',
+        'Estabilización: Aguardar de 15 a 20 segundos hasta que la lectura digital se estabilice.',
+        'Limpieza posterior: Enjuagar la sonda con chorro de agua destilada y secar con papel absorbente.'
+      ],
+      hazards: [
+        'Daño o quiebre si se emplea como varilla de agitación para disolver sólidos.',
+        'Fusión de la carcasa de polímero si se coloca demasiado cerca de la llama del mechero.'
+      ],
+      sgaCodes: ['SGA00 Físico'],
+      ppe: ['🥽 Gafas de seguridad', '🧤 Guantes aislantes'],
+      goldenRule: 'Use varillas de vidrio para agitar, nunca el sensor del termómetro.'
+    },
+    ph_meter: {
+      id: 'ph_meter',
+      name: 'pH-metro digital y tiras reactivas',
+      category: 'Análisis Electroquímico',
+      icon: '📟',
+      capacity: 'Rango 0 - 14 pH (±0.01 pH)',
+      svg: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="20" y="18" width="30" height="56" rx="5" fill="#1e293b" stroke="#0f172a" stroke-width="1.5"/><rect x="24" y="24" width="22" height="14" rx="2" fill="#000000"/><text x="35" y="34" font-family="monospace" font-size="8" font-weight="bold" fill="#4ade80" text-anchor="middle">7.00</text><path d="M35 74 Q35 88 52 88 T68 70" fill="none" stroke="#475569" stroke-width="2.5"/><rect x="64" y="24" width="8" height="54" rx="2" fill="#e2e8f0" stroke="#334155" stroke-width="1.2"/><circle cx="68" cy="80" r="4" fill="#38bdf8" stroke="#0284c7" stroke-width="1.2"/></svg>`,
+      correctUsage: [
+        'Calibración en 2 puntos: Ajustar con tampones buffer patrón pH 7.00 (neutro) y pH 4.00 (ácido).',
+        'Enjuague riguroso: Lavar el electrodo con agua destilada entre lecturas y secar tocando suavemente.',
+        'Medición en reposo: Sumergir el bulbo en la disolución y esperar a que el sensor fije el valor.',
+        'Almacenamiento húmedo: Guardar con el capuchón humedecido en solución electrolítica de KCl 3M.'
+      ],
+      hazards: [
+        'Rotura irreparable de la finísima membrana esférica de vidrio por impactos con vasos.',
+        'Pérdida irreversible de la sensibilidad electroquímica si se deja secar al aire libre.'
+      ],
+      sgaCodes: ['SGA05 Corrosivo'],
+      ppe: ['🥽 Gafas de seguridad', '🧤 Guantes de nitrilo', '💦 Frasco lavador con agua destilada'],
+      goldenRule: 'Nunca toque ni frote la membrana de vidrio con los dedos o papel tosco.'
+    },
+    bunsen_burner: {
+      id: 'bunsen_burner',
+      name: 'Mechero Bunsen regulable',
+      category: 'Térmico y Combustión',
+      icon: '🔥',
+      capacity: 'Llama azul oxidante ~1200 °C',
+      svg: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><ellipse cx="50" cy="88" rx="30" ry="6" fill="#334155" stroke="#0f172a" stroke-width="1.5"/><rect x="45" y="46" width="10" height="38" fill="#d97706" stroke="#92400e" stroke-width="1.2"/><rect x="43" y="70" width="14" height="8" rx="2" fill="#94a3b8"/><circle cx="50" cy="74" r="2" fill="#0f172a"/><path d="M45 46 Q35 24 50 8 Q65 24 55 46 Z" fill="#38bdf8" opacity="0.9"/><path d="M47 46 Q42 30 50 20 Q58 30 53 46 Z" fill="#e0f2fe"/><ellipse cx="50" cy="46" rx="6" ry="2" fill="#475569"/></svg>`,
+      correctUsage: [
+        'Cierre de collarín: Girar el anillo metálico para cerrar la entrada de aire antes del encendido.',
+        'Piloto previo: Acercar el chispero encendido sobre la boca del cañón antes de abrir el gas.',
+        'Llama luminosa inicial: Abrir el gas lentamente para encender la llama amarilla de seguridad.',
+        'Ajuste a llama oxidante: Abrir gradualmente el aire hasta lograr una llama azul cónica sin humo.'
+      ],
+      hazards: [
+        'Quemaduras térmicas de 2° y 3° grado (el cono azul supera los 1200 °C y es poco visible).',
+        'Retorno de llama ("golpe de retroceso") con combustión ruidosa en la base si hay exceso de aire.',
+        'Riesgo de deflagración o incendio si hay frascos de alcohol o solventes inflamables cerca.'
+      ],
+      sgaCodes: ['SGA02 Inflamable', 'SGA04 Gas a presión'],
+      ppe: ['🥽 Gafas de seguridad', '💇 Cabello largo recogido', '🚫 Prohibido guantes sintéticos inflamables'],
+      goldenRule: 'Nunca deje un mechero encendido sin supervisión y apáguelo cerrando la llave principal de gas.'
+    },
+    filter_funnel: {
+      id: 'filter_funnel',
+      name: 'Embudo con papel de filtro',
+      category: 'Separación Gravitatoria',
+      icon: '🌪️',
+      capacity: 'Cono de 60° (Retención de sólidos)',
+      svg: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><polygon points="20,18 80,18 53,58 53,88 47,88 47,58" fill="#e0f2fe" stroke="#0284c7" stroke-width="2"/><polygon points="28,20 72,20 50,54" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5"/><circle cx="48" cy="34" r="3" fill="#f59e0b"/><circle cx="54" cy="38" r="2.5" fill="#f59e0b"/><circle cx="50" cy="94" r="2" fill="#0284c7"/></svg>`,
+      correctUsage: [
+        'Plegado del filtro: Doblar el disco de papel en cuatro cuartos y abrir un cono simétrico.',
+        'Fijación húmeda: Adherir el cono al vidrio mojándolo ligeramente con unas gotas de agua destilada.',
+        'Vertido con varilla: Guiar la suspensión con varilla de vidrio sin sobrepasar el borde superior del papel.'
+      ],
+      hazards: [
+        'Desborde de precipitado y contaminación del filtrado por llenado excesivo.',
+        'Perforación del papel de filtro si se presiona bruscamente con la varilla de agitación.'
+      ],
+      sgaCodes: ['SGA07 Irritante'],
+      ppe: ['🥽 Gafas de seguridad', '🧤 Guantes de nitrilo', '🥼 Mandil'],
+      goldenRule: 'El tallo biselado del embudo debe tocar la pared interna del vaso receptor para evitar salpicaduras.'
+    },
+    mortar_pestle: {
+      id: 'mortar_pestle',
+      name: 'Mortero y pistilo de porcelana',
+      category: 'Molienda y Pulverización',
+      icon: '🥣',
+      capacity: 'Porcelana vitrificada resistente',
+      svg: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><ellipse cx="50" cy="82" rx="32" ry="6" fill="#cbd5e1"/><path d="M16 46 Q16 82 50 82 Q84 82 84 46 Q84 40 80 40 L20 40 Q16 40 16 46 Z" fill="#f8fafc" stroke="#64748b" stroke-width="2"/><ellipse cx="50" cy="46" rx="30" ry="7" fill="#e2e8f0"/><g transform="rotate(24 50 50)"><rect x="46" y="16" width="8" height="42" rx="4" fill="#94a3b8" stroke="#475569" stroke-width="1.5"/><ellipse cx="50" cy="58" rx="8" ry="6" fill="#64748b"/></g></svg>`,
+      correctUsage: [
+        'Carga en el centro: Depositar cristales o terrones sólidos en el fondo cóncavo del mortero.',
+        'Trituración rotatoria: Presionar firmemente con la base del pistilo trazando círculos concéntricos.',
+        'Recolección limpia: Reunir el polvo fino empleando una espátula de acero inoxidable desengrasada.'
+      ],
+      hazards: [
+        'PROHIBICIÓN: Nunca golpee el pistilo contra el mortero como si fuera un martillo (proyección de esquirlas).',
+        'PELIGRO DE EXPLOSIÓN: Jamás triture mezclas de agentes oxidantes (cloratos, nitratos) con reductores o carbón.'
+      ],
+      sgaCodes: ['SGA01 Explosivo (en mezclas no autorizadas)', 'SGA07 Irritante'],
+      ppe: ['🥽 Gafas de seguridad selladas', '🧤 Guantes de protección', '🥼 Mandil'],
+      goldenRule: 'Muela mediante fricción suave y circular, jamás mediante impactos violentos.'
+    },
+    distillation_apparatus: {
+      id: 'distillation_apparatus',
+      name: 'Equipo de destilación simple',
+      category: 'Separación Térmica Fraccionada',
+      icon: '🔬',
+      capacity: 'Balón 250 mL con refrigerante Liebig',
+      svg: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="28" cy="68" r="16" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5"/><rect x="26" y="34" width="4" height="20" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5"/><path d="M28 40 L70 65" stroke="#0284c7" stroke-width="2"/><line x1="38" y1="46" x2="64" y2="61" stroke="#38bdf8" stroke-width="8" stroke-linecap="round" opacity="0.4"/><polygon points="70,68 76,86 64,86" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5"/></svg>`,
+      correctUsage: [
+        'Armado hermético: Lubricar ligeramente las juntas esmeriladas y fijar con pinzas de plástico Keck.',
+        'Contracorriente de refrigeración: Conectar la entrada de agua fría por la boquilla inferior y salida por la superior.',
+        'Posición del termómetro: Situar el bulbo sensor a la misma altura que el brazo de desprendimiento de vapores.',
+        'Regulación de ebullición: Agregar perlas de ebullición al balón antes de aplicar calor.'
+      ],
+      hazards: [
+        'PELIGRO MORTAL DE EXPLOSIÓN: El sistema de destilación NUNCA debe estar sellado herméticamente.',
+        'Incendio por fuga de vapores orgánicos volátiles inflamables en contacto con fuentes térmicas.'
+      ],
+      sgaCodes: ['SGA02 Inflamable', 'SGA08 Peligro para la salud'],
+      ppe: ['🥽 Gafas panorámicas', '🧤 Guantes de aislamiento térmico', '🥼 Mandil'],
+      goldenRule: 'Verifique siempre que el sistema tenga desfogue a la atmósfera antes de calentar.'
+    },
+    centrifuge: {
+      id: 'centrifuge',
+      name: 'Centrífuga de laboratorio',
+      category: 'Separación Centrífuga Acelerada',
+      icon: '⚙️',
+      capacity: 'Rotor angular (hasta 3000 RPM)',
+      svg: `<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><ellipse cx="50" cy="54" rx="38" ry="34" fill="#334155" stroke="#0f172a" stroke-width="2"/><ellipse cx="50" cy="52" rx="30" ry="26" fill="#1e293b"/><circle cx="50" cy="52" r="8" fill="#64748b"/><g transform="rotate(30 50 52)"><rect x="47" y="30" width="6" height="14" rx="2" fill="#38bdf8"/><rect x="47" y="60" width="6" height="14" rx="2" fill="#38bdf8"/></g><g transform="rotate(-30 50 52)"><rect x="47" y="30" width="6" height="14" rx="2" fill="#e2e8f0"/><rect x="47" y="60" width="6" height="14" rx="2" fill="#e2e8f0"/></g><rect x="36" y="88" width="28" height="8" rx="2" fill="#000000"/><text x="50" y="94" font-family="monospace" font-size="5" font-weight="bold" fill="#22c55e" text-anchor="middle">3000 RPM</text></svg>`,
+      correctUsage: [
+        'Contrapeso estricto: Pesar y equilibrar los tubos en pares con masas idénticas antes de cargar.',
+        'Colocación simétrica: Insertar los tubos en posiciones diametralmente opuestas en el rotor.',
+        'Tapa de seguridad cerrada: Bloquear el seguro mecánico de la tapa antes de iniciar la rotación.',
+        'Frenado natural: Esperar la detención completa del rotor por inercia; jamás frene con la mano.'
+      ],
+      hazards: [
+        'Desbalance destructivo: Un rotor desequilibrado puede destruirse y eyectar piezas de metal.',
+        'Generación de aerosoles tóxicos o infecciosos si se quiebra un tubo dentro de la cámara.'
+      ],
+      sgaCodes: ['SGA00 Físico mecánico', 'SGA07 Irritante'],
+      ppe: ['🥽 Gafas de protección herméticas', '🧤 Guantes de nitrilo', '🥼 Mandil'],
+      goldenRule: 'Nunca abra la tapa de la centrífuga mientras el rotor continúe en movimiento.'
+    }
+  },
+
+  getToolGuide(toolKey) {
+    if (!toolKey) return this.TOOL_GUIDES_DB.beaker;
+    const k = String(toolKey).toLowerCase().trim();
+    const map = {
+      burette: 'burette', bureta: 'burette', titration: 'burette',
+      erlenmeyer: 'erlenmeyer', matraz: 'erlenmeyer', flask: 'erlenmeyer',
+      beaker: 'beaker', vaso: 'beaker',
+      graduated_cylinder: 'graduated_cylinder', cylinder: 'graduated_cylinder', probeta: 'graduated_cylinder',
+      test_tubes: 'test_tubes', tube: 'test_tubes', tubo: 'test_tubes', tubos: 'test_tubes',
+      pipette: 'pipette', pipeta: 'pipette',
+      digital_balance: 'digital_balance', balance: 'digital_balance', balanza: 'digital_balance',
+      bunsen_burner: 'bunsen_burner', bunsen: 'bunsen_burner', mechero: 'bunsen_burner',
+      digital_thermometer: 'digital_thermometer', thermometer: 'digital_thermometer', termometro: 'digital_thermometer',
+      ph_meter: 'ph_meter', phmetro: 'ph_meter',
+      filter_funnel: 'filter_funnel', funnel: 'filter_funnel', embudo: 'filter_funnel',
+      mortar_pestle: 'mortar_pestle', mortar: 'mortar_pestle', mortero: 'mortar_pestle',
+      distillation_apparatus: 'distillation_apparatus', distillation: 'distillation_apparatus', destilacion: 'distillation_apparatus',
+      centrifuge: 'centrifuge', centrifuga: 'centrifuge'
+    };
+    const normalized = map[k] || (this.TOOL_GUIDES_DB[k] ? k : 'beaker');
+    return this.TOOL_GUIDES_DB[normalized] || this.TOOL_GUIDES_DB.beaker;
+  },
+
+  renderToolGuideInline(toolKey) {
+    const tool = this.getToolGuide(toolKey);
+    return `
+      <div class="tool-guide-inline-card">
+        <div class="tool-guide-header">
+          <div class="tool-guide-header-title">
+            <span>💡 Uso Correcto &amp; Bioseguridad</span>
+            <span style="font-size: 0.62rem; background: #e0f2fe; color: #0284c7; padding: 0.1rem 0.35rem; border-radius: 4px; font-weight: 800;">RF009</span>
+          </div>
+          <button type="button" class="btn-card-guide-corner" onclick="App.openToolGuideModal('${tool.id}')" title="Ver guía completa y modo interactivo">
+            🔍 Ampliar Guía
+          </button>
+        </div>
+        <div class="tool-guide-body">
+          <div class="tool-guide-svg-box" title="${tool.name}">
+            ${tool.svg}
+          </div>
+          <div class="tool-guide-details">
+            <div class="tool-guide-section-label">📋 Instrucciones de Uso:</div>
+            <ol class="tool-guide-step-list">
+              ${tool.correctUsage.map(s => `<li>${s}</li>`).join('')}
+            </ol>
+            <div class="tool-guide-hazard-box">
+              <div class="tool-guide-hazard-title">
+                <span>⚠️ Peligros &amp; Advertencias:</span>
+              </div>
+              <ul style="margin: 0; padding-left: 1rem; font-size: 0.67rem; color: #9f1239; line-height: 1.3;">
+                ${tool.hazards.map(h => `<li>${h}</li>`).join('')}
+              </ul>
+            </div>
+            <div class="tool-guide-ppe-row">
+              <strong>🛡️ EPP:</strong> ${tool.ppe.join(' • ')}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  openToolGuideModal(toolKey) {
+    this.openToolGuide(toolKey);
+  },
+
+  openActiveToolGuideModal() {
+    let toolId = 'beaker';
+    if (this.labBench) {
+      if (this.labBench.selectedInstrument) {
+        toolId = this.labBench.selectedInstrument;
+      } else if (this.labBench.selectedVessel) {
+        toolId = this.labBench.selectedVessel.type;
+      } else if (this.lastClickedTool) {
+        toolId = this.lastClickedTool;
+      } else if (this.labBench.vessels && this.labBench.vessels.length > 0) {
+        toolId = this.labBench.vessels[0].type;
+      }
+    }
+    this.openToolGuideModal(toolId);
+  },
+
+  closeToolGuideModal() {
+    this.closeToolGuide();
+  },
+
   toolsDatabase: {
     pipeta: {
       id: 'pipeta',
@@ -2650,10 +3141,26 @@ const App = {
   },
 
   openToolGuide(toolKey) {
-    const tool = this.toolsDatabase[toolKey];
-    if (!tool) return;
+    const guide = this.getToolGuide(toolKey);
+    const existing = this.toolsDatabase[toolKey] || this.toolsDatabase[guide.id];
+    const tool = existing || {
+      id: guide.id,
+      icon: guide.icon,
+      title: guide.name,
+      type: guide.category,
+      desc: guide.desc || `${guide.name} - Instrumento de medición y experimentación para el Laboratorio Virtual QUIMI-K (I.E. Alexander Fleming).`,
+      parts: guide.parts || ['Cuerpo principal', 'Escala / Aforo', 'Boquilla / Conexión'],
+      steps: guide.correctUsage.map((u, idx) => {
+        const colonIdx = u.indexOf(':');
+        return {
+          title: colonIdx !== -1 ? u.substring(0, colonIdx) : `Paso ${idx + 1}`,
+          desc: colonIdx !== -1 ? u.substring(colonIdx + 1).trim() : u
+        };
+      }),
+      safety: `${guide.goldenRule} ${guide.hazards.join(' ')}`
+    };
 
-    this.state.selectedTool = toolKey;
+    this.state.selectedTool = tool.id;
 
     const modal = document.getElementById('modalToolGuide');
     const iconEl = document.getElementById('toolModalIcon');
@@ -2672,11 +3179,11 @@ const App = {
     typeEl.innerText = tool.type;
     titleEl.innerText = tool.title;
     descEl.innerText = tool.desc;
-    safetyEl.innerHTML = `⚠️ <strong>Advertencia de Bioseguridad:</strong> ${tool.safety}`;
+    safetyEl.innerHTML = `⚠️ <strong>Bioseguridad &amp; Prevención de Riesgos (RF009):</strong> ${tool.safety}<div style="margin-top: 0.35rem; font-size: 0.74rem; color: #1e3a8a;"><strong>🛡️ Equipo de Protección Personal (EPP):</strong> ${guide.ppe.join(' • ')}</div>`;
 
     // Renderizar modelo 2D gráfico SVG
     if (model2DEl) {
-      model2DEl.innerHTML = this.renderTool2DModel(toolKey);
+      model2DEl.innerHTML = this.renderTool2DModel(tool.id);
     }
 
     // Renderizar lista de partes anatómicas clicables con explicación pedagógica
@@ -3834,6 +4341,14 @@ const App = {
       `;
     }
 
+    const g = this.getToolGuide(toolKey);
+    if (g && g.svg) {
+      return `<div style="display: flex; flex-direction: column; justify-content: center; align-items: center; width: 100%; height: 180px; background: #ffffff; border-radius: 8px;">
+        <div style="width: 140px; height: 140px;">${g.svg}</div>
+        <div style="font-size: 0.72rem; color: #64748b; font-weight: 700; margin-top: 0.2rem;">${g.name}</div>
+      </div>`;
+    }
+
     return '<div style="padding: 2rem; color: #64748b;">Modelo 2D en preparación.</div>';
   },
 
@@ -3971,7 +4486,16 @@ const App = {
       `;
     }
 
-    return '<p>Herramienta disponible en la mesa.</p>';
+    return `
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.85rem; text-align: center;">
+        <p style="font-size: 0.82rem; color: #334155; margin: 0 0 0.5rem 0;">
+          💡 Este instrumento está completamente integrado y disponible en la <strong>Mesa de Laboratorio 2D</strong>.
+        </p>
+        <button type="button" class="btn btn-primary btn-sm" onclick="App.closeToolGuide();" style="font-weight: 700; padding: 0.35rem 0.75rem;">
+          🧪 Usar Instrumento en la Mesa de Trabajo
+        </button>
+      </div>
+    `;
   },
 
   // Acciones interactivas simuladas en la mesa (RF008)
@@ -5340,6 +5864,1200 @@ const App = {
     }
   },
 
+  // ================= RF012: ASISTENTE DE FLUJO INTUITIVO Y SUGERENCIAS INTELIGENTES =================
+  updateRobotFlowAdvisorVisibility() {
+    const btnAdvisor = document.getElementById('btnRobotFlowAdvisor');
+    const btnConsult = document.getElementById('btnRobotLabConsult');
+
+    // 1. Debe estar estrictamente en la pestaña de Simulación 2D ('tab-simulator')
+    const activePane = document.querySelector('.tab-pane.active');
+    const isSim2D = activePane && activePane.id === 'tab-simulator';
+
+    // 2. Solo debe mostrarse si hay un examen o práctica asignada activa
+    // En la simulación libre (Mesa 2D Libre) NO deben mostrarse ya que no están en un examen o práctica
+    const isExamOrPractice = Boolean(this.activePracticalExam);
+    const isAllowedInExam = isExamOrPractice && (this.activePracticalExam.allowAiAssistant !== false);
+
+    if (isSim2D && isExamOrPractice && isAllowedInExam) {
+      if (btnAdvisor) btnAdvisor.style.display = 'inline-flex';
+      if (btnConsult) btnConsult.style.display = 'inline-flex';
+    } else {
+      if (btnAdvisor) btnAdvisor.style.display = 'none';
+      if (btnConsult) btnConsult.style.display = 'none';
+      this.closeRobotFlowAdvisor();
+      this.closeLabConsultModal();
+    }
+  },
+
+  // ================= RF011: CONSULTA CIENTÍFICA DEL LABORATORIO CON ANÁLISIS ORTOGRÁFICO =================
+  openLabConsultModal() {
+    if (this.activePracticalExam && this.activePracticalExam.allowAiAssistant === false) {
+      this.showToast('🔒 El docente ha deshabilitado las consultas a Quimi para este examen.');
+      return;
+    }
+    const modal = document.getElementById('modalLabConsult');
+    if (!modal) return;
+
+    const isExam = Boolean(this.activePracticalExam);
+    const exam = this.activePracticalExam;
+    const pIndex = this.state.currentPracticeIndex || 0;
+    const practice = this.practices[pIndex] || this.practices[0];
+    const labTopic = isExam ? (exam.topic || 'Neutralización Ácido-Base') : (practice ? practice.title : 'Neutralización Ácido-Base');
+    const bench = this.labBench;
+    const burette = (bench && bench.buretteStand) ? bench.buretteStand : { volumeAddedMl: 0 };
+    const vessels = (bench && bench.vessels) ? bench.vessels : [];
+    const vessel = (bench && bench.selectedVessel) || vessels[0] || null;
+    const currentPh = (vessel && bench) ? bench.getVesselPH(vessel).toFixed(2) : '1.30';
+
+    const headerTopic = document.getElementById('labConsultHeaderTopic');
+    if (headerTopic) headerTopic.innerText = `Consulta del Laboratorio: ${labTopic}`;
+
+    const summaryEl = document.getElementById('labConsultContextSummary');
+    if (summaryEl) {
+      summaryEl.innerText = `🔬 Laboratorio Asignado: ${isExam ? (exam.title || labTopic) : labTopic}.`;
+    }
+
+    const stateEl = document.getElementById('labConsultRealtimeState');
+    if (stateEl) {
+      stateEl.innerText = `pH: ${currentPh} • Titulante: ${burette.volumeAddedMl ? burette.volumeAddedMl.toFixed(1) : '0.0'} mL`;
+    }
+
+    modal.style.display = 'flex';
+    const input = document.getElementById('labConsultInput');
+    if (input) setTimeout(() => input.focus(), 100);
+  },
+
+  closeLabConsultModal() {
+    const modal = document.getElementById('modalLabConsult');
+    if (modal) modal.style.display = 'none';
+  },
+
+  sendLabConsultPreset(questionText) {
+    const input = document.getElementById('labConsultInput');
+    if (input) input.value = questionText;
+    this.processLabConsultQuestion(questionText);
+  },
+
+  handleLabConsultSubmit(event) {
+    if (event) event.preventDefault();
+    const input = document.getElementById('labConsultInput');
+    if (!input) return;
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = '';
+    this.processLabConsultQuestion(text);
+  },
+
+  analyzeQuestionOrthography(raw) {
+    if (!raw) return { hasErrors: false, errors: [], correctedText: '' };
+    
+    // 1. Limpieza de comillas periféricas y espacios
+    let text = raw.trim();
+    const hadQuotes = /^["'«“‘]+.*["'»”’]+$/.test(text);
+    text = text.replace(/^["'«“‘\s]+|["'»”’\s]+$/g, '').trim();
+
+    const errors = [];
+    if (hadQuotes) {
+      errors.push('No es necesario encerrar la pregunta entre comillas al consultar al asistente.');
+    }
+
+    // Extraer signos interrogativos existentes para procesar el cuerpo léxico
+    let hasOpenMark = text.startsWith('¿');
+    let hasCloseMark = text.endsWith('?');
+    let body = text.replace(/^[¿\s]+|[?\s]+$/g, '').trim();
+
+    // 2. Errores léxicos y gramaticales específicos del laboratorio
+    if (/\bcuanta\s+acido\b/i.test(body) || /\bcuanta\s+ácido\b/i.test(body)) {
+      errors.push('"Ácido" es un sustantivo masculino; debe existir concordancia de género: "cuánto ácido" (en lugar de "cuanta ácido").');
+      body = body.replace(/\bcuanta\s+acido\b/gi, 'cuánto ácido').replace(/\bcuanta\s+ácido\b/gi, 'cuánto ácido');
+    }
+
+    if (/\bsako\b/i.test(body)) {
+      errors.push('En español, la forma conjugada "saco" (del verbo sacar) se escribe con "c", no con "k".');
+      body = body.replace(/\bsako\b/gi, 'saco');
+    }
+
+    if (/\bhechar\b/i.test(body)) {
+      errors.push('El verbo "echar" (verter, servir o agregar reactivos) se escribe sin "h" (a diferencia de "hecho", del verbo hacer).');
+      body = body.replace(/\bhechar\b/gi, 'echar');
+    }
+
+    if (/\bclohidricco\b/i.test(body) || /\bcloridrico\b/i.test(body) || /\bcloridico\b/i.test(body)) {
+      errors.push('La forma correcta es "clorhídrico" (con "h" intercalada y tilde en la "í" por ser palabra esdrújula).');
+      body = body.replace(/\bclohidricco\b|\bcloridrico\b|\bcloridico\b/gi, 'clorhídrico');
+    }
+
+    if (/\berramientas?\b/i.test(body)) {
+      errors.push('"herramienta(s)" se escribe con "h" inicial.');
+      body = body.replace(/\berramientas?\b/gi, 'herramientas');
+    }
+
+    if (/\bnesesito\b/i.test(body)) {
+      errors.push('Corrección ortográfica: "necesito" se escribe con "c", no con "s".');
+      body = body.replace(/\bnesesito\b/gi, 'necesito');
+    }
+
+    // 3. Pronombres y adverbios interrogativos (tilde diacrítica)
+    if (/^\s*que\b/i.test(body)) {
+      errors.push('Al formular preguntas interrogativas, "Qué" debe llevar tilde (palabra tónica interrogativa).');
+      body = body.replace(/^\s*que\b/i, 'Qué');
+    } else if (/\bque\s+(pasa|ocurre|herramientas|reactivos|instrumentos|formula|hago)\b/i.test(body)) {
+      errors.push('"Qué" lleva tilde diacrítica en sentido interrogativo.');
+      body = body.replace(/\bque\s+(pasa|ocurre|herramientas|reactivos|instrumentos|formula|hago)\b/gi, 'qué $1');
+    }
+
+    if (/^\s*como\b/i.test(body) && !/^\s*como\s+(tal|decir|si)\b/i.test(body)) {
+      errors.push('Al formular preguntas interrogativas, "Cómo" lleva tilde.');
+      body = body.replace(/^\s*como\b/i, 'Cómo');
+    }
+
+    if (/^\s*cual\b/i.test(body)) {
+      errors.push('El pronombre interrogativo "Cuál" debe llevar tilde.');
+      body = body.replace(/^\s*cual\b/i, 'Cuál');
+    }
+
+    if (/^\s*cuales\b/i.test(body)) {
+      errors.push('El pronombre interrogativo "Cuáles" debe llevar tilde.');
+      body = body.replace(/^\s*cuales\b/i, 'Cuáles');
+    }
+
+    if (/^\s*cuanto\b/i.test(body) || /^\s*cuanta\b/i.test(body) || /^\s*cuantos\b/i.test(body) || /^\s*cuantas\b/i.test(body)) {
+      errors.push('El pronombre interrogativo "Cuánto(s)" debe llevar tilde.');
+      body = body.replace(/^\s*cuant([oa]s?)\b/i, 'Cuánt$1');
+    }
+
+    if (/\bdonde\b/i.test(body)) {
+      errors.push('El adverbio interrogativo "Dónde" lleva tilde diacrítica.');
+      body = body.replace(/\bdonde\b/gi, 'dónde');
+    }
+
+    if (/^\s*cuando\b/i.test(body)) {
+      errors.push('El adverbio interrogativo "Cuándo" debe llevar tilde.');
+      body = body.replace(/^\s*cuando\b/i, 'Cuándo');
+    }
+
+    if (/^\s*porque\b/i.test(body)) {
+      errors.push('Al formular preguntas de causa o razón se escribe separado y con tilde: "Por qué" (en lugar de "porque", que se utiliza para responder).');
+      body = body.replace(/^\s*porque\b/i, 'Por qué');
+    }
+
+    // 4. Acentuación y ortografía científica general
+    const sciRules = [
+      { pattern: /\bcombine\b/gi, fix: 'combiné', tip: '"combiné" (en tiempo pretérito) lleva tilde en la "é" por ser palabra aguda terminada en vocal.' },
+      { pattern: /\bacido\b/gi, fix: 'ácido', tip: '"ácido" lleva tilde en la "á" por ser palabra esdrújula.' },
+      { pattern: /\bacidos\b/gi, fix: 'ácidos', tip: '"ácidos" lleva tilde en la "á" por ser palabra esdrújula.' },
+      { pattern: /\bsalio\b/gi, fix: 'salió', tip: '"salió" (en tiempo pretérito) lleva tilde en la "ó" por ser palabra aguda terminada en vocal.' },
+      { pattern: /\bfomrula\b/gi, fix: 'fórmula', tip: 'Error tipográfico: se escribe "fórmula" (lleva tilde en la "ó" por ser palabra esdrújula).' },
+      { pattern: /\bformula\b/gi, fix: 'fórmula', tip: '"fórmula" lleva tilde en la "ó" por ser palabra esdrújula.' },
+      { pattern: /\breaccion\b/gi, fix: 'reacción', tip: '"reacción" lleva tilde en la "ó" por ser palabra aguda terminada en "n".' },
+      { pattern: /\btitulacion\b/gi, fix: 'titulación', tip: '"titulación" lleva tilde en la "ó" por ser palabra aguda terminada en "n".' },
+      { pattern: /\bneutralizacion\b/gi, fix: 'neutralización', tip: '"neutralización" lleva tilde en la "ó" por ser palabra aguda terminada en "n".' },
+      { pattern: /\bhidroxido\b/gi, fix: 'hidróxido', tip: '"hidróxido" lleva tilde en la "ó" por ser palabra esdrújula.' },
+      { pattern: /\bfenolftaleina\b/gi, fix: 'fenolftaleína', tip: '"fenolftaleína" lleva tilde en la "í" por hiato acentual.' },
+      { pattern: /\balicuota\b/gi, fix: 'alícuota', tip: '"alícuota" lleva tilde en la "í" por ser palabra esdrújula.' },
+      { pattern: /\bquimica\b/gi, fix: 'química', tip: '"química" lleva tilde en la "í" por ser palabra esdrújula.' },
+      { pattern: /\bquimico\b/gi, fix: 'químico', tip: '"químico" lleva tilde en la "í" por ser palabra esdrújula.' },
+      { pattern: /\bmatras\b/gi, fix: 'matraz', tip: '"matraz" se escribe con "z" final, no con "s".' },
+      { pattern: /\bvalvula\b/gi, fix: 'válvula', tip: '"válvula" lleva tilde en la "á" por ser palabra esdrújula.' },
+      { pattern: /\bmolecula\b/gi, fix: 'molécula', tip: '"molécula" lleva tilde en la "é" por ser palabra esdrújula.' },
+      { pattern: /\batomo\b/gi, fix: 'átomo', tip: '"átomo" lleva tilde en la "á" por ser palabra esdrújula.' },
+      { pattern: /\belectron\b/gi, fix: 'electrón', tip: '"electrón" lleva tilde en la "ó" por ser palabra aguda terminada en "n".' },
+      { pattern: /\bvolumenes\b/gi, fix: 'volúmenes', tip: '"volúmenes" lleva tilde en la "ú" por ser palabra esdrújula.' }
+    ];
+
+    sciRules.forEach(r => {
+      if (r.pattern.test(body)) {
+        errors.push(r.tip);
+        body = body.replace(r.pattern, r.fix);
+      }
+    });
+
+    // 5. Normalizar signos de interrogación ¿ ... ?
+    if (!hasOpenMark) {
+      errors.push('En español, las preguntas deben abrirse con el signo de interrogación inicial (¿).');
+    }
+    if (!hasCloseMark) {
+      errors.push('La pregunta debe cerrar con el signo de interrogación final (?).');
+    }
+
+    const corrected = `¿${body.charAt(0).toUpperCase() + body.slice(1)}?`;
+
+    return {
+      hasErrors: errors.length > 0,
+      errors: errors,
+      correctedText: corrected
+    };
+  },
+
+  getLabContextualAnswer(questionText) {
+    const isExam = Boolean(this.activePracticalExam);
+    const exam = this.activePracticalExam;
+    const pIndex = this.state.currentPracticeIndex || 0;
+    const practice = this.practices[pIndex] || this.practices[0];
+    const labTopic = isExam ? (exam.topic || 'Neutralización Ácido-Base') : (practice ? practice.title : 'Neutralización Ácido-Base');
+    
+    const bench = this.labBench;
+    const vessels = (bench && bench.vessels) ? bench.vessels : [];
+    const burette = (bench && bench.buretteStand) ? bench.buretteStand : { volumeAddedMl: 0, visible: false };
+    const vessel = (bench && bench.selectedVessel) || vessels[0] || null;
+    const currentPh = (vessel && bench) ? bench.getVesselPH(vessel).toFixed(2) : '1.30';
+    const volGastado = burette.volumeAddedMl ? burette.volumeAddedMl.toFixed(1) : '0.0';
+
+    const q = questionText.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+    // =========================================================================
+    // 0. DELIMITACIÓN ESTRICTA DE DOMINIO: CONSULTAS FUERA DE CONTEXTO (RF011)
+    // =========================================================================
+    const isOutOfContext = (
+      /\b(peru|lima|mexico|colombia|argentina|chile|espana|francia|paris|pais|paises|capital|continente|geografia)\b/i.test(q) ||
+      /\b(donde\s+vive|donde\s+queda|donde\s+nacio|quien\s+es|quien\s+fue|quien\s+gano)\b/i.test(q) ||
+      /\b(futbol|soccer|gol|messi|cr7|ronaldo|mundial|champions|partido|pelicula|cine|cancion|musica|cantante|album|netflix|videojuego|minecraft)\b/i.test(q) ||
+      /\b(presidente|congreso|ministro|politica|guerra|batalla|historia|alcalde|dolar|euro|cripto|bitcoin|dinero|precio)\b/i.test(q) ||
+      /\b(receta|cocinar|hamburguesa|pizza|restaurante|chiste|broma|novia|novio|amor|clima|pronostico)\b/i.test(q)
+    );
+
+    if (isOutOfContext) {
+      return `
+        <div style="background: #fff1f2; border: 1.5px solid #fecdd3; border-radius: 8px; padding: 0.75rem 0.95rem; color: #9f1239; font-size: 0.80rem; line-height: 1.45;">
+          <div style="display: flex; align-items: center; gap: 0.4rem; font-weight: 800; font-size: 0.85rem; margin-bottom: 0.35rem; color: #be123c;">
+            <span>🔒</span> <strong>Consulta Fuera de Contexto (Delimitación del Asistente):</strong>
+          </div>
+          <p style="margin: 0 0 0.45rem 0;">
+            Como asistente especializado del laboratorio virtual, estoy delimitado para responder <strong>exclusivamente preguntas referidas al laboratorio asignado ("${labTopic}")</strong>.
+          </p>
+          <div style="background: #ffffff; border: 1px solid #fda4af; border-radius: 6px; padding: 0.5rem 0.65rem; color: #881337; font-size: 0.76rem; line-height: 1.4;">
+            ⚠️ Tu pregunta no pertenece al ámbito científico, procedimental ni de instrumental de este laboratorio. Por favor consúltame sobre:
+            <br>• <strong>Instrumental:</strong> Bureta graduada, Matraz Erlenmeyer, Sensor de pH.
+            <br>• <strong>Reactivos:</strong> Ácido Clorhídrico (HCl 0.1 M), Hidróxido de Sodio (NaOH 0.1 M), Fenolftaleína.
+            <br>• <strong>Procedimiento:</strong> Dosificación alícuota 25 mL, viraje rosa pálido, neutralización estequiométrica.
+          </div>
+        </div>
+      `;
+    }
+
+    // =========================================================================
+    // 1. CONSULTA ESPECÍFICA: ¿QUÉ PASA SI SOLO USO AGUA? / SIN ÁCIDO
+    // =========================================================================
+    const isAskingOnlyWater = (
+      (q.includes('agua') && (q.includes('solo') || q.includes('solamente') || q.includes('sola') || q.includes('pura') || q.includes('sin acido'))) ||
+      (q.includes('que pasa') && q.includes('agua') && !q.includes('acido')) ||
+      (q.includes('puedo usar') && q.includes('agua') && !q.includes('hcl'))
+    );
+
+    if (isAskingOnlyWater) {
+      return `
+        <div style="font-weight: 800; color: #065f46; font-size: 0.88rem; margin-bottom: 0.45rem; display: flex; align-items: center; gap: 0.4rem;">
+          <span>💧</span> <strong>¿Qué sucede si solo usas Agua en lugar de la Alícuota Ácida?</strong>
+        </div>
+        <p style="font-size: 0.80rem; color: #334155; margin: 0 0 0.55rem 0; line-height: 1.45;">
+          En este laboratorio, el objetivo formal es titular y neutralizar una solución ácida. Si solo colocas agua destilada en el matraz ocurrirá lo siguiente:
+        </p>
+        <div style="display: flex; flex-direction: column; gap: 0.45rem; margin-bottom: 0.65rem;">
+          <div style="background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 6px; padding: 0.5rem 0.7rem; font-size: 0.76rem; color: #1e293b; line-height: 1.4;">
+            <strong>1. Naturaleza química neutra:</strong> El agua pura o destilada tiene un <strong>pH inicial neutro de 7.00</strong>. Al no contener iones hidronio (H₃O⁺) procedentes del ácido, no hay sustancia ácida disponible para neutralizar.
+          </div>
+          <div style="background: #fdf2f8; border: 1.5px solid #fbcfe8; border-radius: 6px; padding: 0.5rem 0.7rem; font-size: 0.76rem; color: #831843; line-height: 1.4;">
+            <strong>2. Viraje inmediato falso:</strong> Si agregas fenolftaleína al agua y dejas caer <strong>una sola gota de NaOH</strong> desde la bureta, el pH saltará instantáneamente a &gt; 8.2, tiñéndose de rosa de golpe con apenas 0.05 mL consumidos.
+          </div>
+          <div style="background: #fef2f2; border: 1.5px solid #fecaca; border-radius: 6px; padding: 0.5rem 0.7rem; font-size: 0.76rem; color: #991b1b; line-height: 1.4;">
+            <strong>3. Falla en la Evaluación (ChemEngine RF007):</strong> La ficha de resultados detectará que no dosificaste los 25.0 mL de HCl requeridos, resultando en un volumen gastado anómalo y una <strong>calificación reprobatoria (C - Requiere Refuerzo)</strong>.
+          </div>
+        </div>
+        <div style="background: #ecfdf5; border-left: 3px solid #10b981; padding: 0.45rem 0.65rem; border-radius: 4px; font-size: 0.75rem; color: #065f46;">
+          💡 <strong>Acción requerida:</strong> Vacía el matraz y vierte exactamente la alícuota de <strong>25.0 mL de Ácido Clorhídrico (HCl 0.1 M)</strong> desde el estante derecho antes de comenzar la titulación.
+        </div>
+      `;
+    }
+
+    // =========================================================================
+    // 2. CONSULTA ESPECÍFICA: DÓNDE OBTENER REACTIVOS / INSTRUMENTOS ("DÓNDE LO SACO")
+    // =========================================================================
+    const isAskingWhereToGet = (
+      q.includes('donde') || q.includes('saco') || q.includes('sako') || q.includes('sacar') ||
+      q.includes('encuentr') || q.includes('ubico') || q.includes('consigo') || q.includes('obtener')
+    ) && (
+      q.includes('acido') || q.includes('hidroxido') || q.includes('hcl') || q.includes('naoh') ||
+      q.includes('fenolftalein') || q.includes('reactivo') || q.includes('matraz') || q.includes('bureta') ||
+      q.includes('material') || q.includes('instrument')
+    );
+
+    if (isAskingWhereToGet) {
+      return `
+        <div style="font-weight: 800; color: #065f46; font-size: 0.88rem; margin-bottom: 0.45rem; display: flex; align-items: center; gap: 0.4rem;">
+          <span>📍</span> <strong>Ubicación de Reactivos e Instrumental en la Mesa Virtual:</strong>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 0.45rem; margin-bottom: 0.65rem;">
+          <div style="background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 6px; padding: 0.5rem 0.7rem; font-size: 0.76rem; color: #1e293b; line-height: 1.4;">
+            🔴 <strong>Ácido Clorhídrico (HCl 0.1 M):</strong><br>
+            Se encuentra en el <strong>Estante de Reactivos (panel lateral derecho)</strong>. Al hacer un solo clic sobre el frasco de HCl con el matraz en mesa, se vierte automáticamente la alícuota exacta de 25.0 mL.
+          </div>
+          <div style="background: #eff6ff; border: 1.5px solid #bfdbfe; border-radius: 6px; padding: 0.5rem 0.7rem; font-size: 0.76rem; color: #1e40af; line-height: 1.4;">
+            🔵 <strong>Hidróxido de Sodio (NaOH 0.1 M):</strong><br>
+            <strong>No viene en frasco suelto</strong>: Ya se encuentra <strong>precargado dentro de la Bureta Graduada (50 mL)</strong> en el centro de la mesa. Si se agota, puedes recargarla pulsando el botón azul <strong>[🔄 Recargar Bureta]</strong> en la barra superior.
+          </div>
+          <div style="background: #fdf4ff; border: 1.5px solid #f0abfc; border-radius: 6px; padding: 0.5rem 0.7rem; font-size: 0.76rem; color: #701a75; line-height: 1.4;">
+            🟡 <strong>Indicador Fenolftaleína:</strong><br>
+            Ubicado en el <strong>Estante de Reactivos (panel derecho)</strong> en frasco gotero amarillo. Un clic agrega las 3 gotas necesarias.
+          </div>
+          <div style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 6px; padding: 0.5rem 0.7rem; font-size: 0.76rem; color: #334155; line-height: 1.4;">
+            ⚗️ <strong>Matraz Erlenmeyer e Instrumental:</strong><br>
+            Ubicado en el <strong>Estante de Instrumental (panel lateral izquierdo)</strong>. Haz clic sobre el matraz de 250 mL para colocarlo sobre la mesa 2D.
+          </div>
+        </div>
+        <div style="background: #f0fdf4; border-left: 3px solid #10b981; padding: 0.4rem 0.65rem; border-radius: 4px; font-size: 0.75rem; color: #065f46;">
+          🎯 <strong>Tip:</strong> Si el matraz ya está en mesa, asegúrate de alinearlo bajo la bureta con el botón [🎯 Alinear Matraz].
+        </div>
+      `;
+    }
+
+    // =========================================================================
+    // 3. CONSULTA ESPECÍFICA: CUÁNTO ÁCIDO ECHAR / DOSIFICAR (ALÍCUOTA)
+    // =========================================================================
+    const isAskingAcidAmount = (
+      (q.includes('cuant') || q.includes('cantid') || q.includes('volumen') || q.includes('que tanto')) &&
+      (q.includes('acido') || q.includes('hcl') || q.includes('clorhidrico') || q.includes('clohidricco') || q.includes('hechar') || q.includes('echar'))
+    );
+
+    if (isAskingAcidAmount) {
+      return `
+        <div style="font-weight: 800; color: #065f46; font-size: 0.88rem; margin-bottom: 0.45rem; display: flex; align-items: center; gap: 0.4rem;">
+          <span>⚖️</span> <strong>Volumen Exacto de Ácido Clorhídrico a Servir:</strong>
+        </div>
+        <p style="font-size: 0.80rem; color: #334155; margin: 0 0 0.55rem 0; line-height: 1.45;">
+          Debes dosificar exactamente una alícuota de <strong>25.0 mL de Ácido Clorhídrico (HCl 0.1 M)</strong> en el Matraz Erlenmeyer.
+        </p>
+        <div style="background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 6px; padding: 0.55rem 0.75rem; font-size: 0.76rem; color: #1e293b; line-height: 1.45; margin-bottom: 0.6rem;">
+          • <strong>¿Cómo servirlo?</strong> Haz <strong>un solo clic</strong> sobre el frasco de <em>Ácido Clorhídrico (HCl 0.1 M)</em> en el estante de reactivos derecho con el matraz colocado en la mesa.
+          <br>• <strong>¿Por qué 25.0 mL?</strong> Porque la solución valorante de NaOH también es 0.1 M. Al aplicar la estequiometría (V_a · M_a = V_b · M_b), la neutralización perfecta ocurrirá exactamente cuando gastes <strong>25.0 mL de NaOH</strong>.
+        </div>
+        <div style="background: #fef2f2; border-left: 3px solid #ef4444; padding: 0.45rem 0.65rem; border-radius: 4px; font-size: 0.75rem; color: #991b1b; line-height: 1.4;">
+          ⚠️ <strong>¡Atención con el doble clic!</strong> Si haces clic dos veces sobre el frasco, servirás 50.0 mL de ácido, lo que requerirá 50 mL de NaOH (vaciando toda la bureta) y descalificará tu procedimiento en ChemEngine.
+        </div>
+      `;
+    }
+
+    // =========================================================================
+    // 4. CONSULTA ESPECÍFICA: CUÁNTO TIEMPO QUEDA / DURACIÓN DE LA PRÁCTICA
+    // =========================================================================
+    const isAskingTime = (
+      q.includes('tiempo') || q.includes('minuto') || q.includes('duracion') ||
+      q.includes('queda') || q.includes('plazo') || q.includes('hora') || q.includes('cronometro')
+    );
+
+    if (isAskingTime) {
+      return `
+        <div style="font-weight: 800; color: #065f46; font-size: 0.88rem; margin-bottom: 0.45rem; display: flex; align-items: center; gap: 0.4rem;">
+          <span>⏱️</span> <strong>Tiempo de Sesión y Ritmo Experimental:</strong>
+        </div>
+        <div style="background: #ffffff; border: 1.5px solid #cbd5e1; border-radius: 6px; padding: 0.55rem 0.75rem; font-size: 0.76rem; color: #1e293b; line-height: 1.45; margin-bottom: 0.6rem;">
+          • <strong>Modo Práctica de Laboratorio:</strong> La sesión <strong>no tiene un temporizador limitante que corte abruptamente tu simulación</strong>. El tiempo estimado pedagógico para completar el montaje, dosificación y titulación es de <strong>15 a 20 minutos</strong>.
+          <br>• <strong>Modo Evaluación Oficial / Examen Asignado:</strong> El tiempo límite global es regulado por el docente al publicar la prueba (típicamente entre 30 y 45 minutos).
+        </div>
+        <div style="background: #f0fdf4; border-left: 3px solid #10b981; padding: 0.45rem 0.65rem; border-radius: 4px; font-size: 0.75rem; color: #065f46; line-height: 1.4;">
+          💡 <strong>Recomendación analítica:</strong> No te apresures al titular. Lo más importante es regular la llave de la bureta gota a gota cuando el volumen gastado se aproxime a 20-24 mL para capturar el viraje con la máxima precisión posible.
+        </div>
+      `;
+    }
+
+    // =========================================================================
+    // 5. CONSULTA: QUÉ HERRAMIENTAS / INSTRUMENTOS / MATERIALES SE NECESITAN
+    // =========================================================================
+    const isAskingTools = (
+      q.includes('herramienta') || q.includes('instrument') || q.includes('material') ||
+      q.includes('utensilio') || q.includes('equipo') ||
+      ((q.includes('que') || q.includes('cual')) && (q.includes('necesit') || q.includes('ocup') || q.includes('uso') || q.includes('usar') || q.includes('falta')))
+    );
+
+    if (isAskingTools && !q.includes('reactivo') && !q.includes('sustancia') && !q.includes('quimico')) {
+      const hasBurette = burette.visible !== false;
+      const hasFlask = vessels.some(v => v.type === 'erlenmeyer');
+
+      return `
+        <div style="font-weight: 800; color: #065f46; font-size: 0.88rem; margin-bottom: 0.45rem; display: flex; align-items: center; gap: 0.4rem;">
+          <span>🛠️</span> <strong>Instrumentos y Herramientas requeridas para ${labTopic}:</strong>
+        </div>
+        <p style="font-size: 0.80rem; color: #334155; margin: 0 0 0.65rem 0; line-height: 1.45;">
+          Para ejecutar este laboratorio asignado en la mesa virtual necesitas el siguiente instrumental del estante izquierdo:
+        </p>
+
+        <div style="display: flex; flex-direction: column; gap: 0.45rem; margin-bottom: 0.75rem;">
+          <div style="background: #ffffff; border: 1.5px solid ${hasBurette ? '#86efac' : '#f59e0b'}; border-radius: 8px; padding: 0.55rem 0.8rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <strong style="color: #0f172a; font-size: 0.82rem;">1. Soporte Universal con Bureta Graduada (50 mL)</strong>
+              <span style="font-size: 0.68rem; font-weight: 800; padding: 0.12rem 0.5rem; border-radius: 999px; background: ${hasBurette ? '#dcfce7; color: #166534;' : '#fef3c7; color: #92400e;'}">
+                ${hasBurette ? '✅ Colocada en mesa' : '⚠️ Falta colocar'}
+              </span>
+            </div>
+            <div style="font-size: 0.74rem; color: #475569; margin-top: 0.25rem; line-height: 1.35;">
+              • <strong>Función:</strong> Contiene el reactivo valorante (<strong>Hidróxido de Sodio NaOH 0.1 M</strong>) y dosifica gota a gota con lectura de menisco cóncavo (precisión de ±0.02 mL).
+            </div>
+          </div>
+
+          <div style="background: #ffffff; border: 1.5px solid ${hasFlask ? '#86efac' : '#f59e0b'}; border-radius: 8px; padding: 0.55rem 0.8rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <strong style="color: #0f172a; font-size: 0.82rem;">2. Matraz Erlenmeyer (250 mL)</strong>
+              <span style="font-size: 0.68rem; font-weight: 800; padding: 0.12rem 0.5rem; border-radius: 999px; background: ${hasFlask ? '#dcfce7; color: #166534;' : '#fef3c7; color: #92400e;'}">
+                ${hasFlask ? '✅ Colocado en mesa' : '⚠️ Falta colocar'}
+              </span>
+            </div>
+            <div style="font-size: 0.74rem; color: #475569; margin-top: 0.25rem; line-height: 1.35;">
+              • <strong>Función:</strong> Recipiente donde se vierte la alícuota de <strong>25 mL de Ácido Clorhídrico (HCl 0.1 M)</strong> y 3 gotas de fenolftaleína. Su cuello angosto permite agitación orbital continua sin salpicaduras.
+            </div>
+          </div>
+
+          <div style="background: #ffffff; border: 1.5px solid #86efac; border-radius: 8px; padding: 0.55rem 0.8rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <strong style="color: #0f172a; font-size: 0.82rem;">3. Sensor Digital de pH (Peachímetro) y Curva</strong>
+              <span style="font-size: 0.68rem; font-weight: 800; padding: 0.12rem 0.5rem; border-radius: 999px; background: #dcfce7; color: #166534;">
+                ✅ Activo en panel derecho
+              </span>
+            </div>
+            <div style="font-size: 0.74rem; color: #475569; margin-top: 0.25rem; line-height: 1.35;">
+              • <strong>Función:</strong> Mide el pH en tiempo real (actual: <strong>${currentPh}</strong>) para detectar el salto de neutralización en pH 7.00.
+            </div>
+          </div>
+
+          <div style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 8px; padding: 0.55rem 0.8rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <strong style="color: #0f172a; font-size: 0.82rem;">4. Vaso de Precipitados (100 / 250 mL)</strong>
+              <span style="font-size: 0.68rem; font-weight: 800; padding: 0.12rem 0.5rem; border-radius: 999px; background: #f1f5f9; color: #475569;">
+                Opcional / Auxiliar
+              </span>
+            </div>
+            <div style="font-size: 0.74rem; color: #475569; margin-top: 0.25rem; line-height: 1.35;">
+              • <strong>Función:</strong> Recibir purgas o contener agua destilada de lavado.
+            </div>
+          </div>
+        </div>
+
+        <div style="background: #ecfdf5; border-left: 3px solid #10b981; padding: 0.5rem 0.75rem; border-radius: 6px; font-size: 0.76rem; color: #065f46; line-height: 1.4;">
+          👉 <strong>¿Qué hacer ahora?</strong> Haz clic en el <strong>Matraz Erlenmeyer</strong> en el estante izquierdo para ponerlo en la mesa, alinéalo bajo la bureta y carga los reactivos (25 mL de HCl y 3 gotas de fenolftaleína).
+        </div>
+      `;
+    }
+
+    // =========================================================================
+    // 6. CONSULTA: QUÉ REACTIVOS / SUSTANCIAS SE NECESITAN
+    // =========================================================================
+    if (q.includes('reactivo') || q.includes('sustancia') || (q.includes('que') && (q.includes('quimico') || q.includes('hecho') || q.includes('pongo')))) {
+      return `
+        <div style="font-weight: 800; color: #065f46; font-size: 0.88rem; margin-bottom: 0.45rem;">
+          🧪 Reactivos Químicos necesarios para ${labTopic}:
+        </div>
+        <p style="font-size: 0.80rem; color: #334155; margin: 0 0 0.65rem 0;">
+          Para esta práctica asignada debes utilizar 3 sustancias químicas del estante derecho:
+        </p>
+        <ul style="font-size: 0.77rem; color: #1e293b; line-height: 1.5; padding-left: 1.2rem; margin: 0 0 0.65rem 0;">
+          <li><strong>Ácido Clorhídrico (HCl 0.1 M):</strong> Se vierte exactamente una alícuota de <strong>25.0 mL</strong> en el matraz Erlenmeyer (solución ácida a titular).</li>
+          <li><strong>Indicador Fenolftaleína (al 1%):</strong> Se agregan <strong>3 gotas</strong> en el matraz para detectar visualmente el punto de viraje (incoloro a rosa tenue).</li>
+          <li><strong>Hidróxido de Sodio (NaOH 0.1 M):</strong> Cargado en la bureta graduada (hasta 50.0 mL), actúa como reactivo valorante alcalino.</li>
+        </ul>
+        <div style="background: #f0fdf4; border-left: 3px solid #10b981; padding: 0.4rem 0.65rem; border-radius: 4px; font-size: 0.75rem; color: #065f46;">
+          ⚠️ <strong>Consejo:</strong> No agregues más de 25 mL de HCl para que el cálculo estequiométrico coincida exactamente con los 25 mL de NaOH.
+        </div>
+      `;
+    }
+
+    // =========================================================================
+    // 7. CONSULTA: PROCEDIMIENTO / CÓMO SE HACE / PASOS
+    // =========================================================================
+    if (q.includes('procedimiento') || q.includes('paso') || q.includes('como se hace') || q.includes('como empiezo') || q.includes('que hago') || q.includes('como titular')) {
+      return `
+        <div style="font-weight: 800; color: #065f46; font-size: 0.88rem; margin-bottom: 0.45rem;">
+          📋 Procedimiento Experimental en 5 Pasos:
+        </div>
+        <ol style="font-size: 0.77rem; color: #1e293b; line-height: 1.5; padding-left: 1.2rem; margin: 0 0 0.65rem 0;">
+          <li><strong>Poner instrumental:</strong> Coloca el Matraz Erlenmeyer en la mesa desde el estante izquierdo.</li>
+          <li><strong>Cargar muestra:</strong> Haz clic en <em>Ácido Clorhídrico (HCl 0.1 M)</em> para servir 25 mL.</li>
+          <li><strong>Añadir indicador:</strong> Haz clic en <em>Fenolftaleína</em> para verter 3 gotas.</li>
+          <li><strong>Alinear matraz:</strong> Pulsa el botón [🎯 Alinear Matraz] para centrarlo exactamente bajo la punta de la bureta.</li>
+          <li><strong>Titular gota a gota:</strong> Abre la llave de la bureta dosificando NaOH hasta observar el primer viraje a rosa pálido persistente (pH ~7.00 - 8.2).</li>
+        </ol>
+      `;
+    }
+
+    // =========================================================================
+    // 8. CONSULTA: COMBINACIÓN AGUA Y ÁCIDO / FÓRMULA QUÍMICA DE LA REACCIÓN
+    // =========================================================================
+    if ((q.includes('agua') && q.includes('acido')) || q.includes('formula') || q.includes('combin') || q.includes('nacl')) {
+      return `
+        <div style="font-weight: 800; color: #065f46; margin-bottom: 0.35rem;">
+          ⚗️ Explicación Científica del Laboratorio:
+        </div>
+        <p style="margin: 0 0 0.5rem 0; font-size: 0.79rem; line-height: 1.45;">
+          Al preparar la muestra en el matraz con <strong>Agua Destilada (H₂O)</strong> y la alícuota de <strong>Ácido Clorhídrico (HCl 0.1 M)</strong>, el ácido fuerte se disocia completamente liberando iones hidronio:
+          <br>
+          <code style="background: #e2e8f0; padding: 0.1rem 0.35rem; border-radius: 4px; font-weight: 700; color: #b91c1c;">HCl + H₂O → H₃O⁺ + Cl⁻</code>
+        </p>
+        <p style="margin: 0 0 0.5rem 0; font-size: 0.79rem; line-height: 1.45;">
+          Al titular agregando <strong>Hidróxido de Sodio (NaOH 0.1 M)</strong> desde la bureta, los iones hidróxido (OH⁻) neutralizan exactamente los iones H₃O⁺ mediante una reacción exotérmica de neutralización:
+          <br>
+          <code style="background: #e2e8f0; padding: 0.1rem 0.35rem; border-radius: 4px; font-weight: 700; color: #047857;">HCl (ac) + NaOH (ac) → NaCl (ac) + H₂O (l)</code>
+        </p>
+        <div style="background: #f0fdf4; border-left: 3px solid #10b981; padding: 0.4rem 0.65rem; border-radius: 4px; font-size: 0.74rem; color: #065f46;">
+          <strong>Resultado en la mesa:</strong> Por eso la fórmula producida es <strong>Cloruro de Sodio (NaCl)</strong> disuelto en agua. El pH sube paulatinamente desde el medio ácido (~1.30) hasta alcanzar el punto neutro (7.00).
+        </div>
+      `;
+    }
+
+    // =========================================================================
+    // 9. CONSULTA: VIRAJE / FENOLFTALEÍNA
+    // =========================================================================
+    if (q.includes('fenolftalein') || q.includes('viraje') || q.includes('color') || q.includes('rosa')) {
+      return `
+        <div style="font-weight: 800; color: #065f46; margin-bottom: 0.35rem;">
+          🌸 Mecanismo del Indicador Fenolftaleína:
+        </div>
+        <p style="margin: 0 0 0.5rem 0; font-size: 0.79rem; line-height: 1.45;">
+          La <strong>fenolftaleína</strong> es un ácido débil orgánico indicador. En medios ácidos y neutros (pH &lt; 8.2), su estructura molecular se encuentra protonada y es completamente <strong>incolora</strong>.
+        </p>
+        <p style="margin: 0 0 0.5rem 0; font-size: 0.79rem; line-height: 1.45;">
+          Al llegar al punto de equivalencia estequiométrico y existir un leve exceso de iones OH⁻ (pH entre 8.2 y 10.0), la molécula sufre una modificación estructural en su sistema de dobles enlaces conjugados (quinónico), adquiriendo su característico <strong>color rosa pálido persistente</strong>.
+        </p>
+        <div style="background: #fdf2f8; border-left: 3px solid #ec4899; padding: 0.4rem 0.65rem; border-radius: 4px; font-size: 0.74rem; color: #831843;">
+          💡 <strong>Tip de laboratorio:</strong> Solo se necesitan de 2 a 3 gotas. El viraje debe ser tenue y mantenerse estable al agitar durante 30 segundos.
+        </div>
+      `;
+    }
+
+    // =========================================================================
+    // 10. CONSULTA: CÁLCULOS / MOLES / EQUIVALENCIA
+    // =========================================================================
+    if (q.includes('calcul') || q.includes('mol') || q.includes('equivalencia') || q.includes('concentracion') || q.includes('gasto')) {
+      return `
+        <div style="font-weight: 800; color: #065f46; margin-bottom: 0.35rem;">
+          ⚖️ Ley de Equivalencia Química en Titulación:
+        </div>
+        <p style="margin: 0 0 0.5rem 0; font-size: 0.79rem; line-height: 1.45;">
+          En el punto de equivalencia, los equivalentes-gramo de ácido igualan exactamente a los de la base:
+          <br>
+          <code style="background: #e2e8f0; padding: 0.1rem 0.35rem; border-radius: 4px; font-weight: 700;">V_ácido × M_ácido = V_base × M_base</code>
+        </p>
+        <p style="margin: 0 0 0.5rem 0; font-size: 0.79rem; line-height: 1.45;">
+          Para este laboratorio: con 25.0 mL de HCl 0.1 M, se tienen <strong>0.0025 moles de HCl</strong>. Como la base NaOH es 0.1 M, el volumen estequiométrico necesario para neutralizar es exactamente <strong>25.0 mL</strong>.
+        </p>
+        <div style="background: #f0f9ff; border-left: 3px solid #0284c7; padding: 0.4rem 0.65rem; border-radius: 4px; font-size: 0.74rem; color: #0369a1;">
+          Estado actual en tu bureta: Volumen dosificado: <strong>${volGastado} mL</strong> • pH del matraz: <strong>${currentPh}</strong>.
+        </div>
+      `;
+    }
+
+    // =========================================================================
+    // 11. CONSULTA: BIOSEGURIDAD
+    // =========================================================================
+    if (q.includes('bioseguridad') || q.includes('peligro') || q.includes('seguridad') || (q.includes('acido') && q.includes('piel'))) {
+      return `
+        <div style="font-weight: 800; color: #991b1b; margin-bottom: 0.35rem;">
+          ⚠️ Regla de Oro de Bioseguridad en el Laboratorio:
+        </div>
+        <p style="margin: 0 0 0.5rem 0; font-size: 0.79rem; line-height: 1.45;">
+          <strong>"¡Nunca des de beber al ácido! Siempre vierte el ácido sobre el agua lentamente".</strong>
+        </p>
+        <p style="margin: 0 0 0.5rem 0; font-size: 0.79rem; line-height: 1.45;">
+          La hidratación del ácido es fuertemente <strong>exotérmica</strong>. Si viertes agua sobre un ácido concentrado, la menor densidad del agua la mantiene en la superficie; el calor generado puede hacer hervir instantáneamente el agua, provocando salpicaduras violentas de ácido caliente sobre el operador.
+        </p>
+      `;
+    }
+
+    // =========================================================================
+    // 12. CONSULTA: CUÁNDO FINALIZAR
+    // =========================================================================
+    if (q.includes('termin') || q.includes('finaliz') || q.includes('acab') || q.includes('listo')) {
+      return `
+        <div style="font-weight: 800; color: #065f46; margin-bottom: 0.35rem;">
+          🎯 ¿Cuándo finalizar la práctica?
+        </div>
+        <p style="margin: 0 0 0.5rem 0; font-size: 0.79rem; line-height: 1.45;">
+          Debes finalizar únicamente cuando se cumplan dos condiciones:
+          <br>
+          1. <strong>Viraje visual persistente:</strong> El líquido en el matraz cambia de incoloro a rosa tenue y no se desvanece al agitarlo.<br>
+          2. <strong>pH neutro:</strong> El sensor indica un pH entre <strong>7.00 y 8.50</strong> (volumen gastado cercano a 25.0 mL).
+        </p>
+        <p style="margin: 0; font-size: 0.76rem; color: #166534;">
+          Una vez alcanzado, cierra la llave de la bureta y presiona <strong>[📋 Finalizar Práctica y Ver Resultados (RF007)]</strong>.
+        </p>
+      `;
+    }
+
+    // =========================================================================
+    // RESPUESTA ORIENTADORA CONTEXTUAL POR DEFECTO
+    // =========================================================================
+    return `
+      <div style="font-weight: 800; color: #065f46; margin-bottom: 0.35rem;">
+        🔬 Orientación Científica sobre ${labTopic}:
+      </div>
+      <p style="margin: 0 0 0.5rem 0; font-size: 0.79rem; line-height: 1.45;">
+        En esta práctica, el objetivo es determinar el punto de equivalencia entre el ácido clorhídrico y el hidróxido de sodio. Recuerda verificar que el matraz esté alineado bajo la bureta, añadir 3 gotas de fenolftaleína y dosificar gota a gota hasta observar el viraje rosa persistente.
+      </p>
+      <div style="background: #f0fdf4; border-left: 3px solid #10b981; padding: 0.4rem 0.65rem; border-radius: 4px; font-size: 0.74rem; color: #065f46;">
+        Lectura actual en tu mesa 2D: pH = <strong>${currentPh}</strong> • NaOH gastado = <strong>${volGastado} mL</strong>.
+      </div>
+    `;
+  },
+
+  processLabConsultQuestion(questionText) {
+    const historyContainer = document.getElementById('labConsultHistoryContainer');
+    if (!historyContainer) return;
+
+    // 1. Añadir burbuja del usuario
+    const userBubble = document.createElement('div');
+    userBubble.className = 'lab-consult-bubble user';
+    userBubble.innerText = questionText;
+    historyContainer.appendChild(userBubble);
+    historyContainer.scrollTop = historyContainer.scrollHeight;
+
+    // 2. Analizar ortografía y generar respuesta científica
+    const ortho = this.analyzeQuestionOrthography(questionText);
+    const scientificAnswer = this.getLabContextualAnswer(questionText);
+
+    setTimeout(() => {
+      const botBubble = document.createElement('div');
+      botBubble.className = 'lab-consult-bubble bot';
+
+      let orthoHtml = '';
+      if (ortho.hasErrors) {
+        orthoHtml = `
+          <div class="ortho-tip-box">
+            <div style="font-weight: 800; color: #854d0e; font-size: 0.74rem; display: flex; align-items: center; gap: 0.35rem; margin-bottom: 0.3rem;">
+              <span>✍️</span> <strong>Análisis Ortográfico &amp; Redacción Científica:</strong>
+            </div>
+            <ul style="margin: 0; padding-left: 1.2rem; font-size: 0.73rem; color: #713f12; line-height: 1.45;">
+              ${ortho.errors.map(err => `<li>${err}</li>`).join('')}
+            </ul>
+            <div style="font-size: 0.72rem; color: #a16207; margin-top: 0.35rem; font-weight: 700; background: rgba(254, 240, 138, 0.4); padding: 0.2rem 0.45rem; border-radius: 4px;">
+              💡 Forma correcta recomendada: <em>"${ortho.correctedText}"</em>
+            </div>
+          </div>
+        `;
+      }
+
+      botBubble.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 0.4rem; font-weight: 800; color: #065f46; margin-bottom: 0.45rem;">
+          <span>🤖</span> <strong>Quimi (Respuesta Contextual del Laboratorio):</strong>
+        </div>
+        ${orthoHtml}
+        <div>
+          ${scientificAnswer}
+        </div>
+      `;
+
+      historyContainer.appendChild(botBubble);
+      historyContainer.scrollTop = historyContainer.scrollHeight;
+    }, 300);
+  },
+
+  // ================= RF016: EVALUACIONES INTERACTIVAS POST-SIMULACIÓN =================
+  openPostSimulationQuiz(exam, experimentalData) {
+    const modal = document.getElementById('modalPostSimQuiz');
+    if (!modal) {
+      this.executeOfficialExamSubmission(exam, this.state.currentUser, experimentalData.vAdded, experimentalData.finalPh, experimentalData.temp, 20);
+      return;
+    }
+
+    const titleEl = document.getElementById('postSimQuizTitle');
+    if (titleEl) {
+      titleEl.innerText = `Evaluación Interactiva: ${exam.title || 'Práctica de Laboratorio'}`;
+    }
+
+    const gridEl = document.getElementById('postSimObservedGrid');
+    if (gridEl) {
+      const isNeutral = experimentalData.finalPh >= 6.8;
+      gridEl.innerHTML = `
+        <div style="background: #ffffff; padding: 0.4rem 0.6rem; border-radius: 6px; border: 1px solid #ddd6fe;">
+          <div style="color: #6b21a8; font-size: 0.68rem; font-weight: 700;">VOLUMEN GASTADO</div>
+          <strong style="color: #4c1d95; font-size: 0.95rem;">${experimentalData.vAdded.toFixed(1)} mL</strong>
+        </div>
+        <div style="background: #ffffff; padding: 0.4rem 0.6rem; border-radius: 6px; border: 1px solid #ddd6fe;">
+          <div style="color: #6b21a8; font-size: 0.68rem; font-weight: 700;">pH FINAL ALCANZADO</div>
+          <strong style="color: ${isNeutral ? '#15803d' : '#b91c1c'}; font-size: 0.95rem;">${experimentalData.finalPh.toFixed(2)}</strong>
+        </div>
+        <div style="background: #ffffff; padding: 0.4rem 0.6rem; border-radius: 6px; border: 1px solid #ddd6fe;">
+          <div style="color: #6b21a8; font-size: 0.68rem; font-weight: 700;">TEMPERATURA</div>
+          <strong style="color: #0369a1; font-size: 0.95rem;">${experimentalData.temp}</strong>
+        </div>
+        <div style="background: #ffffff; padding: 0.4rem 0.6rem; border-radius: 6px; border: 1px solid #ddd6fe;">
+          <div style="color: #6b21a8; font-size: 0.68rem; font-weight: 700;">VIRAJE OBSERVADO</div>
+          <strong style="color: ${isNeutral ? '#db2777' : '#64748b'}; font-size: 0.85rem;">${isNeutral ? '🌸 Rosa Pálido' : '⚪ Incoloro (Ácido)'}</strong>
+        </div>
+      `;
+    }
+
+    const listEl = document.getElementById('postSimQuestionsList');
+    if (listEl) {
+      let questions = (exam.questions && exam.questions.length > 0) ? exam.questions : [
+        {
+          question: '¿Cuál es la ecuación química balanceada de la reacción de neutralización producida en tu matraz?',
+          options: [
+            'HCl (ac) + NaOH (ac) → NaCl (ac) + H₂O (l)',
+            'HCl + NaOH → NaH + ClO',
+            'HCl + H₂O → NaOH + Cl₂',
+            'Na + Cl₂ → NaCl'
+          ],
+          answer: 0,
+          explanation: 'La reacción entre el ácido clorhídrico y el hidróxido de sodio forma cloruro de sodio (sal) y agua neutra.'
+        },
+        {
+          question: `Según los ${experimentalData.vAdded.toFixed(1)} mL de NaOH dosificados y el pH ${experimentalData.finalPh.toFixed(2)}, ¿por qué cambió de color el indicador fenolftaleína?`,
+          options: [
+            'Porque al consumirse todos los iones H₃O⁺ y entrar en medio levemente alcalino (pH ≥ 8.2), la fenolftaleína cambió su estructura conjugada a color rosa.',
+            'Porque el mechero Bunsen calentó el recipiente hasta evaporar el agua.',
+            'Porque el ácido clorhídrico se descompuso en cloro gaseoso de color rosado.',
+            'Porque la bureta graduada añade colorante rosa a la muestra.'
+          ],
+          answer: 0,
+          explanation: 'La fenolftaleína vira a rosa pálido únicamente cuando la solución alcanza un pH entre 8.2 y 10.0 en el punto final de titulación.'
+        }
+      ];
+
+      this._currentPostSimQuestions = questions;
+
+      let html = '';
+      questions.forEach((q, qIdx) => {
+        html += `
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.85rem; margin-bottom: 0.75rem;">
+            <div style="font-weight: 800; font-size: 0.82rem; color: #1e293b; margin-bottom: 0.5rem;">
+              ${qIdx + 1}. ${q.question}
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 0.35rem;">
+              ${q.options.map((opt, optIdx) => `
+                <label style="display: flex; align-items: flex-start; gap: 0.5rem; font-size: 0.78rem; color: #334155; cursor: pointer; padding: 0.35rem 0.55rem; border-radius: 6px; background: #ffffff; border: 1px solid #cbd5e1;">
+                  <input type="radio" name="post_sim_q_${qIdx}" value="${optIdx}" style="margin-top: 0.15rem;" ${optIdx === 0 ? 'checked' : ''}>
+                  <span>${String.fromCharCode(65 + optIdx)}) ${opt}</span>
+                </label>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      });
+      listEl.innerHTML = html;
+    }
+
+    modal.style.display = 'flex';
+  },
+
+  submitPostSimulationQuiz() {
+    const modal = document.getElementById('modalPostSimQuiz');
+    if (modal) modal.style.display = 'none';
+
+    const questions = this._currentPostSimQuestions || [];
+    let correctCount = 0;
+    questions.forEach((q, qIdx) => {
+      const selected = document.querySelector(`input[name="post_sim_q_${qIdx}"]:checked`);
+      if (selected && parseInt(selected.value, 10) === q.answer) {
+        correctCount++;
+      }
+    });
+
+    const quizScore = questions.length > 0 ? (correctCount / questions.length) * 20 : 20;
+
+    if (this._pendingPostSimSubmission) {
+      const p = this._pendingPostSimSubmission;
+      this._pendingPostSimSubmission = null;
+      this._lastPostSimQuizScore = quizScore;
+      this.executeOfficialExamSubmission(p.exam, p.user, p.vAdded, p.finalPh, p.temp, quizScore);
+    }
+  },
+
+  toggleRobotFlowAdvisor() {
+    const modal = document.getElementById('modalRobotFlowAdvisor');
+    if (!modal) return;
+    if (modal.style.display === 'flex') {
+      this.closeRobotFlowAdvisor();
+    } else {
+      this.openRobotFlowAdvisor();
+    }
+  },
+
+  openRobotFlowAdvisor() {
+    // Si el docente deshabilitó el asistente para este examen, restringir acceso
+    if (this.activePracticalExam && this.activePracticalExam.allowAiAssistant === false) {
+      this.showToast('🔒 El docente ha deshabilitado el Asistente Virtual Quimi para este examen.');
+      return;
+    }
+    const modal = document.getElementById('modalRobotFlowAdvisor');
+    if (!modal) return;
+    this.renderRobotFlowAdvisor();
+    modal.style.display = 'flex';
+  },
+
+  closeRobotFlowAdvisor() {
+    const modal = document.getElementById('modalRobotFlowAdvisor');
+    if (modal) modal.style.display = 'none';
+  },
+
+  refreshRobotFlowBadge() {
+    this.updateRobotFlowAdvisorVisibility();
+    const badgeEl = document.getElementById('robotFlowPillBadge');
+    if (!badgeEl) return;
+    const state = this.getSimulationFlowAdvisorState();
+    const totalSteps = state.steps.length;
+    badgeEl.innerText = state.isFinished ? '✅ Completado' : `Paso ${state.activeIdx + 1}/${totalSteps}`;
+    badgeEl.style.background = state.isFinished ? '#16a34a' : '#0284c7';
+
+    const modal = document.getElementById('modalRobotFlowAdvisor');
+    if (modal && modal.style.display === 'flex') {
+      this.renderRobotFlowAdvisor();
+    }
+  },
+
+  getSimulationFlowAdvisorState() {
+    const isExam = Boolean(this.activePracticalExam);
+    const exam = this.activePracticalExam;
+    const pIndex = this.state.currentPracticeIndex || 0;
+    const practice = this.practices[pIndex] || this.practices[0];
+
+    const examTitle = exam ? (exam.title && exam.title.trim().length > 2 ? exam.title : (exam.topic ? `Práctica de ${exam.topic}` : 'Neutralización Ácido-Base')) : '';
+    const problemTitle = isExam ? `Examen Práctico: ${examTitle}` : `Práctica: ${practice ? practice.title : 'Laboratorio Químico'}`;
+    const problemGoal = isExam 
+      ? (exam.description || 'Determinar el punto de equivalencia titulando la alícuota de HCl con NaOH.')
+      : (practice ? (practice.description || 'Simulación y experimentación guiada en mesa de laboratorio 2D.') : 'Simulación y experimentación guiada.');
+
+    const textToAnalyze = `${problemTitle} ${problemGoal} ${isExam ? (exam.topic || '') : ''}`.toLowerCase();
+
+    let expType = 'titration';
+    if (textToAnalyze.includes('titul') || textToAnalyze.includes('neutraliz') || (textToAnalyze.includes('hcl') && textToAnalyze.includes('naoh'))) {
+      expType = 'titration';
+    } else if (textToAnalyze.includes('calent') || textToAnalyze.includes('mechero') || textToAnalyze.includes('ebull') || textToAnalyze.includes('termic')) {
+      expType = 'thermal';
+    } else if (textToAnalyze.includes('densidad') || textToAnalyze.includes('arquimedes') || textToAnalyze.includes('probeta')) {
+      expType = 'density';
+    } else if (textToAnalyze.includes('disol') || textToAnalyze.includes('solubil') || textToAnalyze.includes('mezcla')) {
+      expType = 'dissolution';
+    } else {
+      expType = 'free';
+    }
+
+    const bench = this.labBench;
+    const vessels = (bench && bench.vessels) ? bench.vessels : [];
+    const burette = (bench && bench.buretteStand) ? bench.buretteStand : { visible: false, volumeAddedMl: 0, isDripping: false };
+    const bunsen = (bench && bench.bunsen) ? bench.bunsen : { visible: false, isOn: false };
+
+    const tipX = (burette && burette.tipX !== undefined) ? burette.tipX : 565;
+    const tipY = (burette && burette.tipY !== undefined) ? burette.tipY : 350;
+
+    // Detectar si hay algún recipiente posicionado bajo la bureta
+    const vesselUnderBurette = vessels.find(v => {
+      const vw = v.width || v.w || 70;
+      return (tipX >= v.x - 25 && tipX <= v.x + vw + 25);
+    });
+
+    // Identificar el matraz o recipiente principal del experimento
+    const mainVessel = vesselUnderBurette 
+      || (bench && bench.selectedVessel) 
+      || vessels.find(v => v.type === 'erlenmeyer') 
+      || vessels.find(v => v.contents && ((v.contents.hcl || 0) > 0 || (v.contents.naoh || 0) > 0)) 
+      || vessels[0] 
+      || null;
+
+    let totalVol = 0;
+    let hasHcl = false;
+    let hclVol = 0;
+    let hasNaoh = false;
+    let naohVol = 0;
+    let hasPhenol = false;
+    let phenolDrops = 0;
+    let currentPh = 7.0;
+
+    // Si hay recipientes con reactivos en la mesa
+    const vesselWithHcl = vessels.find(v => v.contents && (v.contents.hcl || 0) > 0.5) || mainVessel;
+    const vesselWithPhenol = vessels.find(v => v.contents && (v.contents.phenolphthalein || 0) > 0) || mainVessel;
+
+    if (mainVessel && bench) {
+      totalVol = bench.getVesselTotalVolume(mainVessel);
+      currentPh = bench.getVesselPH(mainVessel);
+      if (mainVessel.contents) {
+        hclVol = mainVessel.contents.hcl || 0;
+        hasHcl = hclVol > 0.5;
+        naohVol = mainVessel.contents.naoh || 0;
+        hasNaoh = naohVol > 0.5;
+        phenolDrops = mainVessel.contents.phenolphthalein || 0;
+        hasPhenol = phenolDrops > 0;
+      }
+    }
+
+    if (!hasHcl && vesselWithHcl && vesselWithHcl.contents) {
+      hclVol = vesselWithHcl.contents.hcl || 0;
+      hasHcl = hclVol > 0.5;
+    }
+    if (!hasPhenol && vesselWithPhenol && vesselWithPhenol.contents) {
+      phenolDrops = vesselWithPhenol.contents.phenolphthalein || 0;
+      hasPhenol = phenolDrops > 0;
+    }
+
+    let isAlignedUnderBurette = false;
+    if (burette.visible) {
+      // Si ya se ha dosificado reactivo o está cayendo líquido en un recipiente, indudablemente está alineado
+      if (burette.volumeAddedMl > 0 || burette.isDripping || vesselUnderBurette) {
+        isAlignedUnderBurette = true;
+      } else if (mainVessel) {
+        const vw = mainVessel.width || mainVessel.w || 70;
+        isAlignedUnderBurette = (tipX >= mainVessel.x - 25 && tipX <= mainVessel.x + vw + 25);
+      }
+    }
+
+    let steps = [];
+    let activeWarning = null;
+
+    if (expType === 'titration') {
+      const step1Done = Boolean(vessels.some(v => v.type === 'erlenmeyer' || v.type === 'beaker') || burette.volumeAddedMl > 0);
+      const step2Done = step1Done && ((hasHcl && hclVol >= 15) || burette.volumeAddedMl > 0);
+      const step3Done = step2Done && (hasPhenol || burette.volumeAddedMl > 0);
+      const step4Done = step3Done && isAlignedUnderBurette && burette.visible;
+      const isNeutralized = (currentPh >= 6.8 && currentPh <= 11.5) || (burette.volumeAddedMl >= 24.5 && currentPh >= 6.5);
+      const step5Done = step4Done && isNeutralized;
+      const step6Done = step5Done && !burette.isDripping;
+
+      if (burette.visible && burette.isDripping && !vesselUnderBurette && burette.volumeAddedMl === 0) {
+        activeWarning = '⚠️ ¡La bureta está goteando sobre la encimera vacía! Centra el matraz usando el botón [🎯 Alinear Matraz].';
+      } else if (hclVol > 26.0 && burette.volumeAddedMl === 0) {
+        activeWarning = `⚠️ Alícuota excedida: Has servido ${hclVol.toFixed(1)} mL de HCl (el reto exige exactamente 25.0 mL). Vacía el matraz y agrega solo 25 mL para que la titulación estequiométrica alcance el viraje con 25 mL de NaOH.`;
+      } else if (step4Done && !hasPhenol && burette.volumeAddedMl > 2) {
+        activeWarning = '⚠️ Estás titulando sin indicador fenolftaleína. No podrás observar el viraje de color rosado.';
+      } else if (step4Done && !isNeutralized && burette.volumeAddedMl > 8) {
+        activeWarning = `🔬 Titulación en proceso: Se han dosificado ${burette.volumeAddedMl.toFixed(1)} mL de NaOH. El pH actual es ${currentPh.toFixed(2)} (Aún en medio ácido). Sigue agregando gotas hasta alcanzar el punto de equivalencia (pH ~7.00 - 8.5) y observar el color rosa persistente. ¡No finalices aún!`;
+      }
+
+      steps = [
+        {
+          num: 1,
+          title: 'Colocar Matraz Erlenmeyer en la mesa',
+          desc: 'Selecciona el Matraz Erlenmeyer (250 mL) desde el estante de instrumental para recibir la muestra.',
+          isDone: step1Done,
+          actionBtn: !step1Done ? `<button type="button" class="btn btn-primary btn-sm" onclick="App.onInstrumentClick('erlenmeyer'); App.renderRobotFlowAdvisor();">⚗️ Colocar Matraz</button>` : null
+        },
+        {
+          num: 2,
+          title: 'Servir alícuota de 25 mL de Ácido Clorhídrico (HCl)',
+          desc: `Haz clic en 'Ácido Clorhídrico (HCl 0.1 M)' en el estante de reactivos para llenar exactamente 25 mL (Actual: ${hclVol.toFixed(1)} mL).`,
+          isDone: step2Done,
+          actionBtn: (!step2Done && step1Done) ? `<button type="button" class="btn btn-secondary btn-sm" onclick="App.onReagentClick('hcl'); App.renderRobotFlowAdvisor();">🧪 Servir HCl 0.1 M</button>` : null
+        },
+        {
+          num: 3,
+          title: 'Añadir 3 gotas de Indicador Fenolftaleína',
+          desc: `Agrega fenolftaleína al matraz para permitir la detección visual del viraje (Actual: ${phenolDrops} gotas).`,
+          isDone: step3Done,
+          actionBtn: (!step3Done && step2Done) ? `<button type="button" class="btn btn-secondary btn-sm" onclick="App.onReagentClick('phenolphthalein'); App.renderRobotFlowAdvisor();">🌸 Añadir Fenolftaleína</button>` : null
+        },
+        {
+          num: 4,
+          title: 'Alinear el matraz bajo la punta de la bureta',
+          desc: 'Posiciona el matraz exactamente debajo de la punta dosificadora de la bureta graduada con NaOH 0.1 M.',
+          isDone: step4Done,
+          actionBtn: (!step4Done && step3Done) ? `<button type="button" class="btn btn-primary btn-sm" onclick="App.alignVesselUnderBurette(); App.renderRobotFlowAdvisor();">🎯 Alinear Matraz</button>` : null
+        },
+        {
+          num: 5,
+          title: 'Dosificar NaOH 0.1 M gota a gota (Titulación)',
+          desc: isNeutralized
+            ? `✨ ¡Punto de neutralización alcanzado! (Gastado: ${burette.volumeAddedMl.toFixed(1)} mL • pH: ${currentPh.toFixed(2)} • Viraje rosa persistente detectado).`
+            : `Abre la llave de la bureta y titula gota a gota hasta observar el viraje rosa pálido persistente (Gastado: ${burette.volumeAddedMl.toFixed(1)} mL • pH actual: ${currentPh.toFixed(2)}).`,
+          isDone: step5Done,
+          actionBtn: (!step5Done && step4Done) ? `<button type="button" class="btn btn-primary btn-sm" onclick="App.titrationDripToggle(); App.renderRobotFlowAdvisor();">${burette.isDripping ? '⏸️ Pausar Goteo' : '💧 Abrir Llave Bureta'}</button>` : null
+        },
+        {
+          num: 6,
+          title: 'Cerrar llave de bureta y Finalizar Examen / Práctica',
+          desc: isNeutralized
+            ? 'Alcanzado el punto de equivalencia con viraje rosa persistente, cierra la llave y envía tus resultados para evaluación oficial.'
+            : 'Solo finaliza la práctica cuando se alcance el punto de equivalencia (pH ~7.00) y el viraje persistente a rosa pálido.',
+          isDone: step6Done,
+          actionBtn: step5Done ? (burette.isDripping 
+            ? `<button type="button" class="btn btn-warning btn-sm" onclick="App.titrationDripToggle(); App.renderRobotFlowAdvisor();">⏸️ Cerrar Llave de Bureta</button>`
+            : `<button type="button" class="btn btn-success btn-sm" onclick="App.submitPracticalExam(); App.closeRobotFlowAdvisor();">🎓 Finalizar Práctica y Enviar (RF007)</button>`) : null
+        }
+      ];
+    } else if (expType === 'thermal') {
+      const step1Done = vessels.length > 0;
+      const step2Done = step1Done && totalVol > 10;
+      const step3Done = bunsen.visible;
+      const step4Done = bunsen.isOn;
+
+      steps = [
+        {
+          num: 1,
+          title: 'Colocar recipiente de vidrio en la mesa',
+          desc: 'Añade un Vaso de precipitados o Matraz Erlenmeyer.',
+          isDone: step1Done,
+          actionBtn: !step1Done ? `<button type="button" class="btn btn-primary btn-sm" onclick="App.onInstrumentClick('beaker'); App.renderRobotFlowAdvisor();">🥛 Colocar Vaso</button>` : null
+        },
+        {
+          num: 2,
+          title: 'Cargar solución o agua destilada',
+          desc: `Vierte líquido en el recipiente antes de calentar (Volumen actual: ${totalVol.toFixed(1)} mL).`,
+          isDone: step2Done,
+          actionBtn: (!step2Done && step1Done) ? `<button type="button" class="btn btn-secondary btn-sm" onclick="App.onReagentClick('h2o'); App.renderRobotFlowAdvisor();">💧 Cargar Agua</button>` : null
+        },
+        {
+          num: 3,
+          title: 'Montar el Mechero Bunsen y Trípode',
+          desc: 'Asegura la fuente de calor regulable en la encimera.',
+          isDone: step3Done,
+          actionBtn: !step3Done ? `<button type="button" class="btn btn-primary btn-sm" onclick="App.onInstrumentClick('bunsen_burner'); App.renderRobotFlowAdvisor();">🔥 Colocar Mechero</button>` : null
+        },
+        {
+          num: 4,
+          title: 'Encender Llama y Monitorear Temperatura',
+          desc: 'Inicia el calentamiento y observa la variación cinética y térmica.',
+          isDone: step4Done,
+          actionBtn: (!step4Done && step3Done) ? `<button type="button" class="btn btn-primary btn-sm" onclick="App.toggleBunsenBurner(); App.renderRobotFlowAdvisor();">🔥 Encender Llama</button>` : null
+        }
+      ];
+    } else {
+      const hasAnyVessel = vessels.length > 0;
+      const hasLiquid = totalVol > 0;
+
+      steps = [
+        {
+          num: 1,
+          title: 'Seleccionar Instrumental de Trabajo',
+          desc: 'Coloca en la encimera los recipientes o sensores requeridos desde el estante izquierdo.',
+          isDone: hasAnyVessel,
+          actionBtn: !hasAnyVessel ? `<button type="button" class="btn btn-primary btn-sm" onclick="App.onInstrumentClick('beaker'); App.renderRobotFlowAdvisor();">🥛 Colocar Vaso</button>` : null
+        },
+        {
+          num: 2,
+          title: 'Dosificar Reactivos Químicos',
+          desc: `Selecciona sustancias en el estante de reactivos (Contenido actual: ${totalVol.toFixed(1)} mL).`,
+          isDone: hasLiquid,
+          actionBtn: (!hasLiquid && hasAnyVessel) ? `<button type="button" class="btn btn-secondary btn-sm" onclick="App.onReagentClick('h2o'); App.renderRobotFlowAdvisor();">💧 Verter H₂O</button>` : null
+        },
+        {
+          num: 3,
+          title: 'Monitorear Sensores Físico-Químicos',
+          desc: `Analiza la variación de pH (${currentPh.toFixed(2)}) y masa en los sensores laterales.`,
+          isDone: hasLiquid && hasAnyVessel,
+          actionBtn: null
+        }
+      ];
+    }
+
+    let activeIdx = steps.findIndex(s => !s.isDone);
+    if (activeIdx === -1) activeIdx = steps.length - 1;
+
+    return {
+      problemTitle,
+      problemGoal,
+      expType,
+      steps,
+      activeIdx,
+      activeWarning,
+      isFinished: steps.every(s => s.isDone)
+    };
+  },
+
+  renderRobotFlowAdvisor() {
+    const state = this.getSimulationFlowAdvisorState();
+    const titleEl = document.getElementById('robotFlowTitle');
+    const bodyEl = document.getElementById('robotFlowBody');
+    const badgeEl = document.getElementById('robotFlowPillBadge');
+
+    if (titleEl) {
+      titleEl.innerText = `${state.problemTitle}`;
+    }
+
+    const currentStep = state.steps[state.activeIdx] || state.steps[0];
+    const totalSteps = state.steps.length;
+    const completedCount = state.steps.filter(s => s.isDone).length;
+    const progressPct = Math.round((completedCount / totalSteps) * 100);
+
+    if (badgeEl) {
+      badgeEl.innerText = state.isFinished ? '✅ Completado' : `Paso ${state.activeIdx + 1}/${totalSteps}`;
+      badgeEl.style.background = state.isFinished ? '#16a34a' : '#0284c7';
+    }
+
+    if (!bodyEl) return;
+
+    let html = `
+      <!-- PROBLEMA Y OBJETIVO A RESOLVER -->
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.75rem 0.9rem; margin-bottom: 0.9rem;">
+        <div style="font-size: 0.7rem; font-weight: 800; color: #0284c7; text-transform: uppercase; margin-bottom: 0.25rem;">
+          🎯 Problema Químico a Resolver:
+        </div>
+        <div style="font-size: 0.78rem; color: #334155; line-height: 1.4;">
+          ${state.problemGoal}
+        </div>
+      </div>
+
+      <!-- ALERTA ACTIVA DE RIESGO O ERROR (SI CORRESPONDE) -->
+      ${state.activeWarning ? `
+        <div style="background: #fff1f2; border: 1.5px solid #fecdd3; border-radius: 8px; padding: 0.75rem 0.9rem; margin-bottom: 0.9rem; color: #9f1239; font-size: 0.76rem; line-height: 1.4; font-weight: 600;">
+          ${state.activeWarning}
+        </div>
+      ` : ''}
+
+      <!-- CAJA DESTACADA: SUGERENCIA INTELIGENTE DEL SIGUIENTE PASO -->
+      <div style="background: linear-gradient(135deg, #eff6ff, #f0f9ff); border: 2px solid #38bdf8; border-radius: 10px; padding: 0.85rem 1rem; margin-bottom: 1rem; box-shadow: 0 4px 12px rgba(14, 165, 233, 0.12);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+          <div style="display: flex; align-items: center; gap: 0.45rem;">
+            <span style="font-size: 1.25rem;">🤖</span>
+            <strong style="color: #0369a1; font-size: 0.82rem;">Quimi te sugiere (Paso ${state.activeIdx + 1} de ${totalSteps}):</strong>
+          </div>
+          <span style="font-size: 0.7rem; font-weight: 800; background: #38bdf8; color: #0f172a; padding: 0.15rem 0.45rem; border-radius: 999px;">
+            ${progressPct}% avance
+          </span>
+        </div>
+        <div style="font-size: 0.84rem; font-weight: 800; color: #0f172a; margin-bottom: 0.25rem;">
+          ${currentStep.title}
+        </div>
+        <p style="font-size: 0.78rem; color: #334155; line-height: 1.35; margin: 0 0 0.65rem 0;">
+          ${currentStep.desc}
+        </p>
+        ${currentStep.actionBtn ? `
+          <div style="display: flex; gap: 0.5rem; align-items: center; margin-top: 0.4rem;">
+            ${currentStep.actionBtn}
+          </div>
+        ` : ''}
+      </div>
+
+      <!-- BARRA DE PROGRESO DEL FLUJO -->
+      <div style="margin-bottom: 1rem;">
+        <div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: #64748b; font-weight: 700; margin-bottom: 0.3rem;">
+          <span>Progreso del Flujo Experimental</span>
+          <span>${completedCount} / ${totalSteps} pasos completados</span>
+        </div>
+        <div style="height: 6px; background: #e2e8f0; border-radius: 999px; overflow: hidden;">
+          <div style="height: 100%; width: ${progressPct}%; background: linear-gradient(90deg, #0284c7, #22c55e); transition: width 0.3s ease;"></div>
+        </div>
+      </div>
+
+      <!-- CHECKLIST DE PASOS ORDENADOS -->
+      <div style="font-size: 0.72rem; font-weight: 800; color: #475569; text-transform: uppercase; margin-bottom: 0.5rem;">
+        📋 Secuencia Completa del Flujo Intuitivo:
+      </div>
+      <div>
+    `;
+
+    state.steps.forEach((step, idx) => {
+      let statusClass = 'pending';
+      let icon = step.num;
+      if (step.isDone) {
+        statusClass = 'completed';
+        icon = '✓';
+      } else if (idx === state.activeIdx) {
+        statusClass = 'active';
+        icon = '➜';
+      }
+
+      html += `
+        <div class="flow-step-item ${statusClass}">
+          <div class="flow-step-badge">${icon}</div>
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-size: 0.76rem; font-weight: 700; color: ${step.isDone ? '#166534' : (idx === state.activeIdx ? '#0369a1' : '#475569')};">
+              ${step.num}. ${step.title}
+            </div>
+            <div style="font-size: 0.71rem; color: #64748b; margin-top: 0.15rem; line-height: 1.3;">
+              ${step.desc}
+            </div>
+          </div>
+        </div>
+      `;
+    });
+
+    html += `</div>`;
+    bodyEl.innerHTML = html;
+  },
+
   // ================= ASISTENTE VIRTUAL "QUIMI" =================
   askQuimiAboutCurrentStep() {
     const assistantTab = document.querySelector('[data-tab="tab-assistant"]');
@@ -6453,31 +8171,76 @@ const App = {
       ${isPassed ? 'Demostraste dominio cabal de los conceptos evaluados en la práctica y cuestionario docente.' : 'Se recomienda repasar los conceptos en el Libro Guía y consultar al Asistente Quimi antes de volver a intentar.'}
     `;
 
-    // Registrar en el salón 4to A (donde está matriculado Juan Pérez)
-    const class4A = this.classrooms.find(c => c.id === '4A');
-    if (class4A) {
-      class4A.students = class4A.students.filter(s => !s.name.includes('Juan Pérez'));
-      class4A.students.unshift({
-        name: 'Juan Pérez (Tú)',
-        practice: quizTitle.split('(')[0].trim(),
-        attempts: 1,
+    // Registrar para el usuario actual o Juan Pérez
+    const user = this.state.currentUser || this.registeredUsers.find(u => u.id === 'usr-std-1');
+    const targetClassroomId = (user && user.classroomId) || '4A';
+    const targetClassroom = this.classrooms.find(c => c.id === targetClassroomId);
+
+    if (user) {
+      user.score = finalScore;
+      user.status = isPassed ? 'Aprobado' : 'Desaprobado';
+      user.attempts = (parseInt(user.attempts, 10) || 0) + 1;
+      user.date = new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString().slice(0, 5);
+      user.practice = quizTitle.split('(')[0].trim();
+
+      user.notesHistory = user.notesHistory || [];
+      user.notesHistory.unshift({
+        test: user.practice,
         score: finalScore,
-        status: isPassed ? 'Aprobado' : 'Desaprobado',
-        date: new Date().toLocaleString()
+        date: user.date,
+        status: user.status
       });
-      if (this.activeClassroomId === '4A') {
-        this.renderClassroomStudents(class4A);
+
+      // Actualizar en lista general de usuarios
+      const uIdx = this.registeredUsers.findIndex(u => u.id === user.id);
+      if (uIdx >= 0) {
+        this.registeredUsers[uIdx].score = user.score;
+        this.registeredUsers[uIdx].status = user.status;
+        this.registeredUsers[uIdx].attempts = user.attempts;
+        this.registeredUsers[uIdx].date = user.date;
+        this.registeredUsers[uIdx].practice = user.practice;
+        this.registeredUsers[uIdx].notesHistory = user.notesHistory;
       }
     }
 
-    if (this.state.currentUser) {
+    if (targetClassroom && Array.isArray(targetClassroom.students)) {
+      const studentName = user ? user.name : 'Juan Pérez (Tú)';
+      const sIdx = targetClassroom.students.findIndex(s => (user && s.id === user.id) || s.name === studentName || s.name.startsWith(studentName));
+      if (sIdx >= 0) {
+        targetClassroom.students[sIdx].score = finalScore;
+        targetClassroom.students[sIdx].status = isPassed ? 'Aprobado' : 'Desaprobado';
+        targetClassroom.students[sIdx].date = new Date().toLocaleString();
+        targetClassroom.students[sIdx].practice = quizTitle.split('(')[0].trim();
+      } else {
+        targetClassroom.students.unshift({
+          id: user ? user.id : 'std-' + Date.now(),
+          name: studentName,
+          practice: quizTitle.split('(')[0].trim(),
+          attempts: 1,
+          score: finalScore,
+          status: isPassed ? 'Aprobado' : 'Desaprobado',
+          date: new Date().toLocaleString()
+        });
+      }
+      if (this.activeClassroomId === targetClassroomId) {
+        this.renderClassroomStudents(targetClassroom);
+      }
+    }
+
+    this.updateUserUI();
+    this.saveUsersLocally();
+    this.saveClassroomsLocally();
+
+    if (user) {
       this.syncScoreToDb({
-        userId: this.state.currentUser.id,
-        classroomId: this.state.currentUser.classroomId || '4A',
+        userId: user.id,
+        classroomId: targetClassroomId,
         score: finalScore,
-        attempts: 1,
+        attempts: user.attempts || 1,
         status: isPassed ? 'Aprobado' : 'Desaprobado',
-        date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString().slice(0, 5)
+        date: user.date || new Date().toLocaleString(),
+        practice: user.practice,
+        notesHistory: user.notesHistory
       });
     }
 
@@ -6658,10 +8421,62 @@ const App = {
     // Datos del alumno en este salón específico
     const classmates = salon.students || [];
     const studentData = classmates.find(s => s.id === user.id || s.name.replace(' (Tú)', '').trim() === user.name.trim()) || user;
-    const scoreVal = typeof studentData.score === 'number' ? studentData.score : (typeof user.score === 'number' ? user.score : 18);
-    const attemptsVal = studentData.attempts || user.attempts || 1;
-    const statusVal = studentData.status || user.status || 'Aprobado';
     const practiceName = salon.assignedPractice || user.practice || 'Síntesis de NaCl (Enlace Iónico)';
+
+    // Recopilar todas las notas que componen el desempeño del alumno para sumarlas
+    const notesList = [];
+    const seenTitles = new Set();
+
+    if (Array.isArray(user.notesHistory) && user.notesHistory.length > 0) {
+      user.notesHistory.forEach(n => {
+        if (n && typeof n.score === 'number') {
+          const t = n.test || 'Evaluación de Laboratorio';
+          if (!seenTitles.has(t)) {
+            seenTitles.add(t);
+            notesList.push({
+              title: t,
+              score: n.score,
+              date: n.date || 'Reciente',
+              letterGrade: n.letterGrade || (n.score >= 18 ? 'AD' : (n.score >= 14 ? 'A' : (n.score >= 11 ? 'B' : 'C')))
+            });
+          }
+        }
+      });
+    }
+
+    if (Array.isArray(this.evaluations)) {
+      this.evaluations.forEach(ev => {
+        const sub = (ev.submissions || []).find(s => s.studentId === user.id);
+        if (sub && typeof sub.score === 'number') {
+          const t = ev.title || 'Práctica Asignada';
+          if (!seenTitles.has(t)) {
+            seenTitles.add(t);
+            notesList.push({
+              title: t,
+              score: sub.score,
+              date: sub.date || 'Reciente',
+              letterGrade: sub.letterGrade || (sub.score >= 18 ? 'AD' : (sub.score >= 14 ? 'A' : (sub.score >= 11 ? 'B' : 'C')))
+            });
+          }
+        }
+      });
+    }
+
+    if (notesList.length === 0) {
+      notesList.push({
+        title: user.practice || 'Control 1: Enlaces Iónicos y Titulación',
+        score: typeof user.score === 'number' ? user.score : 19,
+        date: user.date || '28/10/2026',
+        letterGrade: 'AD'
+      });
+    }
+
+    const totalScoreSum = notesList.reduce((acc, curr) => acc + curr.score, 0);
+    const maxScorePossible = notesList.length * 20;
+    const averageScore = (totalScoreSum / notesList.length).toFixed(1);
+    const averageNumber = parseFloat(averageScore);
+    const statusVal = averageNumber >= 11 ? 'Aprobado' : 'Requiere Refuerzo';
+    const overallGrade = averageNumber >= 18 ? 'AD (Logro Destacado)' : (averageNumber >= 14 ? 'A (Logro Esperado)' : (averageNumber >= 11 ? 'B (En Proceso)' : 'C (En Inicio)'));
 
     // Renderizar selector de salones si el estudiante tiene 2 o más salones
     let multiSalonSelectorHtml = '';
@@ -6837,30 +8652,62 @@ const App = {
               `;
             })()}
 
-            <!-- MI RENDIMIENTO EN ESTE SALÓN -->
+            <!-- MI RENDIMIENTO EN ESTE SALÓN (SUMA DE TODAS LAS NOTAS) -->
             <div style="background: #ffffff; border-radius: 14px; border: 1px solid #e2e8f0; padding: 1.25rem 1.5rem; box-shadow: var(--shadow-sm);">
-              <h4 style="font-size: 0.95rem; font-weight: 800; color: #0f172a; margin: 0 0 1rem 0; display: flex; align-items: center; gap: 0.5rem;">
-                <span>📊 Tu Desempeño en el Salón</span>
-              </h4>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+                <h4 style="font-size: 0.95rem; font-weight: 800; color: #0f172a; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                  <span>📊 Tu Desempeño en el Salón</span>
+                </h4>
+                <span style="font-size: 0.72rem; color: #047857; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 0.15rem 0.55rem; border-radius: 999px; font-weight: 700;">
+                  Σ Sumatoria de Todas las Evaluaciones
+                </span>
+              </div>
 
-              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; text-align: center;">
-                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 0.85rem 0.5rem;">
-                  <span style="font-size: 0.72rem; color: #64748b; display: block; margin-bottom: 0.25rem;">Calificación</span>
-                  <strong style="font-size: 1.35rem; color: #0284c7; font-weight: 800;">${scoreVal} / 20</strong>
+              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; text-align: center; margin-bottom: 0.85rem;">
+                <div style="background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 10px; padding: 0.85rem 0.5rem;">
+                  <span style="font-size: 0.72rem; color: #166534; font-weight: 700; display: block; margin-bottom: 0.25rem;">Suma Total de Notas</span>
+                  <strong style="font-size: 1.45rem; color: #15803d; font-weight: 900;">${totalScoreSum} pts</strong>
+                  <span style="font-size: 0.68rem; color: #64748b; display: block; margin-top: 0.15rem;">de ${maxScorePossible} pts posibles</span>
+                </div>
+
+                <div style="background: #eff6ff; border: 1.5px solid #bfdbfe; border-radius: 10px; padding: 0.85rem 0.5rem;">
+                  <span style="font-size: 0.72rem; color: #1e40af; font-weight: 700; display: block; margin-bottom: 0.25rem;">Promedio del Salón</span>
+                  <strong style="font-size: 1.45rem; color: #0284c7; font-weight: 900;">${averageScore} / 20</strong>
+                  <span style="font-size: 0.68rem; color: #2563eb; display: block; margin-top: 0.15rem; font-weight: 700;">${overallGrade}</span>
                 </div>
 
                 <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 0.85rem 0.5rem;">
-                  <span style="font-size: 0.72rem; color: #64748b; display: block; margin-bottom: 0.25rem;">Intentos</span>
-                  <strong style="font-size: 1.35rem; color: #0f172a; font-weight: 800;">${attemptsVal}</strong>
-                </div>
-
-                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 0.85rem 0.5rem;">
-                  <span style="font-size: 0.72rem; color: #64748b; display: block; margin-bottom: 0.25rem;">Estado Oficial</span>
-                  <span class="status-pill status-approved" style="font-size: 0.75rem; padding: 0.25rem 0.5rem; display: inline-block;">
+                  <span style="font-size: 0.72rem; color: #64748b; display: block; margin-bottom: 0.25rem;">Prácticas Sumadas</span>
+                  <strong style="font-size: 1.45rem; color: #0f172a; font-weight: 800;">${notesList.length}</strong>
+                  <span class="status-pill status-approved" style="font-size: 0.72rem; padding: 0.15rem 0.45rem; display: inline-block; margin-top: 0.2rem;">
                     ${statusVal}
                   </span>
                 </div>
               </div>
+
+              <!-- DESGLOSE DE CADA NOTA QUE SUMA AL TOTAL -->
+              <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.65rem 0.85rem;">
+                <div style="font-size: 0.73rem; font-weight: 800; color: #334155; margin-bottom: 0.45rem; display: flex; align-items: center; justify-content: space-between;">
+                  <span>📋 Desglose de Evaluaciones que sumaron ${totalScoreSum} puntos:</span>
+                  <span style="color: #64748b; font-weight: 600;">${notesList.length} evaluaciones rendidas</span>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 0.35rem;">
+                  ${notesList.map((n, idx) => `
+                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.74rem; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 0.35rem 0.6rem;">
+                      <div style="display: flex; align-items: center; gap: 0.4rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        <span style="color: #64748b; font-size: 0.68rem; font-weight: 700;">#${idx + 1}</span>
+                        <strong style="color: #1e293b;">${n.title}</strong>
+                        <span style="font-size: 0.68rem; color: #94a3b8;">(${n.date})</span>
+                      </div>
+                      <div style="display: flex; align-items: center; gap: 0.4rem;">
+                        <span style="font-size: 0.68rem; font-weight: 800; padding: 0.1rem 0.35rem; border-radius: 4px; background: ${n.score >= 14 ? '#dcfce7; color: #166534;' : '#fef3c7; color: #92400e;'}">${n.letterGrade}</span>
+                        <strong style="color: #15803d; font-size: 0.82rem;">+${n.score} pts</strong>
+                      </div>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+
             </div>
 
           </div>
@@ -7775,6 +9622,10 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
 
       this.populateExamToolsCheckboxes(item.allowedInstruments || null);
       this.populateExamReagentsCheckboxes(item.allowedReagents || null);
+      const allowAiCheck = document.getElementById('editorExamAllowAiAssistant');
+      if (allowAiCheck) {
+        allowAiCheck.checked = item.allowAiAssistant !== false;
+      }
       this.onEvaluationTypeChange();
 
       // Cargar preguntas existentes si las hubiera o inicializar 1 en blanco
@@ -7789,8 +9640,8 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
       if (formType) formType.value = 'lab2d';
       formTopic.selectedIndex = 0;
       if (formDesc) formDesc.value = this.getDefaultProblemDescription(formTopic.value);
-      modalTitle.innerText = 'Crear Nueva Evaluación / Examen';
-      modalSub.innerText = 'Configure el título, la modalidad (Mesa 2D, Visor 3D o Teórico), los salones destino y las herramientas autorizadas.';
+      modalTitle.innerText = 'Crear Práctica de Laboratorio & Evaluación Interactiva (RF016)';
+      modalSub.innerText = 'Configure el reto experimental en mesa, herramientas autorizadas y las preguntas interactivas que el estudiante resolverá al finalizar la simulación.';
 
       // Marcar 4to A por defecto
       document.querySelectorAll('.salon-target-check').forEach(cb => {
@@ -7800,6 +9651,10 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
       // Precargar herramientas para examen práctico (por defecto preset titulación)
       this.populateExamToolsCheckboxes(['burette', 'erlenmeyer', 'beaker', 'balance', 'ph_meter', 'pipette']);
       this.populateExamReagentsCheckboxes(['h2o', 'hcl', 'naoh', 'phenolphthalein']);
+      const allowAiCheck = document.getElementById('editorExamAllowAiAssistant');
+      if (allowAiCheck) {
+        allowAiCheck.checked = true;
+      }
       this.onEvaluationTypeChange();
 
       // Agregar 1 pregunta inicial lista para que el docente la complete
@@ -7990,6 +9845,9 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
     const descInput = document.getElementById('editorEvalDescription');
     const description = (descInput ? descInput.value.trim() : '') || this.getDefaultProblemDescription(topic);
 
+    const allowAiCheck = document.getElementById('editorExamAllowAiAssistant');
+    const allowAiAssistant = allowAiCheck ? allowAiCheck.checked : true;
+
     if (existingId) {
       const existing = this.evaluations.find(e => e.id === existingId);
       if (existing) {
@@ -8004,6 +9862,7 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
         existing.targetClassrooms = checkedSalones;
         existing.allowedInstruments = allowedInstruments;
         existing.allowedReagents = allowedReagents;
+        existing.allowAiAssistant = allowAiAssistant;
         existing.questions = questions;
         if (isPublishing) {
           existing.status = 'published';
@@ -8020,6 +9879,7 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
         targetClassrooms: checkedSalones,
         allowedInstruments: allowedInstruments,
         allowedReagents: allowedReagents,
+        allowAiAssistant: allowAiAssistant,
         status: isPublishing ? 'published' : 'draft',
         createdAt: new Date().toLocaleString(),
         publishedAt: isPublishing ? new Date().toLocaleString() : null,
@@ -8030,6 +9890,14 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
     }
 
     this.closeEvaluationEditor();
+    
+    // Persistir evaluación creada/modificada
+    const targetItem = existingId ? this.evaluations.find(e => e.id === existingId) : this.evaluations[0];
+    this.saveEvaluationsLocally();
+    if (targetItem) {
+      this.syncEvaluationToDb(targetItem);
+    }
+
     this.renderEvaluations(this.evalFilter);
     this.populateQuizSelector();
 
@@ -8057,6 +9925,9 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
     item.status = 'published';
     item.publishedAt = new Date().toLocaleString();
 
+    this.saveEvaluationsLocally();
+    this.syncEvaluationToDb(item);
+
     this.renderEvaluations(this.evalFilter);
     this.populateQuizSelector();
 
@@ -8078,6 +9949,9 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
     }
 
     this.evaluations = this.evaluations.filter(e => e.id !== evalId);
+    this.saveEvaluationsLocally();
+    this.deleteEvaluationFromDb(evalId);
+
     this.renderEvaluations(this.evalFilter);
     this.populateQuizSelector();
     this.showDialog(`El borrador "${item.title}" fue eliminado exitosamente.`, 'Borrador Eliminado', '🗑️');
@@ -8374,18 +10248,29 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
       const salonEl = document.getElementById('examBannerSalon');
       const countEl = document.getElementById('examBannerToolsCount');
       const probDescEl = document.getElementById('examBannerProblemDescription');
+      const aiStatusEl = document.getElementById('examBannerAiAdvisorStatus');
       if (titleEl) titleEl.innerText = `Modo Examen Práctico: ${item.title}`;
       if (salonEl) salonEl.innerText = item.targetClassrooms.map(c => this.getClassroomName(c)).join(', ');
       if (countEl) countEl.innerText = `${item.allowedInstruments ? item.allowedInstruments.length : 14} autorizadas`;
       if (probDescEl) probDescEl.innerText = item.description || this.getDefaultProblemDescription(item.topic);
+      if (aiStatusEl) {
+        if (item.allowAiAssistant === false) {
+          aiStatusEl.innerHTML = '<span style="background: #fee2e2; color: #991b1b; padding: 0.1rem 0.5rem; border-radius: 4px; border: 1px solid #fca5a5; font-size: 0.70rem; font-weight: 700;">🔒 Asistente Quimi: Deshabilitado por el Docente (Sin Ayuda)</span>';
+        } else {
+          aiStatusEl.innerHTML = '<span style="background: #e0f2fe; color: #0369a1; padding: 0.1rem 0.5rem; border-radius: 4px; border: 1px solid #bae6fd; font-size: 0.70rem; font-weight: 700;">🤖 Asistente Quimi: Permitido</span>';
+        }
+      }
     }
+
+    // Actualizar visibilidad del Asistente Quimi según configuración del examen
+    this.updateRobotFlowAdvisorVisibility();
 
     // Re-renderizar estantes de reactivos e instrumentos (desaparecen los no permitidos)
     this.renderInstrumentsRack();
     this.renderReagentsShelf();
 
     this.showDialog(
-      `Has iniciado el examen práctico:\n"${item.title}"\n\n🎯 PROBLEMA A RESOLVER (Guía Asignada):\n${item.description || this.getDefaultProblemDescription(item.topic)}\n\n🔬 Tu docente ha configurado las herramientas permitidas para esta evaluación.\nAl completar la práctica asignada, pulsa "📋 Finalizar Práctica y Ver Resultados (RF007)".`,
+      `Has iniciado el examen práctico:\n"${item.title}"\n\n🎯 PROBLEMA A RESOLVER (Guía Asignada):\n${item.description || this.getDefaultProblemDescription(item.topic)}\n\n🔬 Tu docente ha configurado las herramientas permitidas para esta evaluación.\n${item.allowAiAssistant === false ? '🔒 Nota: El asistente virtual de flujo inteligente ha sido desactivado por el docente para este examen.\n\n' : ''}Al completar la práctica asignada, pulsa "📋 Finalizar Práctica y Ver Resultados (RF007)".`,
       'Examen Práctico Iniciado',
       '⚗️'
     );
@@ -8400,11 +10285,12 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
     this.renderInstrumentsRack();
     this.renderReagentsShelf();
     this.resetBenchObjects();
+    this.updateRobotFlowAdvisorVisibility();
 
     this.showDialog('Has regresado a la Mesa de Experimentación Libre con todas las 14 herramientas y reactivos disponibles.', 'Modo Libre Restaurado', '🔓');
   },
 
-  submitPracticalExam() {
+  submitPracticalExam(forceSubmit = false) {
     if (!this.activePracticalExam) {
       this.finishTitrationPractice();
       return;
@@ -8415,10 +10301,33 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
 
     // Evaluar práctica con ChemEngine
     const vAdded = this.labBench ? this.labBench.buretteStand.volumeAddedMl : 25.0;
-    const receivingFlask = this.labBench && this.labBench.vessels[0];
+    const tipX = (this.labBench && this.labBench.buretteStand) ? this.labBench.buretteStand.tipX : 565;
+    const vessels = (this.labBench && this.labBench.vessels) ? this.labBench.vessels : [];
+    const receivingFlask = vessels.find(v => (tipX >= v.x - 25 && tipX <= v.x + (v.width || 70) + 25)) || vessels[0];
     const finalPh = (this.labBench && receivingFlask) ? this.labBench.getVesselPH(receivingFlask) : 7.0;
     const temp = (this.labBench && receivingFlask && receivingFlask.temp) ? `${receivingFlask.temp.toFixed(1)} °C` : '25.0 °C';
 
+    // Alerta preventiva pedagógica si el alumno intenta entregar la práctica con el pH aún ácido (< 6.0)
+    if (!forceSubmit && finalPh < 6.0) {
+      const confirmSubmit = confirm(`⚠️ ADVERTENCIA DE EVALUACIÓN OFICIAL (ChemEngine):\n\nTu solución en el matraz aún se encuentra ÁCIDA (pH ${finalPh.toFixed(2)}).\nNo has alcanzado el punto de neutralización (~7.00) ni el viraje a rosa pálido persistente requerido por el problema.\n\nSi envías el examen ahora, tu calificación será baja (en inicio / desaprobatoria).\n\n¿Deseas continuar titulando gota a gota con NaOH hasta neutralizar?\n\n• Pulsa 'Cancelar' para seguir titulando con la bureta.\n• Pulsa 'Aceptar' para entregar de todas formas con este resultado.`);
+      if (!confirmSubmit) {
+        this.showToast('ℹ️ Continúa abriendo la llave de la bureta para dosificar gotas de NaOH hasta viraje rosa persistente.');
+        return;
+      }
+    }
+
+    // RF016: Si aún no se ha rendido la evaluación interactiva post-simulación, abrirla
+    this._pendingPostSimSubmission = {
+      exam,
+      user,
+      vAdded,
+      finalPh,
+      temp
+    };
+    this.openPostSimulationQuiz(exam, { vAdded, finalPh, temp });
+  },
+
+  executeOfficialExamSubmission(exam, user, vAdded, finalPh, temp, quizScore = null) {
     ChemEngine.logTelemetry('exam_submission', 'exam_practice_finish', vAdded, {
       examId: exam.id,
       examTitle: exam.title,
@@ -8428,12 +10337,19 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
 
     const rubricResult = ChemEngine.evaluateProceduralRubric(this.practiceConfig2026, ChemEngine.getTelemetryJSONB().events);
 
-    const isSuccess = rubricResult.vigesimalScore >= 11;
+    // Integración de nota procedimental (70%) + nota de evaluación interactiva RF016 (30%)
+    let finalVigesimal = rubricResult.vigesimalScore;
+    if (quizScore !== null) {
+      finalVigesimal = Math.round((rubricResult.vigesimalScore * 0.70) + (quizScore * 0.30));
+    }
+    const finalLetter = finalVigesimal >= 18 ? 'AD' : (finalVigesimal >= 14 ? 'A' : (finalVigesimal >= 11 ? 'B' : 'C'));
+
+    const isSuccess = finalVigesimal >= 11;
     const verdict = isSuccess
-      ? `✅ Objetivo cumplido: El resultado experimental (${vAdded.toFixed(1)} mL de adición volumétrica, pH ${finalPh.toFixed(2)}) resuelve satisfactoriamente el problema planteado en la guía de laboratorio asignada.`
+      ? `✅ Objetivo cumplido: El resultado experimental (${vAdded.toFixed(1)} mL de adición volumétrica, pH ${finalPh.toFixed(2)}) y el cuestionario interactivo (${quizScore !== null ? quizScore.toFixed(0) : '20'}/20) resuelven satisfactoriamente la práctica de laboratorio.`
       : `⚠️ Requiere refuerzo: El volumen gastado (${vAdded.toFixed(1)} mL) o pH final (${finalPh.toFixed(2)}) difieren del punto de equivalencia requerido.`;
 
-    // Guardar submission en el examen (RF007)
+    // Guardar submission en el examen (RF007 & RF016)
     const submission = {
       studentId: user.id,
       studentName: user.name,
@@ -8441,8 +10357,10 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
       classroomName: user.classroom || '4to Año "A"',
       topic: exam.topic,
       problemStatement: exam.description || this.getDefaultProblemDescription(exam.topic),
-      score: rubricResult.vigesimalScore,
-      letterGrade: rubricResult.letterGrade,
+      score: finalVigesimal,
+      letterGrade: finalLetter,
+      proceduralScore: rubricResult.vigesimalScore,
+      quizScore: quizScore,
       date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString().slice(0, 5),
       finalPh: finalPh.toFixed(2),
       volumeAddedMl: vAdded.toFixed(1),
@@ -8459,21 +10377,75 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
     if (existingIdx >= 0) exam.submissions[existingIdx] = submission;
     else exam.submissions.push(submission);
 
-    // Actualizar usuario
+    // Actualizar usuario y su historial de notas permanente
     user.score = rubricResult.vigesimalScore;
     user.status = rubricResult.vigesimalScore >= 11 ? 'Aprobado' : 'Pendiente';
+    user.attempts = (parseInt(user.attempts, 10) || 0) + 1;
+    user.date = new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString().slice(0, 5);
+    user.practice = exam.title;
+
+    user.notesHistory = user.notesHistory || [];
+    user.notesHistory.unshift({
+      test: exam.title,
+      score: rubricResult.vigesimalScore,
+      letterGrade: rubricResult.letterGrade,
+      date: user.date,
+      status: user.status
+    });
+
+    // Sincronizar en el catálogo de usuarios registrados
+    const uIdx = this.registeredUsers.findIndex(u => u.id === user.id);
+    if (uIdx >= 0) {
+      this.registeredUsers[uIdx].score = user.score;
+      this.registeredUsers[uIdx].status = user.status;
+      this.registeredUsers[uIdx].attempts = user.attempts;
+      this.registeredUsers[uIdx].date = user.date;
+      this.registeredUsers[uIdx].practice = user.practice;
+      this.registeredUsers[uIdx].notesHistory = user.notesHistory;
+    }
+
+    // Sincronizar en el salón correspondiente
+    const targetClassroomId = user.classroomId || '4A';
+    const targetClassroom = this.classrooms.find(c => c.id === targetClassroomId);
+    if (targetClassroom && Array.isArray(targetClassroom.students)) {
+      const sIdx = targetClassroom.students.findIndex(s => s.id === user.id || s.name === user.name || s.name.startsWith(user.name));
+      if (sIdx >= 0) {
+        targetClassroom.students[sIdx].score = user.score;
+        targetClassroom.students[sIdx].status = user.status;
+        targetClassroom.students[sIdx].attempts = user.attempts;
+        targetClassroom.students[sIdx].date = user.date;
+        targetClassroom.students[sIdx].practice = exam.title;
+      } else {
+        targetClassroom.students.unshift({
+          id: user.id,
+          name: user.name,
+          practice: exam.title,
+          attempts: user.attempts,
+          score: user.score,
+          status: user.status,
+          date: user.date
+        });
+      }
+    }
+
     this.updateUserUI();
 
-    // Guardar en DB
-    fetch('/api/db/save-score', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        userId: user.id,
-        score: rubricResult.vigesimalScore,
-        practice: exam.title
-      })
-    }).catch(() => {});
+    // Guardar permanentemente en almacenamiento local y base de datos
+    this.saveEvaluationsLocally();
+    this.saveUsersLocally();
+    this.saveClassroomsLocally();
+
+    this.syncScoreToDb({
+      userId: user.id,
+      classroomId: targetClassroomId,
+      score: rubricResult.vigesimalScore,
+      attempts: user.attempts,
+      status: user.status,
+      date: user.date,
+      practice: exam.title,
+      notesHistory: user.notesHistory
+    });
+    this.syncEvaluationToDb(exam);
 
     // Salir del modo examen
     this.activePracticalExam = null;
@@ -9518,6 +11490,14 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
 
     const targetVessel = this.labBench.selectedVessel;
     if (targetVessel) {
+      if (reagentId === 'hcl' && targetVessel.contents && targetVessel.contents.hcl >= 25.0) {
+        this.showToast(`⚠️ El recipiente ya contiene ${targetVessel.contents.hcl.toFixed(1)} mL de HCl (alícuota suficiente).`);
+        return;
+      }
+      if (reagentId === 'phenolphthalein' && targetVessel.contents && targetVessel.contents.phenolphthalein >= 3) {
+        this.showToast(`⚠️ Ya se agregaron ${targetVessel.contents.phenolphthalein} gotas de indicador fenolftaleína.`);
+        return;
+      }
       const amount = (r.state === 'solid') ? 5.0 : (reagentId === 'phenolphthalein' ? 3 : 25.0);
       this.labBench.addReagentToVessel(targetVessel, reagentId, amount);
     }
@@ -9561,6 +11541,7 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
 
   onInstrumentClick(instId) {
     if (!this.labBench) return;
+    this.lastClickedTool = instId;
     
     if (instId === 'bunsen_burner') {
       if (this.labBench.bunsen.visible === false) {
@@ -9772,18 +11753,48 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
       const tipX = this.labBench.buretteStand.tipX;
       const tipY = this.labBench.buretteStand.tipY;
       const receivingVessel = this.labBench.vessels.find(v => (
-        tipX >= v.x && tipX <= v.x + v.width &&
-        v.y >= tipY && v.y <= tipY + 120
+        tipX >= v.x - 12 && tipX <= v.x + v.width + 12 &&
+        v.y >= tipY && v.y <= tipY + 140
       ));
       if (receivingVessel) {
-        receivingVessel.contents.naoh += 0.05;
+        const rid = this.labBench.buretteStand.reagentId || 'naoh';
+        if (!receivingVessel.contents) receivingVessel.contents = { water: 0, hcl: 0, naoh: 0, indicator: 0, kmno4: 0, vinegar: 0, ethanol: 0, oil: 0, phenolphthalein: 0, nacl: 0, sand: 0, nahco3: 0, cuso4: 0 };
+        if (rid === 'naoh') receivingVessel.contents.naoh += 0.05;
+        else if (rid === 'hcl') receivingVessel.contents.hcl += 0.05;
+        else if (rid === 'h2o') receivingVessel.contents.water += 0.05;
+        else if (receivingVessel.contents[rid] !== undefined) receivingVessel.contents[rid] += 0.05;
+        else receivingVessel.contents.naoh += 0.05;
+
+        if (receivingVessel.volume < receivingVessel.capacity) {
+          receivingVessel.volume = Math.min(receivingVessel.capacity, receivingVessel.volume + 0.05);
+        }
         this.labBench.recordTitrationStep(receivingVessel);
+        this.labBench.showToast(`💉 Gota dosificada (+0.05 mL ${this.labBench.buretteStand.reagentName || 'NaOH'}).`);
+      } else {
+        this.labBench.showToast('⚠️ Gota caída en la mesa. Use [🎯 Alinear Matraz] para colocar el matraz debajo de la bureta.');
       }
       ChemEngine.logTelemetry('titration_drop', 'fine_dosage', this.labBench.buretteStand.volumeAddedMl);
-      this.labBench.showToast('💉 Gota dosificada (+0.05 mL NaOH).');
+    } else {
+      this.labBench.showToast('⚠️ La bureta está vacía (50 mL dosificados). Pulse [Rellenar Bureta] para recargarla.');
     }
     this.updateDigitalSensorsUI();
     this.refreshTelemetryUI();
+  },
+
+  refillBurette(reagentId = null) {
+    if (this.labBench && typeof this.labBench.refillBurette === 'function') {
+      this.labBench.refillBurette(reagentId);
+      this.updateDigitalSensorsUI();
+      this.refreshTelemetryUI();
+    }
+  },
+
+  alignVesselUnderBurette() {
+    if (this.labBench && typeof this.labBench.alignVesselUnderBurette === 'function') {
+      this.labBench.alignVesselUnderBurette();
+      this.updateDigitalSensorsUI();
+      this.refreshTelemetryUI();
+    }
   },
 
   titrationPurgeBurette() {
@@ -9814,6 +11825,7 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
 
   updateDigitalSensorsUI() {
     if (!this.labBench) return;
+    this.refreshRobotFlowBadge();
     const netMass = Math.max(0, this.labBench.balance.currentMass - this.labBench.balance.tareOffset);
     const balanceElem = document.getElementById('sensorBalanceDisplay');
     if (balanceElem) balanceElem.innerText = `${netMass.toFixed(2)} g`;
@@ -9902,12 +11914,67 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
       }
     }
 
-    // Tarjeta del Recipiente Activo en el Panel Lateral Derecho (Se abre al hacer clic sobre el recipiente)
+    // Tarjeta del Recipiente o Instrumento Activo en el Panel Lateral Derecho
     const cardActiveVessel = document.getElementById('cardActiveVessel');
-    const vesselActive = Boolean(this.labBench.selectedVessel && !this.labBench.selectedInstrument);
+    const isBuretteActive = this.labBench.selectedInstrument === 'burette';
+    const vesselActive = Boolean((this.labBench.selectedVessel && !this.labBench.selectedInstrument) || isBuretteActive);
     if (cardActiveVessel) {
       cardActiveVessel.style.setProperty('display', vesselActive ? 'block' : 'none', 'important');
-      if (vesselActive) {
+      if (isBuretteActive) {
+        const s = this.labBench.buretteStand;
+        const remaining = Math.max(0, 50.0 - s.volumeAddedMl);
+        const titleEl = document.getElementById('cardVesselTitle');
+        const volText = document.getElementById('cardVesselVolText');
+        const massText = document.getElementById('cardVesselMassText');
+        const reagentsList = document.getElementById('cardVesselReagentsList');
+        const actionBtns = document.getElementById('cardVesselActionBtns');
+
+        if (titleEl) titleEl.innerText = `💧 Soporte con Bureta Graduada (50 mL)`;
+        if (volText) volText.innerText = `${remaining.toFixed(1)} mL`;
+        if (massText) massText.innerText = `Dosificado: ${s.volumeAddedMl.toFixed(1)} mL`;
+
+        if (reagentsList) {
+          reagentsList.innerHTML = `
+            <div style="background: #e0f2fe; border: 1px solid #7dd3fc; border-radius: 8px; padding: 0.45rem 0.6rem; margin-bottom: 0.35rem; width: 100%;">
+              <div style="font-size: 0.76rem; font-weight: 800; color: #0369a1; display: flex; align-items: center; gap: 0.3rem;">
+                <span>🧪</span> Titulante: Hidróxido de Sodio
+              </div>
+              <div style="font-size: 0.72rem; color: #0284c7; margin-top: 0.15rem;">
+                Fórmula: <strong>NaOH 0.1 M</strong> • Alcalino / Base fuerte
+              </div>
+            </div>
+            <span class="reagent-pill-badge" style="border-left: 3px solid #10b981; width: 100%; display: flex; justify-content: space-between;">
+              <span>📊 Volumen en bureta:</span>
+              <strong>${remaining.toFixed(1)} / 50.0 mL</strong>
+            </span>
+            <span class="reagent-pill-badge" style="border-left: 3px solid ${s.isDripping ? '#22c55e' : '#64748b'}; width: 100%; display: flex; justify-content: space-between;">
+              <span>💧 Estado Válvula:</span>
+              <strong style="color: ${s.isDripping ? '#16a34a' : '#475569'};">${s.isDripping ? 'ABIERTA (Goteando)' : 'CERRADA'}</strong>
+            </span>
+          `;
+        }
+
+        if (actionBtns) {
+          actionBtns.innerHTML = `
+            <div style="display: flex; gap: 0.35rem; width: 100%; margin-bottom: 0.35rem;">
+              <button type="button" class="btn btn-sm" onclick="App.titrationDripToggle()" style="flex: 1; font-size: 0.72rem; font-weight: 700; background: ${s.isDripping ? '#dc2626' : '#0284c7'}; color: white; border: none; border-radius: 6px; padding: 0.35rem 0.5rem;">
+                ${s.isDripping ? '⏸️ Cerrar Llave' : '💧 Abrir Llave'}
+              </button>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="App.titrationAddDrop()" style="flex: 1; font-size: 0.72rem; font-weight: 700;">
+                💧 Gota a Gota
+              </button>
+            </div>
+            <div style="display: flex; gap: 0.35rem; width: 100%;">
+              <button type="button" class="btn btn-secondary btn-sm" onclick="App.refillBurette()" style="flex: 1; font-size: 0.72rem; font-weight: 700; color: #047857; background: #ecfdf5; border-color: #6ee7b7;" title="Rellenar bureta a 50 mL">
+                🔄 Rellenar (50 mL)
+              </button>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="App.alignVesselUnderBurette()" style="flex: 1; font-size: 0.72rem; font-weight: 700; color: #1d4ed8; background: #eff6ff; border-color: #93c5fd;" title="Centrar matraz bajo la punta">
+                🎯 Alinear Matraz
+              </button>
+            </div>
+          `;
+        }
+      } else if (vesselActive && this.labBench.selectedVessel) {
         const v = this.labBench.selectedVessel;
         const totalVol = this.labBench.getVesselTotalVolume(v);
         const totalMass = this.labBench.getVesselTotalMass(v);
@@ -9919,6 +11986,7 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
         const volText = document.getElementById('cardVesselVolText');
         const massText = document.getElementById('cardVesselMassText');
         const reagentsList = document.getElementById('cardVesselReagentsList');
+        const actionBtns = document.getElementById('cardVesselActionBtns');
 
         if (titleEl) titleEl.innerText = `⚗️ ${v.name} (${v.capacity} mL)`;
         if (volText) volText.innerText = `${totalVol.toFixed(1)} mL`;
@@ -9935,6 +12003,17 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
               </span>
             `).join('');
           }
+        }
+
+        if (actionBtns) {
+          actionBtns.innerHTML = `
+            <button type="button" class="btn btn-secondary btn-sm" onclick="App.clearSelectedVessel()" style="flex: 1; font-size: 0.72rem;">
+              🗑️ Vaciar
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="App.pourSelectedAction()" style="flex: 1; font-size: 0.72rem;">
+              🧪 Trasvasar
+            </button>
+          `;
         }
       }
     }
@@ -9979,13 +12058,34 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
           `;
         }
       } else if (inst === 'burette') {
+        const remaining = Math.max(0, 50.0 - this.labBench.buretteStand.volumeAddedMl);
+        const chemName = this.labBench.buretteStand.reagentName || 'Hidróxido de Sodio (NaOH 0.1 M)';
         if (iconEl) iconEl.innerText = '💧';
         if (nameEl) nameEl.innerText = 'Soporte Universal con Bureta Graduada (50 mL)';
-        if (metaEl) metaEl.innerText = `Volumen dosificado: ${this.labBench.buretteStand.volumeAddedMl.toFixed(2)} mL • Clic en 'Retirar' para quitarla de la mesa`;
+        if (metaEl) metaEl.innerText = `Titulante: ${chemName} • En bureta: ${remaining.toFixed(1)} mL • Dosificado: ${this.labBench.buretteStand.volumeAddedMl.toFixed(2)} mL`;
         if (listEl) {
           listEl.innerHTML = `
-            <span class="reagent-pill-badge" style="border-left: 3px solid #06b6d4;">💧 Válvula: ${this.labBench.buretteStand.isDripping ? 'ABIERTA' : 'CERRADA'}</span>
-            <button type="button" class="btn btn-secondary btn-sm" onclick="App.titrationDripToggle()">💧 ${this.labBench.buretteStand.isDripping ? 'Cerrar Llave' : 'Abrir Llave'}</button>
+            <span class="reagent-pill-badge" style="border-left: 3px solid #0284c7; background: #e0f2fe; color: #0369a1; font-weight: 700;">
+              🧪 <strong>Contenido:</strong> ${chemName}
+            </span>
+            <span class="reagent-pill-badge" style="border-left: 3px solid #10b981; background: #f0fdf4; color: #15803d; font-weight: 700;">
+              📊 <strong>En Bureta:</strong> ${remaining.toFixed(1)} mL / 50.0 mL
+            </span>
+            <span class="reagent-pill-badge" style="border-left: 3px solid ${this.labBench.buretteStand.isDripping ? '#22c55e' : '#64748b'};">
+              💧 <strong>Llave:</strong> ${this.labBench.buretteStand.isDripping ? 'ABIERTA (Flujo activo)' : 'CERRADA'}
+            </span>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="App.titrationDripToggle()" style="font-weight: 700;">
+              ${this.labBench.buretteStand.isDripping ? '⏸️ Cerrar Llave' : '💧 Abrir Llave'}
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="App.titrationAddDrop()" style="font-weight: 700;">
+              💧 Gota a Gota
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="App.refillBurette()" style="font-weight: 700; color: #047857; background: #ecfdf5; border-color: #6ee7b7;" title="Rellenar bureta a 50 mL">
+              🔄 Rellenar (50 mL)
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="App.alignVesselUnderBurette()" style="font-weight: 700; color: #1d4ed8; background: #eff6ff; border-color: #93c5fd;" title="Centrar matraz o vaso bajo la punta">
+              🎯 Alinear Matraz
+            </button>
           `;
         }
       }
@@ -10063,19 +12163,59 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
     
     // Guardar en el perfil de usuario activo de Quimi-K
     if (this.state.currentUser) {
-      this.state.currentUser.score = rubricResult.vigesimalScore;
-      this.state.currentUser.status = rubricResult.vigesimalScore >= 11 ? 'Aprobado' : 'Pendiente';
-      this.updateUserUI();
+      const user = this.state.currentUser;
+      user.score = rubricResult.vigesimalScore;
+      user.status = rubricResult.vigesimalScore >= 11 ? 'Aprobado' : 'Pendiente';
+      user.attempts = (parseInt(user.attempts, 10) || 0) + 1;
+      user.date = new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString().slice(0, 5);
+      user.practice = this.practiceConfig2026.title;
 
-      fetch('/api/db/save-score', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: this.state.currentUser.id,
-          score: rubricResult.vigesimalScore,
-          practice: this.practiceConfig2026.title
-        })
-      }).catch(() => {});
+      user.notesHistory = user.notesHistory || [];
+      user.notesHistory.unshift({
+        test: user.practice,
+        score: rubricResult.vigesimalScore,
+        letterGrade: rubricResult.letterGrade,
+        date: user.date,
+        status: user.status
+      });
+
+      const uIdx = this.registeredUsers.findIndex(u => u.id === user.id);
+      if (uIdx >= 0) {
+        this.registeredUsers[uIdx].score = user.score;
+        this.registeredUsers[uIdx].status = user.status;
+        this.registeredUsers[uIdx].attempts = user.attempts;
+        this.registeredUsers[uIdx].date = user.date;
+        this.registeredUsers[uIdx].practice = user.practice;
+        this.registeredUsers[uIdx].notesHistory = user.notesHistory;
+      }
+
+      const targetClassroomId = user.classroomId || '4A';
+      const targetClassroom = this.classrooms.find(c => c.id === targetClassroomId);
+      if (targetClassroom && Array.isArray(targetClassroom.students)) {
+        const sIdx = targetClassroom.students.findIndex(s => s.id === user.id || s.name === user.name || s.name.startsWith(user.name));
+        if (sIdx >= 0) {
+          targetClassroom.students[sIdx].score = user.score;
+          targetClassroom.students[sIdx].status = user.status;
+          targetClassroom.students[sIdx].attempts = user.attempts;
+          targetClassroom.students[sIdx].date = user.date;
+          targetClassroom.students[sIdx].practice = user.practice;
+        }
+      }
+
+      this.updateUserUI();
+      this.saveUsersLocally();
+      this.saveClassroomsLocally();
+
+      this.syncScoreToDb({
+        userId: user.id,
+        classroomId: targetClassroomId,
+        score: rubricResult.vigesimalScore,
+        attempts: user.attempts,
+        status: user.status,
+        date: user.date,
+        practice: user.practice,
+        notesHistory: user.notesHistory
+      });
     }
 
     this.showEvaluationReportModal(rubricResult);

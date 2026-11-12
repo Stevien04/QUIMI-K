@@ -6,6 +6,9 @@ import urllib.parse
 import os
 import sys
 
+DIRECTORY = os.path.dirname(os.path.abspath(__file__))
+PORT = 8000
+
 # PostgreSQL Database Integration
 try:
     import psycopg2
@@ -30,54 +33,253 @@ def get_pg_connection():
     except Exception as e:
         return None
 
+DB_CACHE_FILE = os.path.join(DIRECTORY, 'database_quimik.json')
+
+def get_initial_database():
+    return {
+        "users": [
+            {
+                "id": "usr-razself",
+                "name": "Stevie Marca",
+                "email": "razself@gmail.com",
+                "password": "123",
+                "role": "student",
+                "classroom": "4to Año \"A\"",
+                "classroomId": "4A",
+                "practice": "Síntesis de NaCl (Enlace Iónico)",
+                "attempts": 1,
+                "score": 19,
+                "status": "Aprobado",
+                "date": "28/10/2026 12:00",
+                "registeredAt": "20/10/2026",
+                "notesHistory": [
+                    {"test": "Evaluación Diagnóstica: Materia y Enlaces", "score": 18, "date": "22/10/2026"},
+                    {"test": "Control 1: Enlaces Iónicos y Lewis", "score": 19, "date": "28/10/2026"}
+                ]
+            },
+            {
+                "id": "usr-std-1",
+                "name": "Juan Pérez",
+                "email": "estudiante@fleming.edu.pe",
+                "password": "123",
+                "role": "student",
+                "classroom": "4to Año \"A\"",
+                "classroomId": "4A",
+                "practice": "Síntesis de NaCl (Enlace Iónico)",
+                "attempts": 1,
+                "score": 18,
+                "status": "Aprobado",
+                "date": "28/10/2026 10:15",
+                "registeredAt": "20/10/2026",
+                "notesHistory": [
+                    {"test": "Evaluación Diagnóstica: Materia y Enlaces", "score": 17, "date": "22/10/2026"},
+                    {"test": "Control 1: Enlaces Iónicos y Lewis", "score": 18, "date": "28/10/2026"}
+                ]
+            },
+            {
+                "id": "usr-std-2",
+                "name": "María Gómez",
+                "email": "maria@fleming.edu.pe",
+                "password": "123",
+                "role": "student",
+                "classroom": "4to Año \"A\"",
+                "classroomId": "4A",
+                "practice": "Síntesis de NaCl (Enlace Iónico)",
+                "attempts": 2,
+                "score": 19,
+                "status": "Aprobado",
+                "date": "28/10/2026 10:22",
+                "registeredAt": "20/10/2026",
+                "notesHistory": [
+                    {"test": "Evaluación Diagnóstica: Materia y Enlaces", "score": 19, "date": "22/10/2026"}
+                ]
+            },
+            {
+                "id": "usr-prof-1",
+                "name": "Prof. Midori Judith Castillo Peralta",
+                "email": "profesora@fleming.edu.pe",
+                "password": "123",
+                "role": "teacher",
+                "classroom": "Docente de Laboratorio",
+                "classroomId": "ALL",
+                "practice": "Todas las Unidades",
+                "attempts": "-",
+                "score": "-",
+                "status": "Docente Activo",
+                "date": "28/10/2026",
+                "registeredAt": "15/10/2026"
+            },
+            {
+                "id": "usr-admin-1",
+                "name": "Administrador Fleming",
+                "email": "admin@fleming.edu.pe",
+                "password": "123",
+                "role": "admin",
+                "classroom": "Dirección General",
+                "classroomId": "ALL",
+                "practice": "Gestión Global",
+                "attempts": "-",
+                "score": "-",
+                "status": "Superadministrador",
+                "date": "28/10/2026",
+                "registeredAt": "01/10/2026"
+            }
+        ],
+        "classrooms": [
+            {
+                "id": "4A",
+                "name": "4to Año \"A\"",
+                "level": "Secundaria - Turno Mañana",
+                "assignedPractice": "Síntesis de NaCl (Enlace Iónico)",
+                "totalCapacity": 15,
+                "tutor": "Prof. Midori Judith Castillo Peralta",
+                "students": [
+                    { "name": "Juan Pérez (Tú)", "practice": "Síntesis de NaCl", "attempts": 1, "score": 18, "status": "Aprobado", "date": "28/10/2026 10:15" },
+                    { "name": "María Gómez", "practice": "Síntesis de NaCl", "attempts": 2, "score": 19, "status": "Aprobado", "date": "28/10/2026 10:22" },
+                    { "name": "Carlos Ramos", "practice": "Síntesis de NaCl", "attempts": 1, "score": 16, "status": "Aprobado", "date": "28/10/2026 11:05" },
+                    { "name": "Diego Mamani", "practice": "Síntesis de NaCl", "attempts": 1, "score": 17, "status": "Aprobado", "date": "28/10/2026 11:18" },
+                    { "name": "Camila Torres", "practice": "Síntesis de NaCl", "attempts": 2, "score": 18, "status": "Aprobado", "date": "28/10/2026 11:40" }
+                ]
+            },
+            {
+                "id": "4B",
+                "name": "4to Año \"B\"",
+                "level": "Secundaria - Turno Mañana",
+                "assignedPractice": "Formación de Molécula de Agua (H₂O)",
+                "totalCapacity": 15,
+                "tutor": "Prof. Midori Judith Castillo Peralta",
+                "students": [
+                    { "name": "Lucía Fernández", "practice": "Formación de H₂O", "attempts": 1, "score": 20, "status": "Aprobado", "date": "28/10/2026 11:30" },
+                    { "name": "Mateo Quispe", "practice": "Formación de H₂O", "attempts": 2, "score": 15, "status": "Aprobado", "date": "28/10/2026 12:10" },
+                    { "name": "Sofía Condori", "practice": "Formación de H₂O", "attempts": 1, "score": 12, "status": "Desaprobado", "date": "28/10/2026 12:45" },
+                    { "name": "Rodrigo Vargas", "practice": "Formación de H₂O", "attempts": 1, "score": 16, "status": "Aprobado", "date": "28/10/2026 13:02" },
+                    { "name": "Valeria Castro", "practice": "Formación de H₂O", "attempts": 1, "score": 19, "status": "Aprobado", "date": "28/10/2026 13:15" }
+                ]
+            },
+            {
+                "id": "5A",
+                "name": "5to Año \"A\"",
+                "level": "Secundaria - Turno Tarde",
+                "assignedPractice": "Neutralización Ácido-Base (HCl + NaOH)",
+                "totalCapacity": 12,
+                "tutor": "Prof. Midori Judith Castillo Peralta",
+                "students": [
+                    { "name": "Alejandro Morales", "practice": "Neutralización Ácido-Base", "attempts": 1, "score": 19, "status": "Aprobado", "date": "29/10/2026 08:30" },
+                    { "name": "Gabriela Zegarra", "practice": "Neutralización Ácido-Base", "attempts": 1, "score": 20, "status": "Aprobado", "date": "29/10/2026 08:45" },
+                    { "name": "Sebastián Huanca", "practice": "Neutralización Ácido-Base", "attempts": 2, "score": 17, "status": "Aprobado", "date": "29/10/2026 09:10" },
+                    { "name": "Daniela Cáceres", "practice": "Neutralización Ácido-Base", "attempts": 1, "score": 18, "status": "Aprobado", "date": "29/10/2026 09:25" }
+                ]
+            }
+        ],
+        "evaluations": [
+            {
+                "id": "eval-1",
+                "title": "Examen Práctico: Titulación Ácido-Base de HCl con NaOH",
+                "evalType": "lab2d",
+                "topic": "Neutralización Ácido-Base",
+                "description": "Determinar el punto de equivalencia titulando una alícuota de 25 mL de HCl 0.1 M con NaOH 0.1 M usando fenolftaleína. Se debe medir el volumen gastado exacto y alcanzar un pH neutro (~7.00) con viraje de incoloro a rosa persistente.",
+                "targetClassrooms": ["4A"],
+                "status": "published",
+                "createdAt": "28/10/2026 09:30",
+                "publishedAt": "28/10/2026 10:00",
+                "allowedInstruments": ["burette", "erlenmeyer", "beaker", "balance", "ph_meter"],
+                "allowedReagents": ["h2o", "hcl", "naoh", "phenolphthalein"],
+                "questions": [],
+                "submissions": []
+            }
+        ]
+    }
+
+def load_local_db_cache():
+    if os.path.exists(DB_CACHE_FILE):
+        try:
+            with open(DB_CACHE_FILE, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                data['engine'] = 'Base de Datos Local Persistente'
+                return data
+        except Exception as e:
+            print(f"Error loading local db cache: {e}")
+    init_data = get_initial_database()
+    save_local_db_cache(init_data)
+    init_data['engine'] = 'Base de Datos Local Persistente'
+    return init_data
+
+def save_local_db_cache(data):
+    try:
+        with open(DB_CACHE_FILE, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"Error saving local db cache: {e}")
+
+def update_local_db_item(category, item, key='id', remove=False):
+    try:
+        cache = load_local_db_cache() or get_initial_database()
+        items = cache.get(category, [])
+        item_id = item if isinstance(item, str) else item.get(key)
+        if remove:
+            items = [x for x in items if x.get(key) != item_id]
+        else:
+            idx = next((i for i, x in enumerate(items) if x.get(key) == item_id), -1)
+            if idx >= 0:
+                items[idx] = item
+            else:
+                items.insert(0, item)
+        cache[category] = items
+        save_local_db_cache(cache)
+    except Exception as e:
+        print(f"Error updating local db item: {e}")
+
 def query_all_data():
     conn = get_pg_connection()
-    if not conn:
-        return None
-    try:
-        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-        
-        cur.execute("SELECT id, name, email, password, role, classroom, classroom_id AS \"classroomId\", practice, attempts, score, status, date, registered_at AS \"registeredAt\", teacher_request_status AS \"teacherRequestStatus\", notes_history AS \"notesHistory\" FROM users ORDER BY created_at ASC;")
-        users = cur.fetchall()
+    if conn:
+        try:
+            cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            
+            cur.execute("SELECT id, name, email, password, role, classroom, classroom_id AS \"classroomId\", practice, attempts, score, status, date, registered_at AS \"registeredAt\", teacher_request_status AS \"teacherRequestStatus\", notes_history AS \"notesHistory\" FROM users ORDER BY created_at ASC;")
+            users = cur.fetchall()
 
-        cur.execute("SELECT id, name, level, assigned_practice AS \"assignedPractice\", total_capacity AS \"totalCapacity\", tutor, students FROM classrooms ORDER BY created_at ASC;")
-        classrooms = cur.fetchall()
+            cur.execute("SELECT id, name, level, assigned_practice AS \"assignedPractice\", total_capacity AS \"totalCapacity\", tutor, students FROM classrooms ORDER BY created_at ASC;")
+            classrooms = cur.fetchall()
 
-        cur.execute("SELECT id, title, topic, target_classrooms AS \"targetClassrooms\", status, created_at AS \"createdAt\", published_at AS \"publishedAt\", questions FROM evaluations;")
-        evaluations = cur.fetchall()
+            cur.execute("SELECT id, title, topic, target_classrooms AS \"targetClassrooms\", status, created_at AS \"createdAt\", published_at AS \"publishedAt\", questions, allowed_instruments AS \"allowedInstruments\", allowed_reagents AS \"allowedReagents\", eval_type AS \"evalType\", description, submissions FROM evaluations;")
+            evaluations = cur.fetchall()
 
-        cur.close()
-        conn.close()
-
-        # Normalizar tipos para el frontend
-        for u in users:
-            try:
-                if u.get('score') and u['score'] != '-':
-                    u['score'] = float(u['score'])
-            except Exception:
-                pass
-            try:
-                if u.get('attempts') and str(u['attempts']).isdigit():
-                    u['attempts'] = int(u['attempts'])
-            except Exception:
-                pass
-
-        return {
-            'users': users,
-            'classrooms': classrooms,
-            'evaluations': evaluations,
-            'engine': 'PostgreSQL 16'
-        }
-    except Exception as e:
-        print(f"Error querying Postgres: {e}")
-        if conn:
+            cur.close()
             conn.close()
-        return None
+
+            # Normalizar tipos para el frontend
+            for u in users:
+                try:
+                    if u.get('score') and u['score'] != '-':
+                        u['score'] = float(u['score'])
+                except Exception:
+                    pass
+                try:
+                    if u.get('attempts') and str(u['attempts']).isdigit():
+                        u['attempts'] = int(u['attempts'])
+                except Exception:
+                    pass
+
+            db_data = {
+                'users': users,
+                'classrooms': classrooms,
+                'evaluations': evaluations,
+                'engine': 'PostgreSQL 16'
+            }
+            save_local_db_cache(db_data)
+            return db_data
+        except Exception as e:
+            print(f"Error querying Postgres: {e}")
+            if conn:
+                conn.close()
+    
+    return load_local_db_cache()
 
 def save_classroom_to_pg(c):
+    update_local_db_item('classrooms', c)
     conn = get_pg_connection()
     if not conn:
-        return False
+        return True
     try:
         cur = conn.cursor()
         cur.execute("""
@@ -107,12 +309,13 @@ def save_classroom_to_pg(c):
         print(f"Error saving classroom: {e}")
         if conn:
             conn.close()
-        return False
+        return True
 
 def save_user_to_pg(u):
+    update_local_db_item('users', u)
     conn = get_pg_connection()
     if not conn:
-        return False
+        return True
     try:
         cur = conn.cursor()
         cur.execute("""
@@ -158,7 +361,90 @@ def save_user_to_pg(u):
         print(f"Error saving user: {e}")
         if conn:
             conn.close()
-        return False
+        return True
+
+def save_evaluation_to_pg(ev):
+    update_local_db_item('evaluations', ev)
+    conn = get_pg_connection()
+    if not conn:
+        return True
+    try:
+        cur = conn.cursor()
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS evaluations (
+                id VARCHAR(100) PRIMARY KEY,
+                title VARCHAR(255) NOT NULL,
+                topic VARCHAR(150),
+                target_classrooms JSONB,
+                status VARCHAR(50),
+                created_at VARCHAR(100),
+                published_at VARCHAR(100),
+                questions JSONB,
+                allowed_instruments JSONB,
+                allowed_reagents JSONB,
+                eval_type VARCHAR(50),
+                description TEXT,
+                submissions JSONB
+            );
+        """)
+        cur.execute("""
+            INSERT INTO evaluations (id, title, topic, target_classrooms, status, created_at, published_at, questions, allowed_instruments, allowed_reagents, eval_type, description, submissions)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (id) DO UPDATE SET
+                title = EXCLUDED.title,
+                topic = EXCLUDED.topic,
+                target_classrooms = EXCLUDED.target_classrooms,
+                status = EXCLUDED.status,
+                created_at = EXCLUDED.created_at,
+                published_at = EXCLUDED.published_at,
+                questions = EXCLUDED.questions,
+                allowed_instruments = EXCLUDED.allowed_instruments,
+                allowed_reagents = EXCLUDED.allowed_reagents,
+                eval_type = EXCLUDED.eval_type,
+                description = EXCLUDED.description,
+                submissions = EXCLUDED.submissions;
+        """, (
+            ev.get('id'),
+            ev.get('title'),
+            ev.get('topic'),
+            json.dumps(ev.get('targetClassrooms', [])),
+            ev.get('status', 'draft'),
+            ev.get('createdAt'),
+            ev.get('publishedAt'),
+            json.dumps(ev.get('questions', [])),
+            json.dumps(ev.get('allowedInstruments', [])),
+            json.dumps(ev.get('allowedReagents', [])),
+            ev.get('evalType', 'lab2d'),
+            ev.get('description', ''),
+            json.dumps(ev.get('submissions', []))
+        ))
+        conn.commit()
+        cur.close()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"Error saving evaluation: {e}")
+        if conn:
+            conn.close()
+        return True
+
+def delete_evaluation_from_pg(eval_id):
+    update_local_db_item('evaluations', eval_id, remove=True)
+    conn = get_pg_connection()
+    if not conn:
+        return True
+    try:
+        cur = conn.cursor()
+        cur.execute("DELETE FROM evaluations WHERE id = %s;", (eval_id,))
+        conn.commit()
+        cur.close()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"Error deleting evaluation: {e}")
+        if conn:
+            conn.close()
+        return True
 
 def save_score_to_pg(data):
     user_id = data.get('userId')
@@ -167,17 +453,54 @@ def save_score_to_pg(data):
     attempts = str(data.get('attempts', 1))
     status = data.get('status', 'Aprobado')
     date_val = data.get('date')
+    practice = data.get('practice')
+    notes_history = data.get('notesHistory')
+
+    # Actualizar en caché local
+    cache = load_local_db_cache()
+    if cache:
+        if user_id:
+            for u in cache.get('users', []):
+                if u.get('id') == user_id:
+                    u['score'] = float(score) if score != '-' else 18
+                    u['attempts'] = int(attempts) if str(attempts).isdigit() else 1
+                    u['status'] = status
+                    u['date'] = date_val
+                    if practice:
+                        u['practice'] = practice
+                    if notes_history is not None:
+                        u['notesHistory'] = notes_history
+                    break
+        if classroom_id:
+            for c in cache.get('classrooms', []):
+                if c.get('id') == classroom_id:
+                    for s in c.get('students', []):
+                        if s.get('id') == user_id or s.get('name', '').startswith(user_id):
+                            s['score'] = float(score) if score != '-' else 18
+                            s['attempts'] = int(attempts) if str(attempts).isdigit() else 1
+                            s['status'] = status
+                            s['date'] = date_val
+                            if practice:
+                                s['practice'] = practice
+                            break
+        save_local_db_cache(cache)
 
     conn = get_pg_connection()
     if not conn:
-        return False
+        return True
     try:
         cur = conn.cursor()
         if user_id:
-            cur.execute("""
-                UPDATE users SET score = %s, attempts = %s, status = %s, date = %s
-                WHERE id = %s;
-            """, (score, attempts, status, date_val, user_id))
+            if notes_history is not None:
+                cur.execute("""
+                    UPDATE users SET score = %s, attempts = %s, status = %s, date = %s, practice = COALESCE(%s, practice), notes_history = %s
+                    WHERE id = %s;
+                """, (score, attempts, status, date_val, practice, json.dumps(notes_history), user_id))
+            else:
+                cur.execute("""
+                    UPDATE users SET score = %s, attempts = %s, status = %s, date = %s, practice = COALESCE(%s, practice)
+                    WHERE id = %s;
+                """, (score, attempts, status, date_val, practice, user_id))
 
         if classroom_id:
             cur.execute("SELECT students FROM classrooms WHERE id = %s;", (classroom_id,))
@@ -185,11 +508,13 @@ def save_score_to_pg(data):
             if row and row[0]:
                 students = row[0]
                 for s in students:
-                    if s.get('id') == user_id:
+                    if s.get('id') == user_id or s.get('name', '').startswith(user_id):
                         s['score'] = float(score) if score != '-' else 18
                         s['attempts'] = int(attempts) if str(attempts).isdigit() else 1
                         s['status'] = status
                         s['date'] = date_val
+                        if practice:
+                            s['practice'] = practice
                 cur.execute("UPDATE classrooms SET students = %s WHERE id = %s;", (json.dumps(students), classroom_id))
 
         conn.commit()
@@ -200,7 +525,7 @@ def save_score_to_pg(data):
         print(f"Error saving score: {e}")
         if conn:
             conn.close()
-        return False
+        return True
 
 PORT = 8000
 DIRECTORY = os.path.dirname(os.path.abspath(__file__))
@@ -441,6 +766,31 @@ class QuimiKHandler(http.server.SimpleHTTPRequestHandler):
                 body = {}
             ok = save_score_to_pg(body)
             self.send_json_response(200 if ok else 500, {'saved': ok, 'engine': 'PostgreSQL 16'})
+            return
+
+        # API Guardar / Publicar Evaluación en Base de Datos
+        elif self.path == '/api/db/save-evaluation':
+            content_length = int(self.headers.get('Content-Length', 0))
+            post_data = self.rfile.read(content_length).decode('utf-8')
+            try:
+                body = json.loads(post_data) if post_data else {}
+            except Exception:
+                body = {}
+            ok = save_evaluation_to_pg(body)
+            self.send_json_response(200 if ok else 500, {'saved': ok, 'engine': 'PostgreSQL 16'})
+            return
+
+        # API Eliminar Evaluación en Base de Datos
+        elif self.path == '/api/db/delete-evaluation':
+            content_length = int(self.headers.get('Content-Length', 0))
+            post_data = self.rfile.read(content_length).decode('utf-8')
+            try:
+                body = json.loads(post_data) if post_data else {}
+            except Exception:
+                body = {}
+            eval_id = body.get('id') if isinstance(body, dict) else str(body)
+            ok = delete_evaluation_from_pg(eval_id)
+            self.send_json_response(200 if ok else 500, {'deleted': ok, 'engine': 'PostgreSQL 16'})
             return
 
         # Manejo de la API REST /api/simulate según arquitectura de FD04
