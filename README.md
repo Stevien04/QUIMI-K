@@ -108,6 +108,92 @@ QUIMI-K/
 
 ---
 
+## 📐 Diagramas de Arquitectura y Flujo
+
+### 1. Arquitectura Hexagonal (Puertos y Adaptadores — FD04)
+
+```mermaid
+flowchart LR
+    subgraph Cliente["Capa de Presentación (Navegador)"]
+        UI["index.html + app.js"]
+        Canvas["simulation_canvas.js (2D)"]
+        Mol3D["3Dmol.js (Visor 3D)"]
+        PWA["offline_storage.js (IndexedDB)"]
+    end
+
+    subgraph Entrada["Adaptadores de Entrada (REST)"]
+        PySrv["server.py (Puerto 8000)"]
+        RestCtrl["SimulationController / TelemetryGradingController"]
+    end
+
+    subgraph Aplicacion["Capa de Aplicación"]
+        PortIn["ChemicalReactionService (Puerto Entrada)"]
+        UseCase["ChemicalReactionUseCase"]
+        PortOut["ElementDataRepository / PdfReportPort"]
+    end
+
+    subgraph Dominio["Núcleo de Dominio"]
+        Engine["ReactionEngine"]
+        Rule["ElectronegativityRule (Pauling ΔEN)"]
+        Grading["GradingService (Rúbrica 0-20)"]
+    end
+
+    subgraph Salida["Adaptadores de Salida"]
+        PubChem["PubChemElementRepository + PubChemCache"]
+        DB["PostgreSQL / database_quimik.json"]
+        PDF["PdfReportGeneratorAdapter (iText 7)"]
+    end
+
+    UI --> PySrv
+    UI --> RestCtrl
+    UI --> PWA
+    Canvas --> UI
+    Mol3D --> UI
+    PySrv --> Dominio
+    RestCtrl --> PortIn
+    PortIn --> UseCase
+    UseCase --> Engine
+    Engine --> Rule
+    UseCase --> Grading
+    UseCase --> PortOut
+    PortOut --> PubChem
+    PortOut --> DB
+    PortOut --> PDF
+```
+
+### 2. Flujo de Simulación 3D y Evaluación de Telemetría
+
+```mermaid
+sequenceDiagram
+    actor Est as Estudiante
+    participant App as app.js + ChemEngine.js
+    participant IDB as IndexedDB (OfflineStorage)
+    participant Srv as server.py (localhost:8000)
+    participant Pub as PubChem PUG-REST
+    participant DB as PostgreSQL / database_quimik.json
+
+    Est->>App: Selecciona reactivos (ej. Na + Cl)
+    App->>Srv: POST /api/simulate
+    Srv-->>App: ΔEN, tipo de enlace y ecuación balanceada
+    App->>Srv: GET /api/pubchem/sdf?name=sodium chloride
+    Srv->>Pub: Solicita estructura 3D SDF
+    Pub-->>Srv: Archivo SDF 3D
+    Srv-->>App: Renderiza molécula en 3Dmol.js
+
+    Est->>App: Finaliza práctica cuantitativa
+    alt Con conexión al servidor
+        App->>Srv: POST /api/v1/telemetry/evaluate
+        Srv-->>App: Nota (0-20), letra (AD/A/B/C) y feedback
+        App->>Srv: POST /api/db/save-score
+        Srv->>DB: Guarda calificación
+    else Sin conexión (Modo Offline PWA)
+        App->>IDB: Guarda telemetría en telemetry_queue
+        Note over App,IDB: Sincroniza automáticamente al recuperar red
+    end
+```
+
+---
+
 ## ⚙️ Funcionalidades Principales
 
 - **Motor de Enlaces Químicos (`reaction_engine.js` & `ChemEngine.js`):**
