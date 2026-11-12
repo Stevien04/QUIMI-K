@@ -7603,6 +7603,9 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
     if (!container || typeof ChemEngine === 'undefined') return;
     container.innerHTML = '';
 
+    const searchToolsInput = document.getElementById('searchExamToolsInput');
+    if (searchToolsInput) searchToolsInput.value = '';
+
     const selSet = selectedIds ? new Set(selectedIds) : null;
 
     Object.values(ChemEngine.instruments).forEach(inst => {
@@ -7627,6 +7630,9 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
     if (!container || typeof ChemEngine === 'undefined') return;
     container.innerHTML = '';
 
+    const searchReagentsInput = document.getElementById('searchExamReagentsInput');
+    if (searchReagentsInput) searchReagentsInput.value = '';
+
     const selSet = selectedIds ? new Set(selectedIds) : null;
 
     Object.values(ChemEngine.reagents).forEach(r => {
@@ -7640,9 +7646,31 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
       label.style.cursor = 'pointer';
       label.innerHTML = `
         <input type="checkbox" value="${r.id}" class="exam-reagent-check" ${isChecked ? 'checked' : ''}>
-        <span>${r.sga.icon} ${r.formula}</span>
+        <span>${r.sga.icon} <strong>${r.formula}</strong> <small style="color: #64748b; font-size: 0.72rem;">(${r.name})</small></span>
       `;
       container.appendChild(label);
+    });
+  },
+
+  filterExamTools(query) {
+    const q = (query || '').toLowerCase().trim();
+    const container = document.getElementById('editorExamToolsGrid');
+    if (!container) return;
+    const items = container.querySelectorAll('.salon-checkbox-label');
+    items.forEach(item => {
+      const text = item.textContent.toLowerCase();
+      item.style.display = text.includes(q) ? 'flex' : 'none';
+    });
+  },
+
+  filterExamReagents(query) {
+    const q = (query || '').toLowerCase().trim();
+    const container = document.getElementById('editorExamReagentsGrid');
+    if (!container) return;
+    const items = container.querySelectorAll('.salon-checkbox-label');
+    items.forEach(item => {
+      const text = item.textContent.toLowerCase();
+      item.style.display = text.includes(q) ? 'flex' : 'none';
     });
   },
 
@@ -7707,8 +7735,12 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
       this.populateExamReagentsCheckboxes(item.allowedReagents || null);
       this.onEvaluationTypeChange();
 
-      // Cargar preguntas existentes si las hubiera
-      (item.questions || []).forEach(q => this.addQuestionToEditor(q));
+      // Cargar preguntas existentes si las hubiera o inicializar 1 en blanco
+      if (item.questions && item.questions.length > 0) {
+        item.questions.forEach(q => this.addQuestionToEditor(q));
+      } else {
+        this.addQuestionToEditor();
+      }
     } else {
       formId.value = '';
       formTitle.value = '';
@@ -7727,9 +7759,8 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
       this.populateExamReagentsCheckboxes(['h2o', 'hcl', 'naoh', 'phenolphthalein']);
       this.onEvaluationTypeChange();
 
-      // ¡NO INYECTAR PREGUNTAS PRETERMINADAS! (El docente crea limpio desde cero)
-      const countEl = document.getElementById('editorQuestionsCount');
-      if (countEl) countEl.innerText = '0';
+      // Agregar 1 pregunta inicial lista para que el docente la complete
+      this.addQuestionToEditor();
     }
 
     modal.style.display = 'flex';
@@ -7864,11 +7895,6 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
 
     // Leer preguntas si existen
     const qCards = document.querySelectorAll('.question-builder-card');
-    if (evalType === 'theory' && qCards.length === 0) {
-      this.showDialog('Un cuestionario teórico debe contener al menos una pregunta.', 'Sin Preguntas', '⚠️');
-      return;
-    }
-
     const questions = [];
     for (let i = 0; i < qCards.length; i++) {
       const card = qCards[i];
@@ -7877,19 +7903,29 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
       const correctRadio = card.querySelector('.eval-opt-correct:checked');
       const expText = card.querySelector('.eval-q-exp')?.value.trim();
 
+      const options = [];
+      let hasAnyText = !!qText;
+      for (let j = 0; j < optInputs.length; j++) {
+        const optVal = optInputs[j].value.trim();
+        if (optVal) hasAnyText = true;
+        options.push(optVal);
+      }
+
+      // Si es examen práctico y la tarjeta inicial quedó totalmente en blanco sin editar, se omite
+      if (evalType !== 'theory' && !hasAnyText) {
+        continue;
+      }
+
       if (!qText) {
         this.showDialog(`Por favor complete el enunciado de la Pregunta ${i + 1}.`, 'Pregunta Incompleta', '⚠️');
         return;
       }
 
-      const options = [];
-      for (let j = 0; j < optInputs.length; j++) {
-        const optVal = optInputs[j].value.trim();
-        if (!optVal) {
+      for (let j = 0; j < options.length; j++) {
+        if (!options[j]) {
           this.showDialog(`Por favor complete la Opción ${String.fromCharCode(65 + j)} de la Pregunta ${i + 1}.`, 'Opción Incompleta', '⚠️');
           return;
         }
-        options.push(optVal);
       }
 
       const answer = correctRadio ? parseInt(correctRadio.value) : 0;
@@ -7899,6 +7935,11 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
         answer: answer,
         explanation: expText || 'Respuesta verificada según los fundamentos científicos del curso.'
       });
+    }
+
+    if (evalType === 'theory' && questions.length === 0) {
+      this.showDialog('Un cuestionario teórico debe contener al menos una pregunta completa.', 'Sin Preguntas', '⚠️');
+      return;
     }
 
     const salonNames = checkedSalones.map(s => this.getClassroomName(s)).join(', ');

@@ -1669,11 +1669,11 @@
 
   <!-- ================= MODAL EDITOR DE EVALUACIONES (CREAR / MODIFICAR) ================= -->
   <div class="eval-modal-backdrop" id="modalEvaluationEditor" style="display: none;">
-    <div class="eval-modal-card">
+    <div class="eval-modal-card" style="max-width: 960px; width: 95%;">
       <div class="eval-modal-header">
         <div>
-          <h3 style="font-size: 1.15rem; font-weight: 800; color: #0f172a; margin: 0;" id="evalModalTitle">Crear Nueva Evaluación</h3>
-          <span style="font-size: 0.78rem; color: #64748b;" id="evalModalSubtitle">Configure el título, los salones y las preguntas del cuestionario</span>
+          <h3 style="font-size: 1.2rem; font-weight: 800; color: #0f172a; margin: 0;" id="evalModalTitle">Crear Nueva Evaluación / Examen</h3>
+          <span style="font-size: 0.78rem; color: #64748b;" id="evalModalSubtitle">Configure el título, la modalidad, las herramientas autorizadas y las preguntas de evaluación</span>
         </div>
         <button class="btn btn-outline" style="padding: 0.25rem 0.55rem; font-size: 0.85rem;" onclick="App.closeEvaluationEditor()">✕</button>
       </div>
@@ -1715,10 +1715,11 @@
                 <strong style="color: #166534; font-size: 0.88rem; display: block;">🔬 Herramientas e Instrumentos Autorizados:</strong>
                 <span style="font-size: 0.72rem; color: #15803d;">Solo las herramientas marcadas estarán visibles para el alumno. Las demás desaparecerán de su estante durante el examen.</span>
               </div>
-              <div style="display: flex; gap: 0.35rem; flex-wrap: wrap;">
+              <div style="display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap;">
+                <input type="text" id="searchExamToolsInput" placeholder="🔍 Filtrar instrumental..." class="form-input" style="font-size: 0.76rem; padding: 0.22rem 0.6rem; width: 175px; height: 28px; background: #ffffff;" oninput="App.filterExamTools(this.value)">
                 <button type="button" class="btn btn-outline" style="font-size: 0.70rem; padding: 0.2rem 0.5rem; background: #ffffff;" onclick="App.toggleAllExamTools(true)">☑️ Todas</button>
                 <button type="button" class="btn btn-outline" style="font-size: 0.70rem; padding: 0.2rem 0.5rem; background: #ffffff;" onclick="App.toggleAllExamTools(false)">⬜ Ninguna</button>
-                <button type="button" class="btn btn-secondary" style="font-size: 0.70rem; padding: 0.2rem 0.5rem; font-weight: 700; color: #166534; border-color: #86efac;" onclick="App.applyExamToolPreset('titration')">🎯 Preset Titulación</button>
+                <button type="button" class="btn btn-secondary" style="font-size: 0.70rem; padding: 0.2rem 0.5rem; font-weight: 700; color: #166534; border-color: #86efac; background: #ffffff;" onclick="App.applyExamToolPreset('titration')">🎯 Preset Titulación</button>
               </div>
             </div>
 
@@ -1728,9 +1729,10 @@
 
             <!-- Reactivos Autorizados -->
             <div style="margin-top: 0.75rem;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem; flex-wrap: wrap; gap: 0.5rem;">
                 <span style="font-size: 0.76rem; font-weight: 700; color: #166534;">🧪 Reactivos Químicos Permitidos en la Mesa:</span>
-                <div style="display: flex; gap: 0.35rem;">
+                <div style="display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap;">
+                  <input type="text" id="searchExamReagentsInput" placeholder="🔍 Filtrar reactivos..." class="form-input" style="font-size: 0.76rem; padding: 0.22rem 0.6rem; width: 165px; height: 28px; background: #ffffff;" oninput="App.filterExamReagents(this.value)">
                   <button type="button" class="btn btn-outline" style="font-size: 0.68rem; padding: 0.15rem 0.45rem; background: #ffffff;" onclick="App.toggleAllExamReagents(true)">☑️ Todos</button>
                   <button type="button" class="btn btn-outline" style="font-size: 0.68rem; padding: 0.15rem 0.45rem; background: #ffffff;" onclick="App.toggleAllExamReagents(false)">⬜ Ninguno</button>
                 </div>
