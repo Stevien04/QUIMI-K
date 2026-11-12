@@ -281,22 +281,6 @@
 
     <!-- ================= PESTAÑA 1: LABORATORIO & SIMULADOR (INTEGRADO PRODUCCIÓN) ================= -->
     <section id="tab-simulator" class="tab-pane">
-      
-      <!-- Sub-barra de Navegación del Simulador Científico -->
-      <div class="sim-subnav-bar">
-        <button class="sim-subnav-btn active" data-subtab="subtab-bench" onclick="App.switchSimSubtab('subtab-bench')">
-          ⚗️ Mesa de Experimentación 2D
-        </button>
-        <button class="sim-subnav-btn" onclick="App.switchTabTo('tab-molecular-3d')" title="Abrir Módulo Independiente de Visor Molecular 3D">
-          🌐 Ir a Visor Molecular 3D ➔
-        </button>
-        <button class="sim-subnav-btn" data-subtab="subtab-teacher" onclick="App.switchSimSubtab('subtab-teacher')">
-          👩‍🏫 Plantillas Docentes Paramétricas
-        </button>
-        <div style="margin-left: auto; display: flex; align-items: center; gap: 0.5rem; font-size: 0.72rem; color: #166534; font-weight: 700; background: #DCFCE7; padding: 0.25rem 0.6rem; border-radius: 12px;">
-          <span>●</span> ChemEngine 60 FPS • Laboratorio Físicoquímico
-        </div>
-      </div>
 
       <!-- SUB-VISTA 1: MESA DE EXPERIMENTACIÓN 2D -->
       <div id="subtab-bench" class="sim-subpane active">
@@ -377,9 +361,14 @@
               <button class="btn btn-secondary" onclick="App.resetBenchObjects()" title="Restablecer la mesa al estado inicial con matraz y vaso">
                 🔄 Reiniciar Mesa
               </button>
-              <button class="btn btn-success" style="margin-left: auto;" onclick="App.finishTitrationPractice()">
-                📋 Finalizar & Evaluar (0-20)
-              </button>
+              <div style="margin-left: auto; display: flex; align-items: center; gap: 0.5rem;">
+                <div style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.70rem; color: #166534; font-weight: 700; background: #DCFCE7; padding: 0.2rem 0.5rem; border-radius: 8px; border: 1px solid #86efac;">
+                  <span>●</span> ChemEngine 60 FPS
+                </div>
+                <button class="btn btn-success" onclick="App.finishTitrationPractice()">
+                  📋 Finalizar & Evaluar (0-20)
+                </button>
+              </div>
             </div>
 
             <!-- Guía de Mesa -->
