@@ -170,6 +170,55 @@ QUIMI-K/
 
 ---
 
+## 📊 Desglose de la Rúbrica Formativa (Escala 0–20)
+
+El endpoint `/api/v1/telemetry/evaluate` (y `GradingService` en Java) evalúa cada práctica cuantitativa sobre **20 puntos**:
+
+| Criterio | Puntaje Máximo | Condición de Máximo Logro |
+| :--- | :---: | :--- |
+| **Exactitud Volumétrica** | `8.0` | Desviación $\Delta V \le 0.10\text{ mL}$ respecto al volumen objetivo |
+| **Lectura de Menisco** | `5.0` | Error de paralaje/menisco $\le 0.02\text{ mL}$ |
+| **Agitación Cinética** | `4.0` | Agitación magnética activa durante la titulación |
+| **Purga y Seguridad** | `3.0` | Purga previa de burbujas en la bureta |
+
+**Equivalencia Literal:**
+- **AD (Logro Destacado):** `18.0 – 20.0`
+- **A (Logro Esperado):** `14.0 – 17.9`
+- **B (En Proceso):** `11.0 – 13.9`
+- **C (En Inicio):** `< 11.0`
+
+---
+
+## 🗄️ Base de Datos y Backend Empresarial (`backend/`)
+
+### Servidor Demo (`server.py`)
+Por defecto intenta conectarse a PostgreSQL (`quimik_db`) usando `psycopg2` y las variables de entorno:
+- `PGHOST` (por defecto `localhost`)
+- `PGPORT` (por defecto `5432`)
+- `PGDATABASE` (por defecto `quimik_db`)
+- `PGUSER` (por defecto `dbshield_user`)
+- `PGPASSWORD`
+
+Si PostgreSQL no está disponible o no está instalado `psycopg2`, el servidor utiliza automáticamente `database_quimik.json` como respaldo local sin interrumpir el demo.
+
+### Backend Spring Boot (`backend/`)
+Requiere **Java 17 LTS**, **Maven** y **PostgreSQL** configurado según `backend/src/main/resources/application.properties` (puerto `8080`):
+```bash
+cd backend
+mvn spring-boot:run
+```
+
+---
+
+## 🔐 Notas de Seguridad (Antes de Despliegue en Producción)
+
+El repositorio está configurado actualmente como **prototipo demo local**. Antes de publicar en un entorno productivo se recomienda:
+1. Mover las credenciales SMTP de `server.py`, las credenciales de PostgreSQL y el secreto JWT de `application.properties` a variables de entorno.
+2. Reemplazar las contraseñas de prueba en texto plano (`123`) por hashes seguros (`BCrypt`) en base de datos.
+3. Restringir `Access-Control-Allow-Origin` al dominio oficial de la aplicación.
+
+---
+
 ## 📄 Documentación Formal (`documentacion/`)
 
 El proyecto incluye los entregables oficiales del curso en la carpeta `documentacion/`:
