@@ -345,23 +345,29 @@
 
           <!-- Área Central: Mesa y Canvas 2D -->
           <main class="bench-center-stage">
-            <!-- BANNER DINÁMICO DE MODO EXAMEN PRÁCTICO -->
-            <div id="examModeBanner" style="display: none; background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-bottom: 2px solid #f59e0b; padding: 0.45rem 1rem; align-items: center; justify-content: space-between; gap: 0.75rem; flex-shrink: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.06); z-index: 5;">
-              <div style="display: flex; align-items: center; gap: 0.6rem;">
-                <span style="font-size: 1.2rem;">📝</span>
-                <div>
-                  <div style="font-weight: 800; color: #92400e; font-size: 0.86rem;" id="examBannerTitle">Modo Examen Práctico Asignado</div>
-                  <div style="font-size: 0.72rem; color: #b45309;">
+            <!-- BANNER DINÁMICO DE MODO EXAMEN PRÁCTICO (RF007) -->
+            <div id="examModeBanner" style="display: none; background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-bottom: 2px solid #f59e0b; padding: 0.5rem 1rem; align-items: center; justify-content: space-between; gap: 0.75rem; flex-shrink: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.06); z-index: 5; flex-wrap: wrap;">
+              <div style="display: flex; align-items: center; gap: 0.6rem; flex: 1; min-width: 280px;">
+                <span style="font-size: 1.3rem;">📋</span>
+                <div style="flex: 1;">
+                  <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                    <div style="font-weight: 800; color: #92400e; font-size: 0.88rem;" id="examBannerTitle">Modo Examen Práctico Asignado</div>
+                    <span style="font-size: 0.70rem; color: #78350f; background: #ffffff; padding: 0.1rem 0.45rem; border-radius: 4px; border: 1px solid #fcd34d; font-weight: 700;">RF007 Guía de Laboratorio</span>
+                  </div>
+                  <div style="font-size: 0.72rem; color: #b45309; margin-top: 0.1rem;">
                     Salón: <strong id="examBannerSalon">4to Año "A"</strong> • Herramientas autorizadas en estante: <strong id="examBannerToolsCount">4</strong> (los demás instrumentos están restringidos)
+                  </div>
+                  <div style="font-size: 0.74rem; color: #78350f; background: rgba(255,255,255,0.7); border: 1px solid #fcd34d; border-radius: 6px; padding: 0.25rem 0.5rem; margin-top: 0.25rem; line-height: 1.35;" id="examBannerProblemBox">
+                    <strong>🎯 Problema a Resolver:</strong> <span id="examBannerProblemDescription">Titulación de 25 mL de HCl con NaOH...</span>
                   </div>
                 </div>
               </div>
-              <div style="display: flex; gap: 0.4rem; align-items: center;">
+              <div style="display: flex; gap: 0.4rem; align-items: center; flex-shrink: 0;">
                 <button type="button" class="btn btn-outline" style="font-size: 0.75rem; padding: 0.3rem 0.65rem; background: #ffffff; color: #b45309; border-color: #f59e0b; font-weight: 700;" onclick="App.exitPracticalExam()">
                   🚪 Salir a Modo Libre
                 </button>
-                <button type="button" class="btn btn-success" style="font-size: 0.78rem; padding: 0.35rem 0.85rem; font-weight: 800; box-shadow: 0 2px 6px rgba(22,163,74,0.3);" onclick="App.submitPracticalExam()">
-                  📋 Entregar Examen (0-20)
+                <button type="button" class="btn btn-success" style="font-size: 0.78rem; padding: 0.35rem 0.85rem; font-weight: 800; box-shadow: 0 2px 6px rgba(22,163,74,0.3); background: #16a34a; border-color: #15803d;" onclick="App.submitPracticalExam()">
+                  📋 Finalizar Práctica y Ver Resultados (RF007)
                 </button>
               </div>
             </div>
@@ -1697,7 +1703,7 @@
             </div>
             <div class="form-group" style="margin-bottom: 0;">
               <label>Tema o Guía de Práctica:</label>
-              <select id="editorEvalTopic" class="form-input">
+              <select id="editorEvalTopic" class="form-input" onchange="App.onEvaluationTopicChange()">
                 <option value="Neutralización Ácido-Base">Neutralización Ácido-Base (HCl + NaOH)</option>
                 <option value="Síntesis de NaCl">Síntesis de NaCl (Enlace Iónico)</option>
                 <option value="Formación de Molécula de Agua (H₂O)">Formación de Agua (Covalente Polar)</option>
@@ -1706,6 +1712,19 @@
                 <option value="Fundamentos y Escala de Pauling">Fundamentos y Escala de Pauling</option>
               </select>
             </div>
+          </div>
+
+          <!-- DESCRIPCIÓN DEL PROBLEMA O RETO A RESOLVER EN EL LABORATORIO (RF007) -->
+          <div class="form-group" style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 0.85rem; margin-bottom: 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem; flex-wrap: wrap; gap: 0.5rem;">
+              <label style="font-weight: 700; color: #166534; margin: 0; font-size: 0.85rem; display: flex; align-items: center; gap: 0.35rem;">
+                <span>🎯</span> Descripción del Problema / Reto a Resolver en el Laboratorio (RF007):
+              </label>
+              <span style="font-size: 0.72rem; color: #15803d;">
+                El alumno leerá este problema en su simulador y en su ficha final de resultados
+              </span>
+            </div>
+            <textarea id="editorEvalDescription" class="form-input" rows="2" style="font-size: 0.82rem; padding: 0.45rem 0.65rem; background: #ffffff; line-height: 1.4;" placeholder="Escriba el problema o reto experimental que el estudiante debe resolver en el laboratorio..."></textarea>
           </div>
 
           <!-- SECCIÓN DE HERRAMIENTAS Y REACTIVOS AUTORIZADOS POR EL DOCENTE (SOLO EXAMEN PRÁCTICO) -->
@@ -1828,37 +1847,78 @@
 
   <!-- ================= MODAL REPORTE OFICIAL DE RESULTADOS DE PRÁCTICA (RF007) ================= -->
   <div class="eval-modal-backdrop" id="modalReport" style="display: none; z-index: 10050;">
-    <div class="eval-modal-card" style="max-width: 780px;">
+    <div class="eval-modal-card" style="max-width: 840px; width: 95%;">
       <div class="eval-modal-header" style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border-bottom: 2px solid #86efac;">
         <div style="display: flex; align-items: center; gap: 0.75rem;">
           <div style="width: 44px; height: 44px; border-radius: 10px; background: #ffffff; border: 1px solid #86efac; display: flex; align-items: center; justify-content: center; font-size: 1.6rem;">📋</div>
           <div>
             <h3 style="font-size: 1.2rem; font-weight: 800; color: #14532d; margin: 0;">Ficha Oficial de Resultados de Laboratorio</h3>
-            <span style="font-size: 0.76rem; color: #166534;">I.E. Alexander Fleming • Rúbrica Procedimental Automatizada (RF007)</span>
+            <span style="font-size: 0.76rem; color: #166534;">I.E. Alexander Fleming • Visualización de Resultados de la Guía Asignada (RF007)</span>
           </div>
         </div>
         <button class="btn btn-outline" style="padding: 0.25rem 0.55rem; font-size: 0.85rem;" onclick="App.closeReportModal()">✕</button>
       </div>
 
       <div class="eval-modal-body" style="padding: 1.25rem;">
-        <!-- Banner de Calificación Principal -->
-        <div style="background: #ffffff; border: 2px solid #cbd5e1; border-radius: 12px; padding: 1.2rem; display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.2rem; box-shadow: var(--shadow-sm); flex-wrap: wrap; gap: 1rem;">
+        <!-- Banner de Calificación Principal (Nota Oficial) -->
+        <div style="background: #ffffff; border: 2px solid #cbd5e1; border-radius: 12px; padding: 1.2rem; display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.1rem; box-shadow: var(--shadow-sm); flex-wrap: wrap; gap: 1rem;">
           <div>
-            <span style="font-size: 0.76rem; text-transform: uppercase; font-weight: 700; color: #64748b; letter-spacing: 0.5px;">Calificación Obtenida</span>
-            <div id="reportScoreDisplay" style="font-size: 2.2rem; font-weight: 900; color: #0284c7; line-height: 1.1;">20 / 20</div>
+            <span style="font-size: 0.76rem; text-transform: uppercase; font-weight: 700; color: #64748b; letter-spacing: 0.5px;">Calificación Obtenida (Nota Oficial)</span>
+            <div id="reportScoreDisplay" style="font-size: 2.3rem; font-weight: 900; color: #0284c7; line-height: 1.1;">20 / 20</div>
             <div id="reportStudentInfo" style="font-size: 0.82rem; color: #475569; margin-top: 0.25rem;">Estudiante: <strong>Juan Pérez</strong> • Salón: <strong>4to Año "A"</strong></div>
           </div>
           <div style="text-align: right;">
             <span style="font-size: 0.76rem; text-transform: uppercase; font-weight: 700; color: #64748b; letter-spacing: 0.5px;">Escala Cualitativa</span>
-            <div id="reportLetterGrade" style="font-size: 1.5rem; font-weight: 800; color: #16a34a;">AD (Logro Destacado)</div>
-            <span class="badge-role badge-role-student" style="font-size: 0.72rem; padding: 0.2rem 0.6rem; background: #dcfce7; color: #166534; border: 1px solid #86efac; font-weight: 700;">✓ Aprobado Oficial</span>
+            <div id="reportLetterGrade" style="font-size: 1.45rem; font-weight: 800; color: #16a34a;">AD (Logro Destacado)</div>
+            <span class="badge-role badge-role-student" style="font-size: 0.72rem; padding: 0.2rem 0.6rem; background: #dcfce7; color: #166534; border: 1px solid #86efac; font-weight: 700;">✓ Práctica Evaluada Oficial</span>
+          </div>
+        </div>
+
+        <!-- Problema Asignado por el Docente en la Guía (RF007) -->
+        <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 0.85rem 1rem; margin-bottom: 1.1rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem; flex-wrap: wrap; gap: 0.5rem;">
+            <strong style="font-size: 0.84rem; color: #1e3a8a; display: flex; align-items: center; gap: 0.4rem;">
+              <span>🎯</span> Problema / Reto Asignado en la Guía de Laboratorio:
+            </strong>
+            <span id="reportPracticeTopic" class="salon-chip" style="font-size: 0.72rem; background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; font-weight: 700;">Neutralización Ácido-Base</span>
+          </div>
+          <p id="reportProblemStatement" style="margin: 0; font-size: 0.82rem; color: #1e40af; line-height: 1.45;">
+            Titular 25 mL de solución de HCl 0.1 M con NaOH 0.1 M utilizando fenolftaleína hasta obtener el punto de equivalencia exacto (cambio a rosa tenue y pH 7.0).
+          </p>
+        </div>
+
+        <!-- Resultados Finales Experimentales Obtenidos en la Ejecución (RF007) -->
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 0.85rem 1rem; margin-bottom: 1.1rem;">
+          <h4 style="font-size: 0.88rem; font-weight: 800; color: #0f172a; margin: 0 0 0.65rem 0; display: flex; align-items: center; gap: 0.4rem;">
+            <span>⚗️</span> Resultados Finales de la Ejecución Experimental:
+          </h4>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.65rem;">
+            <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.6rem 0.75rem;">
+              <span style="font-size: 0.70rem; color: #64748b; font-weight: 700; text-transform: uppercase; display: block;">Volumen Gastado / Medido</span>
+              <strong id="reportExpVolume" style="font-size: 1.05rem; color: #0284c7;">25.0 mL</strong>
+            </div>
+            <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.6rem 0.75rem;">
+              <span style="font-size: 0.70rem; color: #64748b; font-weight: 700; text-transform: uppercase; display: block;">pH Final Alcanzado</span>
+              <strong id="reportExpPh" style="font-size: 1.05rem; color: #16a34a;">7.00 (Neutro)</strong>
+            </div>
+            <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.6rem 0.75rem;">
+              <span style="font-size: 0.70rem; color: #64748b; font-weight: 700; text-transform: uppercase; display: block;">Temperatura del Sistema</span>
+              <strong id="reportExpTemp" style="font-size: 1.05rem; color: #ea580c;">25.0 °C</strong>
+            </div>
+            <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.6rem 0.75rem;">
+              <span style="font-size: 0.70rem; color: #64748b; font-weight: 700; text-transform: uppercase; display: block;">Reacción Producida</span>
+              <strong id="reportExpReaction" style="font-size: 0.82rem; color: #334155; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">HCl + NaOH → NaCl + H₂O</strong>
+            </div>
+          </div>
+          <div id="reportExpVerdict" style="margin-top: 0.65rem; font-size: 0.78rem; background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; padding: 0.45rem 0.75rem; border-radius: 6px; font-weight: 600;">
+            ✅ Veredicto: El resultado experimental satisface plenamente las condiciones del problema planteado en la guía.
           </div>
         </div>
 
         <!-- Desglose por Criterios de la Rúbrica -->
         <div>
-          <h4 style="font-size: 0.95rem; font-weight: 800; color: #0f172a; margin: 0 0 0.65rem 0; display: flex; align-items: center; gap: 0.4rem;">
-            <span>🔬 Criterios Procedimentales Evaluados por ChemEngine (0-20):</span>
+          <h4 style="font-size: 0.88rem; font-weight: 800; color: #0f172a; margin: 0 0 0.5rem 0; display: flex; align-items: center; gap: 0.4rem;">
+            <span>🔬</span> Criterios Procedimentales Evaluados por ChemEngine (0-20):
           </h4>
           <div style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
             <table class="report-table" style="margin: 0; width: 100%;">
@@ -1878,7 +1938,7 @@
       </div>
 
       <div class="eval-modal-footer" style="display: flex; justify-content: space-between; align-items: center;">
-        <span style="font-size: 0.76rem; color: #64748b;">✅ Calificación sincronizada con la base de datos PostgreSQL institucional.</span>
+        <span style="font-size: 0.76rem; color: #64748b;">✅ Calificación sincronizada con la base de datos PostgreSQL institucional (RF007).</span>
         <button type="button" class="btn btn-primary" onclick="App.closeReportModal()">
           Entendido / Cerrar Ficha
         </button>
@@ -1888,7 +1948,7 @@
 
   <!-- ================= MODAL RESULTADOS DE ALUMNOS POR EVALUACIÓN (VISTA DOCENTE RF007) ================= -->
   <div class="eval-modal-backdrop" id="modalEvaluationSubmissions" style="display: none; z-index: 10050;">
-    <div class="eval-modal-card" style="max-width: 860px;">
+    <div class="eval-modal-card" style="max-width: 880px; width: 95%;">
       <div class="eval-modal-header" style="background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border-bottom: 2px solid #bfdbfe;">
         <div style="display: flex; align-items: center; gap: 0.75rem;">
           <div style="width: 44px; height: 44px; border-radius: 10px; background: #ffffff; border: 1px solid #bfdbfe; display: flex; align-items: center; justify-content: center; font-size: 1.6rem;">📊</div>
@@ -1901,13 +1961,19 @@
       </div>
 
       <div class="eval-modal-body" style="padding: 1.25rem;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem; flex-wrap: wrap; gap: 0.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.65rem; flex-wrap: wrap; gap: 0.5rem;">
           <div>
             <span style="font-size: 0.82rem; color: #475569;">Alumnos que entregaron esta práctica: <strong id="submCountDisplay" style="color: #0f172a;">0</strong></span>
           </div>
           <div style="font-size: 0.76rem; color: #64748b;">
             Salones Asignados: <span id="submClassroomsDisplay" class="salon-chip">4to A</span>
           </div>
+        </div>
+
+        <!-- Problema Asignado a Resolver en este Laboratorio -->
+        <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 0.65rem 0.85rem; margin-bottom: 0.85rem; font-size: 0.78rem; color: #1e3a8a;">
+          <strong style="display: block; margin-bottom: 0.2rem;">🎯 Problema o Reto a Resolver Asignado por el Docente:</strong>
+          <div id="submProblemDescription" style="color: #1e40af; line-height: 1.35;">...</div>
         </div>
 
         <div style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; max-height: 380px; overflow-y: auto;">
@@ -1933,6 +1999,7 @@
         <button type="button" class="btn btn-outline" onclick="App.closeSubmissionsModal()">Cerrar</button>
       </div>
     </div>
+  </div>
   </div>
 
   <!-- ================= MODAL LECTOR CAPÍTULO LIBRO GUÍA ================= -->

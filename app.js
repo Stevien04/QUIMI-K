@@ -1239,6 +1239,7 @@ const App = {
       title: 'Examen Práctico: Titulación Ácido-Base de HCl con NaOH',
       evalType: 'lab2d',
       topic: 'Neutralización Ácido-Base',
+      description: 'Determinar el punto de equivalencia titulando una alícuota de 25 mL de HCl 0.1 M con NaOH 0.1 M usando fenolftaleína. Se debe medir el volumen gastado exacto y alcanzar un pH neutro (~7.00) con viraje de incoloro a rosa persistente.',
       targetClassrooms: ['4A'], // Asignado exclusivamente a 4to Año "A"
       status: 'published', // 'published' = Enviado a Salón (Protegido contra modificaciones)
       createdAt: '28/10/2026 09:30',
@@ -1252,11 +1253,17 @@ const App = {
           studentName: 'Juan Pérez',
           classroomId: '4A',
           classroomName: '4to Año "A"',
+          topic: 'Neutralización Ácido-Base',
+          problemStatement: 'Determinar el punto de equivalencia titulando una alícuota de 25 mL de HCl 0.1 M con NaOH 0.1 M usando fenolftaleína. Se debe medir el volumen gastado exacto y alcanzar un pH neutro (~7.00) con viraje de incoloro a rosa persistente.',
           score: 18,
           letterGrade: 'AD',
           date: '28/10/2026 10:15',
           finalPh: '7.00',
           volumeAddedMl: '24.8',
+          temperature: '24.8 °C',
+          reactionEquation: 'HCl + NaOH → NaCl + H₂O',
+          phenomenonObservation: 'Viraje persistente a rosa pálido. Solución neutralizada.',
+          verdict: '✅ Objetivo cumplido: Neutralización estequiométrica precisa con error relativo < 1%.',
           rubricDetails: [
             { criteria: '1. Neutralización estequiométrica precisa (pH final ~ 7.0)', score: 6, maxScore: 6, feedback: 'Excelente neutralización volumétrica con punto de equivalencia exacto.' },
             { criteria: '2. Volumen titulante empleado (cercanía a 25.0 mL)', score: 5, maxScore: 5, feedback: 'Gasto de 24.8 mL (error relativo < 1%).' },
@@ -1269,11 +1276,17 @@ const App = {
           studentName: 'María Gómez',
           classroomId: '4A',
           classroomName: '4to Año "A"',
+          topic: 'Neutralización Ácido-Base',
+          problemStatement: 'Determinar el punto de equivalencia titulando una alícuota de 25 mL de HCl 0.1 M con NaOH 0.1 M usando fenolftaleína. Se debe medir el volumen gastado exacto y alcanzar un pH neutro (~7.00) con viraje de incoloro a rosa persistente.',
           score: 19,
           letterGrade: 'AD',
           date: '28/10/2026 10:22',
           finalPh: '7.10',
           volumeAddedMl: '25.0',
+          temperature: '25.0 °C',
+          reactionEquation: 'HCl + NaOH → NaCl + H₂O',
+          phenomenonObservation: 'Viraje exacto de incoloro a rosa grosella suave en la gota límite.',
+          verdict: '✅ Objetivo cumplido: Volumen estequiométrico ideal y pH neutro alcanzados.',
           rubricDetails: [
             { criteria: '1. Neutralización estequiométrica precisa (pH final ~ 7.0)', score: 6, maxScore: 6, feedback: 'Punto de equivalencia alcanzado con precisión micrométrica.' },
             { criteria: '2. Volumen titulante empleado (cercanía a 25.0 mL)', score: 5, maxScore: 5, feedback: 'Volumen ideal de 25.0 mL vertido exactamente.' },
@@ -1288,6 +1301,7 @@ const App = {
       title: 'Práctica Calificada: Geometría Molecular y Enlaces en 3D',
       evalType: 'molecular3d',
       topic: 'Formación de Molécula de Agua (H₂O)',
+      description: 'Modelar en el visor molecular 3D la unión covalente polar entre 2 átomos de Hidrógeno y 1 de Oxígeno, analizando la diferencia de electronegatividad y la geometría angular resultante.',
       targetClassrooms: ['4B', '5A'], // Asignado a múltiples salones (4to B y 5to A)
       status: 'draft', // 'draft' = Borrador (Permite seguir modificando)
       createdAt: '29/10/2026 11:15',
@@ -6801,7 +6815,7 @@ const App = {
 
                       return `
                         <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 0.85rem 1rem; background: ${isSubmitted ? '#f0fdf4' : '#f8fafc'}; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.65rem;">
-                          <div>
+                          <div style="flex: 1; min-width: 260px;">
                             <div style="display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.25rem;">
                               ${typeBadge}
                               <strong style="color: #0f172a; font-size: 0.9rem;">${ev.title}</strong>
@@ -6809,7 +6823,8 @@ const App = {
                             <div style="font-size: 0.76rem; color: #64748b;">
                               Tema: <strong>${ev.topic}</strong> ${ev.evalType === 'lab2d' ? `• Herramientas autorizadas: <strong>${ev.allowedInstruments ? ev.allowedInstruments.length : 14} permitidas</strong> (los demás instrumentos desaparecen)` : ''}
                             </div>
-                            ${isSubmitted ? `<div style="font-size: 0.78rem; color: #166534; font-weight: 700; margin-top: 0.2rem;">✅ Entregado el ${sub.date} • Calificación: <span style="font-size: 0.95rem; color: #0284c7;">${sub.score} / 20</span> (${sub.letterGrade})</div>` : ''}
+                            ${ev.description ? `<div style="font-size: 0.76rem; color: #1e3a8a; background: #eff6ff; border: 1px solid #bfdbfe; padding: 0.35rem 0.65rem; border-radius: 6px; margin-top: 0.35rem; line-height: 1.35;"><strong>🎯 Problema a Resolver:</strong> ${ev.description}</div>` : ''}
+                            ${isSubmitted ? `<div style="font-size: 0.78rem; color: #166534; font-weight: 700; margin-top: 0.35rem;">✅ Práctica ejecutada el ${sub.date} • Nota: <span style="font-size: 0.95rem; color: #0284c7; font-weight: 800;">${sub.score} / 20</span> (${sub.letterGrade}) ${sub.volumeAddedMl ? `• Vol. gastado: <strong>${sub.volumeAddedMl} mL</strong> • pH: <strong>${sub.finalPh}</strong>` : ''}</div>` : ''}
                           </div>
                           <div>
                             ${actionBtn}
@@ -7518,6 +7533,10 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
         ? `<div style="font-size: 0.74rem; color: #166534; background: #f0fdf4; border: 1px solid #bbf7d0; padding: 0.2rem 0.5rem; border-radius: 6px; margin-top: 0.35rem;">🛠️ Herramientas autorizadas en mesa: <strong>${item.allowedInstruments ? item.allowedInstruments.length : 14}</strong> (los demás instrumentos desaparecen en examen)</div>`
         : '';
 
+      const problemInfo = item.description
+        ? `<div style="font-size: 0.74rem; color: #1e40af; background: #eff6ff; border: 1px solid #bfdbfe; padding: 0.35rem 0.6rem; border-radius: 6px; margin-top: 0.35rem; line-height: 1.35;"><strong>🎯 Problema a Resolver:</strong> ${item.description}</div>`
+        : '';
+
       card.innerHTML = `
         <div>
           <div class="eval-header">
@@ -7528,6 +7547,7 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
               </div>
               <div class="eval-topic">🔬 Tema: <strong>${item.topic}</strong></div>
               ${toolsInfo}
+              ${problemInfo}
             </div>
             ${isPublished
               ? `<span class="status-pill-published" title="Esta evaluación ya no puede ser alterada">🔒 Enviado a Salón (Protegido)</span>`
@@ -7696,12 +7716,33 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
     }
   },
 
+  getDefaultProblemDescription(topic) {
+    const map = {
+      'Neutralización Ácido-Base': 'Determinar el punto de equivalencia titulando una alícuota de 25 mL de HCl 0.1 M con NaOH 0.1 M usando fenolftaleína. Se debe medir el volumen gastado exacto y alcanzar un pH neutro (~7.00) con viraje de incoloro a rosa persistente.',
+      'Síntesis de NaCl': 'Sintetizar cloruro de sodio (NaCl) combinando cantidades estequiométricas de HCl y NaOH en el vaso de precipitados, y calentar con el mechero Bunsen hasta evaporar el agua y cristalizar la sal.',
+      'Formación de Molécula de Agua (H₂O)': 'Modelar en el visor molecular 3D la unión covalente polar entre 2 átomos de Hidrógeno y 1 de Oxígeno, analizando la diferencia de electronegatividad y la geometría angular resultante.',
+      'Determinación de Densidad': 'Calcular la densidad de una muestra sólida sumergiéndola en una probeta graduada con agua para determinar el volumen desalojado por el principio de Arquímedes y pesándola en la balanza analítica digital.',
+      'Separación de Mezclas': 'Separar una mezcla heterogénea de agua y arena de sílice (SiO₂) empleando el sistema de filtración por gravedad con embudo y papel de filtro.',
+      'Fundamentos y Escala de Pauling': 'Calcular la diferencia de electronegatividad entre elementos de la tabla periódica y clasificar los tipos de enlace químico (covalente no polar, covalente polar o iónico).'
+    };
+    return map[topic] || 'Ejecutar el procedimiento experimental asignado en la guía de laboratorio y registrar los resultados obtenidos.';
+  },
+
+  onEvaluationTopicChange() {
+    const topicEl = document.getElementById('editorEvalTopic');
+    const descEl = document.getElementById('editorEvalDescription');
+    if (topicEl && descEl) {
+      descEl.value = this.getDefaultProblemDescription(topicEl.value);
+    }
+  },
+
   openEvaluationEditor(evalId = null) {
     const modal = document.getElementById('modalEvaluationEditor');
     const formId = document.getElementById('editorEvalId');
     const formTitle = document.getElementById('editorEvalTitle');
     const formType = document.getElementById('editorEvalType');
     const formTopic = document.getElementById('editorEvalTopic');
+    const formDesc = document.getElementById('editorEvalDescription');
     const modalTitle = document.getElementById('evalModalTitle');
     const modalSub = document.getElementById('evalModalSubtitle');
     const questionsContainer = document.getElementById('editorQuestionsList');
@@ -7723,8 +7764,9 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
       formTitle.value = item.title;
       if (formType) formType.value = item.evalType || 'lab2d';
       formTopic.value = item.topic;
+      if (formDesc) formDesc.value = item.description || this.getDefaultProblemDescription(item.topic);
       modalTitle.innerText = 'Modificar Evaluación (Borrador)';
-      modalSub.innerText = 'Puede cambiar modalidad, herramientas autorizadas, salones y preguntas antes de enviarlo al aula.';
+      modalSub.innerText = 'Puede cambiar modalidad, herramientas autorizadas, salones, descripción y preguntas antes de enviarlo al aula.';
 
       // Marcar checkboxes correspondientes
       document.querySelectorAll('.salon-target-check').forEach(cb => {
@@ -7746,6 +7788,7 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
       formTitle.value = '';
       if (formType) formType.value = 'lab2d';
       formTopic.selectedIndex = 0;
+      if (formDesc) formDesc.value = this.getDefaultProblemDescription(formTopic.value);
       modalTitle.innerText = 'Crear Nueva Evaluación / Examen';
       modalSub.innerText = 'Configure el título, la modalidad (Mesa 2D, Visor 3D o Teórico), los salones destino y las herramientas autorizadas.';
 
@@ -7944,6 +7987,8 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
 
     const salonNames = checkedSalones.map(s => this.getClassroomName(s)).join(', ');
     const existingId = idInput ? idInput.value : '';
+    const descInput = document.getElementById('editorEvalDescription');
+    const description = (descInput ? descInput.value.trim() : '') || this.getDefaultProblemDescription(topic);
 
     if (existingId) {
       const existing = this.evaluations.find(e => e.id === existingId);
@@ -7955,6 +8000,7 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
         existing.title = title;
         existing.evalType = evalType;
         existing.topic = topic;
+        existing.description = description;
         existing.targetClassrooms = checkedSalones;
         existing.allowedInstruments = allowedInstruments;
         existing.allowedReagents = allowedReagents;
@@ -7970,6 +8016,7 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
         title: title,
         evalType: evalType,
         topic: topic,
+        description: description,
         targetClassrooms: checkedSalones,
         allowedInstruments: allowedInstruments,
         allowedReagents: allowedReagents,
@@ -8054,6 +8101,13 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
 
     let html = '';
 
+    html += `
+      <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 0.85rem 1.15rem; margin-bottom: 1rem;">
+        <strong style="color: #1e3a8a; font-size: 0.88rem; display: block; margin-bottom: 0.35rem;">🎯 Problema o Reto a Resolver en el Laboratorio (Guía Asignada):</strong>
+        <p style="margin: 0; font-size: 0.82rem; color: #1e40af; line-height: 1.45;">${item.description || this.getDefaultProblemDescription(item.topic)}</p>
+      </div>
+    `;
+
     if (item.evalType === 'lab2d') {
       const allowedNames = (item.allowedInstruments || Object.keys(ChemEngine.instruments)).map(id => {
         const inst = ChemEngine.instruments[id];
@@ -8129,6 +8183,9 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
     document.getElementById('submCountDisplay').innerText = `${subs.length} alumnos`;
     document.getElementById('submClassroomsDisplay').innerText = item.targetClassrooms.map(c => this.getClassroomName(c)).join(', ');
 
+    const probDescEl = document.getElementById('submProblemDescription');
+    if (probDescEl) probDescEl.innerText = item.description || this.getDefaultProblemDescription(item.topic);
+
     const tbody = document.getElementById('submTableBody');
     tbody.innerHTML = '';
 
@@ -8158,6 +8215,7 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
           <td style="padding: 0.65rem 0.85rem; font-size: 0.78rem; color: #64748b;">${s.date}</td>
           <td style="padding: 0.65rem 0.85rem; text-align: center; font-weight: 900; color: #0284c7; font-size: 1.05rem;">
             ${s.score} / 20
+            ${s.volumeAddedMl ? `<div style="font-size: 0.70rem; color: #64748b; font-weight: 500;">Vol: ${s.volumeAddedMl} mL • pH: ${s.finalPh}</div>` : ''}
           </td>
           <td style="padding: 0.65rem 0.85rem; text-align: center;">
             <span class="status-pill ${isApproved ? 'status-approved' : 'status-failed'}" style="font-size: 0.72rem; padding: 0.2rem 0.55rem;">
@@ -8188,54 +8246,99 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
     if (!item || !item.submissions) return;
     const sub = item.submissions.find(s => s.studentId === studentId);
     if (!sub) return;
+    if (!sub.problemStatement && item.description) {
+      sub.problemStatement = item.description;
+    }
+    if (!sub.topic && item.topic) {
+      sub.topic = item.topic;
+    }
     this.viewSubmissionReport(sub);
   },
 
   viewSubmissionReport(sub) {
     const modal = document.getElementById('modalReport');
     if (!modal) return;
-    document.getElementById('reportScoreDisplay').innerText = `${sub.score} / 20`;
-    document.getElementById('reportLetterGrade').innerText = `${sub.letterGrade} (${sub.score >= 14 ? 'Logro Destacado' : (sub.score >= 11 ? 'Aprobado' : 'Requiere Refuerzo')})`;
+
+    const topicEl = document.getElementById('reportPracticeTopic');
+    if (topicEl) topicEl.innerText = sub.topic || 'Guía de Laboratorio';
+
+    const probEl = document.getElementById('reportProblemStatement');
+    if (probEl) probEl.innerText = sub.problemStatement || 'Problema práctico asignado por el docente.';
+
+    const scoreEl = document.getElementById('reportScoreDisplay');
+    if (scoreEl) scoreEl.innerText = `${sub.score} / 20`;
+
+    const gradeEl = document.getElementById('reportLetterGrade');
+    if (gradeEl) {
+      gradeEl.innerText = `${sub.letterGrade} (${sub.score >= 14 ? 'Logro Destacado' : (sub.score >= 11 ? 'Aprobado' : 'Requiere Refuerzo')})`;
+      gradeEl.style.color = sub.score >= 14 ? '#16a34a' : (sub.score >= 11 ? '#0284c7' : '#ea580c');
+    }
+
     const infoEl = document.getElementById('reportStudentInfo');
     if (infoEl) {
       infoEl.innerHTML = `Estudiante: <strong>${sub.studentName}</strong> • Salón: <strong>${sub.classroomName || '4to A'}</strong> • Fecha: <strong>${sub.date}</strong>`;
     }
+
+    const volEl = document.getElementById('reportExpVolume');
+    if (volEl) volEl.innerText = `${sub.volumeAddedMl || '25.0'} mL`;
+
+    const phEl = document.getElementById('reportExpPh');
+    const phVal = parseFloat(sub.finalPh || '7.0');
+    if (phEl) phEl.innerText = `${sub.finalPh || '7.00'} (${phVal >= 6.8 && phVal <= 7.2 ? 'Neutro' : (phVal > 7.2 ? 'Básico' : 'Ácido')})`;
+
+    const tempEl = document.getElementById('reportExpTemp');
+    if (tempEl) tempEl.innerText = `${sub.temperature || '25.0 °C'}`;
+
+    const rxEl = document.getElementById('reportExpReaction');
+    if (rxEl) rxEl.innerText = `${sub.reactionEquation || 'HCl + NaOH → NaCl + H₂O'}`;
+
+    const verdictEl = document.getElementById('reportExpVerdict');
+    if (verdictEl) {
+      verdictEl.innerText = sub.verdict || (sub.score >= 11 ? '✅ Veredicto: El resultado experimental satisface plenamente las condiciones del problema planteado en la guía.' : '⚠️ Veredicto: El resultado experimental muestra desviaciones respecto al objetivo de la guía.');
+      verdictEl.style.background = sub.score >= 11 ? '#f0fdf4' : '#fff7ed';
+      verdictEl.style.borderColor = sub.score >= 11 ? '#bbf7d0' : '#fed7aa';
+      verdictEl.style.color = sub.score >= 11 ? '#166534' : '#c2410c';
+    }
+
     const tbody = document.getElementById('reportRubricBody');
-    tbody.innerHTML = '';
-    (sub.rubricDetails || []).forEach(item => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td style="padding: 0.6rem 0.85rem; font-size: 0.82rem;"><strong>${item.criteria}</strong></td>
-        <td style="text-align: center; padding: 0.6rem 0.85rem;"><span class="badge-score" style="font-size: 0.82rem; font-weight: 800; background: #e0f2fe; color: #0369a1; padding: 0.2rem 0.55rem; border-radius: 6px;">${item.score} / ${item.maxScore}</span></td>
-        <td style="font-size: 0.8rem; color: #334155; padding: 0.6rem 0.85rem;">${item.feedback}</td>
-      `;
-      tbody.appendChild(tr);
-    });
+    if (tbody) {
+      tbody.innerHTML = '';
+      (sub.rubricDetails || []).forEach(item => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td style="padding: 0.6rem 0.85rem; font-size: 0.82rem;"><strong>${item.criteria}</strong></td>
+          <td style="text-align: center; padding: 0.6rem 0.85rem;"><span class="badge-score" style="font-size: 0.82rem; font-weight: 800; background: #e0f2fe; color: #0369a1; padding: 0.2rem 0.55rem; border-radius: 6px;">${item.score} / ${item.maxScore}</span></td>
+          <td style="font-size: 0.8rem; color: #334155; padding: 0.6rem 0.85rem;">${item.feedback}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
     modal.style.display = 'flex';
   },
 
-  showEvaluationReportModal(rubric) {
-    const modal = document.getElementById('modalReport');
-    if (!modal) return;
-    document.getElementById('reportScoreDisplay').innerText = `${rubric.vigesimalScore} / 20`;
-    document.getElementById('reportLetterGrade').innerText = `${rubric.letterGrade} (${rubric.vigesimalScore >= 14 ? 'Logro Destacado' : (rubric.vigesimalScore >= 11 ? 'Aprobado' : 'Requiere Refuerzo')})`;
-    const infoEl = document.getElementById('reportStudentInfo');
-    if (infoEl) {
-      const user = this.state.currentUser || { name: 'Juan Pérez', classroom: '4to Año "A"' };
-      infoEl.innerHTML = `Estudiante: <strong>${user.name}</strong> • Salón: <strong>${user.classroom || '4to A'}</strong> • Fecha: <strong>${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString().slice(0, 5)}</strong>`;
+  showEvaluationReportModal(rubric, submission = null) {
+    if (submission) {
+      this.viewSubmissionReport(submission);
+      return;
     }
-    const tbody = document.getElementById('reportRubricBody');
-    tbody.innerHTML = '';
-    rubric.details.forEach(item => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td style="padding: 0.6rem 0.85rem; font-size: 0.82rem;"><strong>${item.criteria}</strong></td>
-        <td style="text-align: center; padding: 0.6rem 0.85rem;"><span class="badge-score" style="font-size: 0.82rem; font-weight: 800; background: #e0f2fe; color: #0369a1; padding: 0.2rem 0.55rem; border-radius: 6px;">${item.score} / ${item.maxScore}</span></td>
-        <td style="font-size: 0.8rem; color: #334155; padding: 0.6rem 0.85rem;">${item.feedback}</td>
-      `;
-      tbody.appendChild(tr);
-    });
-    modal.style.display = 'flex';
+    const user = this.state.currentUser || { name: 'Juan Pérez', classroom: '4to Año "A"' };
+    const defaultSub = {
+      studentName: user.name,
+      classroomName: user.classroom || '4to A',
+      topic: 'Guía de Laboratorio Práctico',
+      problemStatement: 'Ejecución experimental y comprobación de parámetros físico-químicos en simulador.',
+      score: rubric.vigesimalScore,
+      letterGrade: rubric.letterGrade,
+      date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString().slice(0, 5),
+      volumeAddedMl: '25.0',
+      finalPh: '7.00',
+      temperature: '25.0 °C',
+      reactionEquation: 'HCl + NaOH → NaCl + H₂O',
+      verdict: rubric.vigesimalScore >= 11 ? '✅ Objetivo experimental cumplido con precisión.' : '⚠️ Requiere refuerzo procedimental.',
+      rubricDetails: rubric.details
+    };
+    this.viewSubmissionReport(defaultSub);
   },
 
   closeReportModal() {
@@ -8253,7 +8356,7 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
     if (item.evalType === 'molecular3d') {
       this.switchTabTo('tab-molecular-3d');
       this.showDialog(
-        `Has iniciado el examen práctico:\n"${item.title}".\n\n🌐 Realice la combinación atómica y análisis de enlace en el Visor Molecular 3D.\nAl culminar, pulsa "Entregar Examen".`,
+        `Has iniciado el examen práctico:\n"${item.title}".\n\n🎯 PROBLEMA A RESOLVER:\n${item.description || this.getDefaultProblemDescription(item.topic)}\n\n🌐 Realice la combinación atómica y análisis de enlace en el Visor Molecular 3D.\nAl culminar, pulsa "Entregar Examen".`,
         'Examen Molecular 3D',
         '🌐'
       );
@@ -8270,9 +8373,11 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
       const titleEl = document.getElementById('examBannerTitle');
       const salonEl = document.getElementById('examBannerSalon');
       const countEl = document.getElementById('examBannerToolsCount');
+      const probDescEl = document.getElementById('examBannerProblemDescription');
       if (titleEl) titleEl.innerText = `Modo Examen Práctico: ${item.title}`;
       if (salonEl) salonEl.innerText = item.targetClassrooms.map(c => this.getClassroomName(c)).join(', ');
       if (countEl) countEl.innerText = `${item.allowedInstruments ? item.allowedInstruments.length : 14} autorizadas`;
+      if (probDescEl) probDescEl.innerText = item.description || this.getDefaultProblemDescription(item.topic);
     }
 
     // Re-renderizar estantes de reactivos e instrumentos (desaparecen los no permitidos)
@@ -8280,7 +8385,7 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
     this.renderReagentsShelf();
 
     this.showDialog(
-      `Has iniciado el examen práctico:\n"${item.title}"\n\n🔬 Tu docente ha configurado estrictamente las herramientas permitidas para esta evaluación.\nLos demás instrumentos han desaparecido del estante para que utilices únicamente el instrumental autorizado.\n\nAl completar la práctica asignada, pulsa "📋 Entregar Examen (0-20)".`,
+      `Has iniciado el examen práctico:\n"${item.title}"\n\n🎯 PROBLEMA A RESOLVER (Guía Asignada):\n${item.description || this.getDefaultProblemDescription(item.topic)}\n\n🔬 Tu docente ha configurado las herramientas permitidas para esta evaluación.\nAl completar la práctica asignada, pulsa "📋 Finalizar Práctica y Ver Resultados (RF007)".`,
       'Examen Práctico Iniciado',
       '⚗️'
     );
@@ -8312,6 +8417,7 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
     const vAdded = this.labBench ? this.labBench.buretteStand.volumeAddedMl : 25.0;
     const receivingFlask = this.labBench && this.labBench.vessels[0];
     const finalPh = (this.labBench && receivingFlask) ? this.labBench.getVesselPH(receivingFlask) : 7.0;
+    const temp = (this.labBench && receivingFlask && receivingFlask.temp) ? `${receivingFlask.temp.toFixed(1)} °C` : '25.0 °C';
 
     ChemEngine.logTelemetry('exam_submission', 'exam_practice_finish', vAdded, {
       examId: exam.id,
@@ -8322,17 +8428,28 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
 
     const rubricResult = ChemEngine.evaluateProceduralRubric(this.practiceConfig2026, ChemEngine.getTelemetryJSONB().events);
 
+    const isSuccess = rubricResult.vigesimalScore >= 11;
+    const verdict = isSuccess
+      ? `✅ Objetivo cumplido: El resultado experimental (${vAdded.toFixed(1)} mL de adición volumétrica, pH ${finalPh.toFixed(2)}) resuelve satisfactoriamente el problema planteado en la guía de laboratorio asignada.`
+      : `⚠️ Requiere refuerzo: El volumen gastado (${vAdded.toFixed(1)} mL) o pH final (${finalPh.toFixed(2)}) difieren del punto de equivalencia requerido.`;
+
     // Guardar submission en el examen (RF007)
     const submission = {
       studentId: user.id,
       studentName: user.name,
       classroomId: user.classroomId || '4A',
       classroomName: user.classroom || '4to Año "A"',
+      topic: exam.topic,
+      problemStatement: exam.description || this.getDefaultProblemDescription(exam.topic),
       score: rubricResult.vigesimalScore,
       letterGrade: rubricResult.letterGrade,
       date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString().slice(0, 5),
       finalPh: finalPh.toFixed(2),
       volumeAddedMl: vAdded.toFixed(1),
+      temperature: temp,
+      reactionEquation: 'HCl + NaOH → NaCl + H₂O',
+      phenomenonObservation: finalPh >= 7.0 ? 'Viraje persistente a rosa tenue. Neutralización estequiométrica completada.' : 'Solución en estado ácido inicial remanente.',
+      verdict: verdict,
       telemetry: ChemEngine.getTelemetryJSONB().events.slice(-5),
       rubricDetails: rubricResult.details
     };
@@ -8368,7 +8485,7 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
     this.renderReagentsShelf();
 
     // Mostrar Ficha Oficial de Resultados al alumno (RF007)
-    this.showEvaluationReportModal(rubricResult);
+    this.viewSubmissionReport(submission);
     if (user.role === 'student') {
       this.renderStudentSalonView();
     }
@@ -9963,30 +10080,6 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
 
     this.showEvaluationReportModal(rubricResult);
     this.refreshTelemetryUI();
-  },
-
-  showEvaluationReportModal(rubric) {
-    const modal = document.getElementById('modalReport');
-    if (!modal) return;
-    document.getElementById('reportScoreDisplay').innerText = `${rubric.vigesimalScore} / 20`;
-    document.getElementById('reportLetterGrade').innerText = rubric.letterGrade;
-    const tbody = document.getElementById('reportRubricBody');
-    tbody.innerHTML = '';
-    rubric.details.forEach(item => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td><strong>${item.criteria}</strong></td>
-        <td style="text-align: center;"><span class="badge-score">${item.score} / ${item.maxScore}</span></td>
-        <td style="font-size: 0.82rem; color: #334155;">${item.feedback}</td>
-      `;
-      tbody.appendChild(tr);
-    });
-    modal.style.display = 'flex';
-  },
-
-  closeReportModal() {
-    const modal = document.getElementById('modalReport');
-    if (modal) modal.style.display = 'none';
   },
 
   renderCurriculumModule(modNumber) {
