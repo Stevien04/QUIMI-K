@@ -1407,22 +1407,22 @@ body {
 }
 
 .classroom-card {
-  flex: 1 0 320px;
-  min-width: 300px;
-  max-width: 420px;
+  flex: 1 0 305px;
+  min-width: 285px;
+  max-width: 390px;
   scroll-snap-align: start;
-  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  background: #ffffff;
   border: 1px solid #e2e8f0;
-  border-radius: 18px;
-  padding: 1.5rem;
-  box-shadow: 0 6px 20px -6px rgba(15, 23, 42, 0.08);
+  border-radius: 20px;
+  padding: 1.4rem 1.45rem;
+  box-shadow: 0 8px 24px -10px rgba(15, 23, 42, 0.08);
   transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.25s ease, border-color 0.25s ease;
   position: relative;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  min-height: 390px;
+  min-height: 335px;
 }
 
 .classroom-card::before {
@@ -1431,26 +1431,26 @@ body {
   top: 0;
   left: 0;
   right: 0;
-  height: 5px;
-  background: linear-gradient(90deg, #2563eb, #06b6d4);
+  height: 4px;
+  background: linear-gradient(90deg, #3b82f6, #38bdf8);
 }
 
 .classroom-card:nth-child(2)::before {
-  background: linear-gradient(90deg, #7c3aed, #ec4899);
+  background: linear-gradient(90deg, #8b5cf6, #f472b6);
 }
 
 .classroom-card:nth-child(3)::before {
-  background: linear-gradient(90deg, #059669, #10b981);
+  background: linear-gradient(90deg, #10b981, #34d399);
 }
 
 .classroom-card:nth-child(4)::before {
-  background: linear-gradient(90deg, #d97706, #f59e0b);
+  background: linear-gradient(90deg, #f59e0b, #fbbf24);
 }
 
 .classroom-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 18px 34px -10px rgba(37, 99, 235, 0.18);
-  border-color: #93c5fd;
+  transform: translateY(-4px);
+  box-shadow: 0 16px 32px -12px rgba(37, 99, 235, 0.16);
+  border-color: #bfdbfe;
 }
 
 /* Tarjeta especial "Crear Salón" */
@@ -1892,9 +1892,9 @@ body {
 .teacher-hero-banner {
   position: relative;
   overflow: hidden;
-  background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 52%, #0284c7 100%);
-  border-radius: 18px;
-  padding: 1.65rem 2rem;
+  background: linear-gradient(135deg, #1e40af 0%, #0284c7 55%, #0d9488 100%);
+  border-radius: 22px;
+  padding: 1.75rem 2rem;
   margin-bottom: 1.35rem;
   color: #ffffff;
   display: flex;
@@ -1902,16 +1902,16 @@ body {
   align-items: center;
   flex-wrap: wrap;
   gap: 1.25rem;
-  box-shadow: 0 14px 32px -10px rgba(30, 58, 138, 0.45);
+  box-shadow: 0 14px 34px -12px rgba(2, 132, 199, 0.42);
 }
 
 .teacher-hero-glow {
   position: absolute;
-  top: -60px;
-  right: -40px;
-  width: 260px;
-  height: 260px;
-  background: radial-gradient(circle, rgba(56, 189, 248, 0.35) 0%, rgba(56, 189, 248, 0) 70%);
+  top: -70px;
+  right: -50px;
+  width: 280px;
+  height: 280px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0) 70%);
   pointer-events: none;
 }
 
@@ -2045,42 +2045,43 @@ body {
 /* KPIs mejorados del salón */
 .teacher-kpi-row .stat-box {
   position: relative;
-  border-radius: 14px;
-  padding: 1.15rem 1rem;
+  border-radius: 16px;
+  padding: 1.05rem 1.15rem;
   text-align: left;
   border: 1px solid #e2e8f0;
-  box-shadow: 0 4px 14px -4px rgba(15, 23, 42, 0.06);
+  background: #ffffff;
+  box-shadow: 0 4px 16px -6px rgba(15, 23, 42, 0.06);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .teacher-kpi-row .stat-box:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 10px 22px -6px rgba(15, 23, 42, 0.12);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px -8px rgba(15, 23, 42, 0.1);
 }
 
 .teacher-kpi-row .stat-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-size: 1.15rem;
-  margin-bottom: 0.55rem;
+  margin-bottom: 0.5rem;
 }
 
-.teacher-kpi-row .kpi-blue { border-top: 4px solid #2563eb; }
+.teacher-kpi-row .kpi-blue { border-top: 3px solid #3b82f6; background: linear-gradient(180deg, #f8fbff 0%, #ffffff 45%); }
 .teacher-kpi-row .kpi-blue .stat-icon { background: #dbeafe; }
 
-.teacher-kpi-row .kpi-green { border-top: 4px solid #16a34a; }
+.teacher-kpi-row .kpi-green { border-top: 3px solid #10b981; background: linear-gradient(180deg, #f4fdf9 0%, #ffffff 45%); }
 .teacher-kpi-row .kpi-green .stat-icon { background: #dcfce7; }
 .teacher-kpi-row .kpi-green .stat-val { color: #15803d; }
 
-.teacher-kpi-row .kpi-indigo { border-top: 4px solid #7c3aed; }
+.teacher-kpi-row .kpi-indigo { border-top: 3px solid #8b5cf6; background: linear-gradient(180deg, #faf8ff 0%, #ffffff 45%); }
 .teacher-kpi-row .kpi-indigo .stat-icon { background: #ede9fe; }
 .teacher-kpi-row .kpi-indigo .stat-val { color: #6d28d9; }
 
-.teacher-kpi-row .kpi-amber { border-top: 4px solid #d97706; }
+.teacher-kpi-row .kpi-amber { border-top: 3px solid #f59e0b; background: linear-gradient(180deg, #fffcf4 0%, #ffffff 45%); }
 .teacher-kpi-row .kpi-amber .stat-icon { background: #fef3c7; }
 .teacher-kpi-row .kpi-amber .stat-val { color: #b45309; }
 
