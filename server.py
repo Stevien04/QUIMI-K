@@ -459,6 +459,33 @@ def delete_evaluation_from_pg(eval_id):
             conn.close()
         return True
 
+def delete_user_from_pg(user_id):
+    update_local_db_item('users', user_id, remove=True)
+    try:
+        cache = load_local_db_cache()
+        classrooms = cache.get('classrooms', [])
+        for c in classrooms:
+            c['students'] = [s for s in c.get('students', []) if s.get('id') != user_id and s.get('name') != user_id]
+        cache['classrooms'] = classrooms
+        save_local_db_cache(cache)
+    except Exception as e:
+        print(f"Error removing user from classrooms: {e}")
+    conn = get_pg_connection()
+    if not conn:
+        return True
+    try:
+        cur = conn.cursor()
+        cur.execute("DELETE FROM users WHERE id = %s;", (user_id,))
+        conn.commit()
+        cur.close()
+        conn.close()
+        return True
+    except Exception as e:
+        print(f"Error deleting user from Postgres: {e}")
+        if conn:
+            conn.close()
+        return True
+
 def find_classroom_student(students, user_id, user_name):
     if not user_id:
         return None
@@ -830,6 +857,19 @@ class QuimiKHandler(http.server.SimpleHTTPRequestHandler):
                 body = {}
             eval_id = body.get('id') if isinstance(body, dict) else str(body)
             ok = delete_evaluation_from_pg(eval_id)
+            self.send_json_response(200 if ok else 500, {'deleted': ok, 'engine': 'PostgreSQL 16'})
+            return
+
+        # API Eliminar Usuario en Base de Datos
+        elif self.path == '/api/db/delete-user':
+            content_length = int(self.headers.get('Content-Length', 0))
+            post_data = self.rfile.read(content_length).decode('utf-8')
+            try:
+                body = json.loads(post_data) if post_data else {}
+            except Exception:
+                body = {}
+            user_id = body.get('id') if isinstance(body, dict) else str(body)
+            ok = delete_user_from_pg(user_id)
             self.send_json_response(200 if ok else 500, {'deleted': ok, 'engine': 'PostgreSQL 16'})
             return
 
