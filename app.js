@@ -8343,11 +8343,24 @@ const App = {
     `;
     container.appendChild(createCard);
 
-    // Actualizar contador del carrusel si existe
+    // Actualizar contador del carrusel y KPIs globales del docente
     const counterEl = document.getElementById('classroomsCarouselCounter');
     if (counterEl) {
       counterEl.innerText = `${this.classrooms.length} Salón${this.classrooms.length === 1 ? '' : 'es'} Registrado${this.classrooms.length === 1 ? '' : 's'}`;
     }
+
+    const totalStudentsAll = this.classrooms.reduce((sum, c) => sum + c.students.length, 0);
+    const totalScoreSum = this.classrooms.reduce((sum, c) => sum + c.students.reduce((s2, st) => s2 + (Number(st.score) || 0), 0), 0);
+    const globalAvg = totalStudentsAll > 0 ? (totalScoreSum / totalStudentsAll).toFixed(1) : '0.0';
+
+    const elGlobalSalones = document.getElementById('teacherGlobalSalonesCount');
+    const elGlobalStudents = document.getElementById('teacherGlobalStudentsCount');
+    const elGlobalAvg = document.getElementById('teacherGlobalAvgScore');
+    const elGlobalEvals = document.getElementById('teacherGlobalEvalsCount');
+    if (elGlobalSalones) elGlobalSalones.innerText = this.classrooms.length;
+    if (elGlobalStudents) elGlobalStudents.innerText = totalStudentsAll;
+    if (elGlobalAvg) elGlobalAvg.innerText = globalAvg;
+    if (elGlobalEvals) elGlobalEvals.innerText = (this.evaluations || []).length;
   },
 
   scrollClassroomsCarousel(direction) {
@@ -9217,13 +9230,24 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
     document.getElementById('activeClassroomTitle').innerText = `${c.name} - ${c.level}`;
     document.getElementById('activeClassroomSub').innerText = `Práctica Activa: ${c.assignedPractice} • Tutor: ${c.tutor}`;
     document.getElementById('salonTableTitle').innerText = `👥 Lista de Alumnos: ${c.name}`;
+    const searchInput = document.getElementById('salonStudentSearchInput');
+    if (searchInput) searchInput.value = '';
 
     this.renderClassroomStudents(c);
-
-    this.showToast(`🏫 Salón activo: ${c.name} (${c.students.length} alumnos)`);
+    if (typeof this.showToast === 'function') {
+      this.showToast(`🏫 Salón activo: ${c.name} (${c.students.length} alumnos)`);
+    }
   },
 
-  renderClassroomStudents(c) {
+  filterClassroomStudentsTable() {
+    const c = this.classrooms.find(item => item.id === this.activeClassroomId);
+    if (!c) return;
+    const input = document.getElementById('salonStudentSearchInput');
+    const query = (input ? input.value : '').trim().toLowerCase();
+    this.renderClassroomStudents(c, query);
+  },
+
+  renderClassroomStudents(c, searchQuery = '') {
     const totalStudents = c.students.length;
     const passedCount = c.students.filter(s => s.score >= 14).length;
     const passRate = totalStudents > 0 ? Math.round((passedCount / totalStudents) * 100) : 100;
@@ -9238,8 +9262,27 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
     const tbody = document.getElementById('teacherTableBody');
     if (!tbody) return;
 
+    const filteredStudents = searchQuery
+      ? c.students.filter(s =>
+          (s.name || '').toLowerCase().includes(searchQuery) ||
+          (s.status || '').toLowerCase().includes(searchQuery) ||
+          (s.practice || '').toLowerCase().includes(searchQuery)
+        )
+      : c.students;
+
     tbody.innerHTML = '';
-    c.students.forEach(s => {
+    if (filteredStudents.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="7" style="text-align: center; padding: 2rem; color: #64748b;">
+            No se encontraron estudiantes que coincidan con "<strong>${searchQuery}</strong>".
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    filteredStudents.forEach(s => {
       const tr = document.createElement('tr');
       const isPass = s.score >= 14;
       const cleanName = (s.name || 'ES').replace(/\s*\([^)]*\)/g, '').trim();
@@ -9344,6 +9387,12 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
 
   filterEvaluations(filter) {
     this.evalFilter = filter;
+    const btnAll = document.getElementById('evalFilterAllBtn');
+    const btnDraft = document.getElementById('evalFilterDraftBtn');
+    const btnPub = document.getElementById('evalFilterPublishedBtn');
+    if (btnAll) btnAll.classList.toggle('active', filter === 'all');
+    if (btnDraft) btnDraft.classList.toggle('active', filter === 'draft');
+    if (btnPub) btnPub.classList.toggle('active', filter === 'published');
     this.renderEvaluations(filter);
   },
 

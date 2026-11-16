@@ -1303,12 +1303,36 @@
 
           <!-- NIVEL 1: MIS SALONES ASIGNADOS (OVERVIEW) -->
           <div id="teacherSalonesOverview">
-            <div class="section-banner" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+            <!-- KPIs Globales del Docente -->
+            <div class="stats-row teacher-kpi-row" style="margin-bottom: 1.25rem;">
+              <div class="stat-box kpi-blue">
+                <div class="stat-icon">🏫</div>
+                <div class="stat-val" id="teacherGlobalSalonesCount">3</div>
+                <div class="stat-lbl">Salones Activos</div>
+              </div>
+              <div class="stat-box kpi-green">
+                <div class="stat-icon">👨‍🎓</div>
+                <div class="stat-val" id="teacherGlobalStudentsCount">14</div>
+                <div class="stat-lbl">Total Estudiantes</div>
+              </div>
+              <div class="stat-box kpi-indigo">
+                <div class="stat-icon">📈</div>
+                <div class="stat-val" id="teacherGlobalAvgScore">17.5</div>
+                <div class="stat-lbl">Promedio Global</div>
+              </div>
+              <div class="stat-box kpi-amber">
+                <div class="stat-icon">📝</div>
+                <div class="stat-val" id="teacherGlobalEvalsCount">2</div>
+                <div class="stat-lbl">Evaluaciones Creadas</div>
+              </div>
+            </div>
+
+            <div class="section-banner teacher-section-banner" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
               <div>
                 <strong>Salones Asignados a Prof. Midori Judith Castillo Peralta:</strong>
                 Seleccione un salón de clases para ingresar a revisar el avance, intentos y calificaciones de sus estudiantes.
               </div>
-              <button class="btn btn-success" style="font-size: 0.82rem; padding: 0.4rem 0.85rem;" onclick="App.openCreateClassroomModal()">
+              <button class="btn btn-success" style="font-size: 0.82rem; padding: 0.45rem 0.95rem; border-radius: 10px;" onclick="App.openCreateClassroomModal()">
                 ➕ Crear Salón
               </button>
             </div>
@@ -1385,10 +1409,16 @@
             </div>
 
             <!-- Tabla con los Alumnos Exclusivos de este Salón -->
-            <div class="card">
-              <div class="card-title">
-                <span id="salonTableTitle">👥 Lista de Alumnos del Salón</span>
-                <span style="font-size: 0.78rem; color: #64748b; font-weight: normal;">Colegio Alexander Fleming</span>
+            <div class="card teacher-table-card">
+              <div class="card-title" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+                <div>
+                  <span id="salonTableTitle">👥 Lista de Alumnos del Salón</span>
+                  <span style="font-size: 0.78rem; color: #64748b; font-weight: normal; margin-left: 0.5rem;">Colegio Alexander Fleming</span>
+                </div>
+                <div class="teacher-search-wrap">
+                  <span class="teacher-search-icon">🔍</span>
+                  <input type="text" id="salonStudentSearchInput" class="teacher-search-input" placeholder="Buscar alumno o estado..." oninput="App.filterClassroomStudentsTable()">
+                </div>
               </div>
 
               <div class="table-responsive">
@@ -1416,26 +1446,26 @@
 
         <!-- ================= SUB-PANEL 2: GESTIÓN DE EVALUACIONES & CUESTIONARIOS ================= -->
         <div id="teacherPaneEvaluations" style="display: none;">
-          <div class="section-banner" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+          <div class="section-banner teacher-section-banner" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
             <div>
               <strong>Diseño y Asignación de Evaluaciones por Salón:</strong>
               Cree cuestionarios y elija a qué salón o salones asignarlos. Mientras la evaluación esté en modo <strong>Borrador</strong>, podrá modificar las preguntas y salones cuantas veces requiera. Una vez <strong>Enviada al Salón</strong>, quedará protegida contra modificaciones para preservar la transparencia académica.
             </div>
-            <button class="btn btn-primary" onclick="App.openEvaluationEditor()" style="white-space: nowrap; font-size: 0.85rem;">
+            <button class="btn btn-primary" onclick="App.openEvaluationEditor()" style="white-space: nowrap; font-size: 0.85rem; border-radius: 10px;">
               ➕ Crear Práctica de Laboratorio (RF016)
             </button>
           </div>
 
           <!-- Filtros de Estado y Contador -->
           <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
-            <div style="display: flex; gap: 0.5rem;">
-              <button class="btn btn-secondary" style="font-size: 0.78rem; padding: 0.35rem 0.75rem;" onclick="App.filterEvaluations('all')">
-                Todos (<span id="countEvalAll">2</span>)
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+              <button id="evalFilterAllBtn" class="teacher-filter-pill active" onclick="App.filterEvaluations('all')">
+                📋 Todos (<span id="countEvalAll">2</span>)
               </button>
-              <button class="btn btn-outline" style="font-size: 0.78rem; padding: 0.35rem 0.75rem;" onclick="App.filterEvaluations('draft')">
+              <button id="evalFilterDraftBtn" class="teacher-filter-pill" onclick="App.filterEvaluations('draft')">
                 📝 Borradores (<span id="countEvalDraft">1</span>)
               </button>
-              <button class="btn btn-outline" style="font-size: 0.78rem; padding: 0.35rem 0.75rem;" onclick="App.filterEvaluations('published')">
+              <button id="evalFilterPublishedBtn" class="teacher-filter-pill" onclick="App.filterEvaluations('published')">
                 🚀 Enviados a Salón (<span id="countEvalPublished">1</span>)
               </button>
             </div>

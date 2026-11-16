@@ -1620,12 +1620,13 @@ body {
   align-items: center;
   flex-wrap: wrap;
   gap: 1rem;
-  background: #ffffff;
-  padding: 1rem 1.25rem;
-  border-radius: 10px;
-  border: 1px solid var(--border-color);
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  padding: 1.15rem 1.4rem;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  border-left: 5px solid #2563eb;
   margin-bottom: 1.25rem;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 6px 18px -6px rgba(15, 23, 42, 0.08);
 }
 
 .classroom-title-area {
@@ -2209,21 +2210,22 @@ body {
 }
 
 .eval-card {
-  background: #ffffff;
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  padding: 1.25rem;
-  box-shadow: var(--shadow-sm);
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 1.35rem;
+  box-shadow: 0 6px 18px -6px rgba(15, 23, 42, 0.07);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   position: relative;
-  transition: all 0.2s ease;
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
 }
 
 .eval-card:hover {
-  box-shadow: var(--shadow-md);
-  border-color: #cbd5e1;
+  transform: translateY(-4px);
+  box-shadow: 0 14px 28px -8px rgba(15, 23, 42, 0.14);
+  border-color: #93c5fd;
 }
 
 .eval-card.published {
@@ -2232,6 +2234,93 @@ body {
 
 .eval-card.draft {
   border-left: 5px solid #f59e0b;
+}
+
+.teacher-section-banner {
+  background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%);
+  border: 1px solid #dbeafe;
+  border-left: 5px solid #2563eb;
+  border-radius: 14px;
+  padding: 1rem 1.25rem;
+  box-shadow: 0 4px 12px -4px rgba(37, 99, 235, 0.08);
+}
+
+.teacher-table-card {
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 6px 20px -6px rgba(15, 23, 42, 0.07);
+}
+
+.teacher-table-card .custom-table thead th {
+  background: #f1f5f9;
+  color: #334155;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.teacher-table-card .custom-table tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+.teacher-table-card .custom-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.teacher-search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.teacher-search-icon {
+  position: absolute;
+  left: 0.75rem;
+  font-size: 0.82rem;
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.teacher-search-input {
+  padding: 0.48rem 0.85rem 0.48rem 2.15rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  font-size: 0.82rem;
+  color: #0f172a;
+  background: #ffffff;
+  min-width: 230px;
+  outline: none;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.teacher-search-input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.teacher-filter-pill {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.42rem 0.9rem;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.teacher-filter-pill:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+.teacher-filter-pill.active {
+  background: linear-gradient(135deg, #2563eb, #0284c7);
+  border-color: transparent;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
 }
 
 .eval-header {
