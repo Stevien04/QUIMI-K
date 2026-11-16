@@ -1310,6 +1310,144 @@ const App = {
       allowedReagents: ['h2o'],
       questions: [],
       submissions: []
+    },
+    {
+      id: 'eval-3',
+      title: 'Evaluación Teórica: Enlace Iónico y Síntesis de NaCl',
+      evalType: 'quiz',
+      topic: 'Síntesis de Cloruro de Sodio (Na + Cl → NaCl)',
+      description: 'Cuestionario conceptual sobre transferencia de electrones, regla del octeto y diferencia de electronegatividad de Pauling en la formación de sales iónicas.',
+      targetClassrooms: ['4A', '4B'],
+      status: 'published',
+      createdAt: '30/10/2026 08:30',
+      publishedAt: '30/10/2026 08:45',
+      allowedInstruments: [],
+      allowedReagents: [],
+      questions: [
+        {
+          question: '1. ¿Cuál es la diferencia de electronegatividad (ΔEN) aproximada entre el Sodio (0.93) y el Cloro (3.16) según la escala de Pauling?',
+          options: ['0.45 (Covalente Apolar)', '1.24 (Covalente Polar)', '2.23 (Enlace Iónico)', '0.00 (Metálico)'],
+          answer: 2
+        },
+        {
+          question: '2. En la formación del NaCl, ¿qué ocurre con el electrón de valencia del átomo de Sodio (Na)?',
+          options: ['Se comparte equitativamente con el Cloro', 'Se transfiere completamente hacia el Cloro formando iones Na⁺ y Cl⁻', 'Permanece libre sin interactuar', 'Se destruye al aplicar calor'],
+          answer: 1
+        },
+        {
+          question: '3. ¿Cuál es la ecuación química correctamente balanceada para la síntesis de cloruro de sodio?',
+          options: ['Na + Cl → NaCl₂', '2Na(s) + Cl₂(g) → 2NaCl(s)', 'Na₂ + Cl → Na₂Cl', 'Na(s) + 2Cl₂(g) → NaCl₄'],
+          answer: 1
+        },
+        {
+          question: '4. ¿Qué propiedad física caracteriza al compuesto iónico resultante NaCl a temperatura ambiente?',
+          options: ['Es un gas incoloro insoluble', 'Forma una red cristalina sólida de alto punto de fusión', 'Es un líquido volátil a 25 °C', 'No conduce electricidad ni siquiera disuelto en agua'],
+          answer: 1
+        }
+      ],
+      submissions: []
+    },
+    {
+      id: 'eval-4',
+      title: 'Examen Práctico 2D: Síntesis de Sal Común (Na + Cl)',
+      evalType: 'lab2d',
+      topic: 'Síntesis de Cloruro de Sodio (Na + Cl → NaCl)',
+      description: 'Realizar la reacción controlada entre Sodio metálico y Cloro en la mesa virtual 2D aplicando activación térmica con el Mechero Bunsen y verificando la temperatura.',
+      targetClassrooms: ['4A', '4B'],
+      status: 'published',
+      createdAt: '01/11/2026 09:00',
+      publishedAt: '01/11/2026 09:15',
+      allowedInstruments: ['beaker', 'bunsen', 'balance', 'spatula', 'thermometer'],
+      allowedReagents: ['na', 'cl', 'h2o'],
+      questions: [],
+      submissions: []
+    },
+    {
+      id: 'eval-5',
+      title: 'Evaluación Teórica: Enlace Covalente Polar y Agua (H₂O)',
+      evalType: 'quiz',
+      topic: 'Formación de Molécula Polar (2H₂ + O₂ → 2H₂O)',
+      description: 'Evalúa la comprensión de compartición asimétrica de electrones, dipolos eléctricos y geometría molecular angular del agua.',
+      targetClassrooms: ['4B', '5A'],
+      status: 'published',
+      createdAt: '02/11/2026 10:15',
+      publishedAt: '02/11/2026 10:30',
+      allowedInstruments: [],
+      allowedReagents: [],
+      questions: [
+        {
+          question: '1. ¿Qué tipo de enlace químico une a los átomos de Hidrógeno (EN=2.20) y Oxígeno (EN=3.44) en el H₂O?',
+          options: ['Enlace Iónico', 'Enlace Covalente Polar (ΔEN = 1.24)', 'Enlace Covalente Apolar', 'Enlace Metálico'],
+          answer: 1
+        },
+        {
+          question: '2. ¿Qué geometría molecular y ángulo de enlace presenta la molécula de agua (H₂O)?',
+          options: ['Lineal de 180°', 'Trigonal plana de 120°', 'Angular de aproximadamente 104.5°', 'Tetraédrica perfecta de 109.5°'],
+          answer: 2
+        },
+        {
+          question: '3. ¿Por qué la molécula de agua posee un dipolo eléctrico permanente?',
+          options: ['Porque el Oxígeno atrae con mayor fuerza los electrones compartidos (δ⁻) que el Hidrógeno (δ⁺)', 'Porque el Hidrógeno es más electronegativo que el Oxígeno', 'Porque no tiene pares de electrones libres', 'Porque es un compuesto iónico puro'],
+          answer: 0
+        },
+        {
+          question: '4. ¿Cuál es la ecuación balanceada de síntesis del agua líquida?',
+          options: ['H₂ + O₂ → H₂O', '2H₂(g) + O₂(g) → 2H₂O(l)', 'H + O → HO', '2H₂(g) + 2O₂(g) → 2H₂O₂(l)'],
+          answer: 1
+        }
+      ],
+      submissions: []
+    },
+    {
+      id: 'eval-6',
+      title: 'Evaluación Teórica: Titulación Ácido-Base y Escala de pH',
+      evalType: 'quiz',
+      topic: 'Neutralización Ácido-Base (HCl + NaOH → NaCl + H₂O)',
+      description: 'Cuestionario sobre volumetría, lectura de menisco en bureta, indicador fenolftaleína y cálculo de punto de equivalencia.',
+      targetClassrooms: ['4A', '5A'],
+      status: 'published',
+      createdAt: '03/11/2026 11:00',
+      publishedAt: '03/11/2026 11:10',
+      allowedInstruments: [],
+      allowedReagents: [],
+      questions: [
+        {
+          question: '1. ¿Qué productos se forman al neutralizar ácido clorhídrico (HCl) con hidróxido de sodio (NaOH)?',
+          options: ['Cloruro de sodio (NaCl) y agua (H₂O)', 'Gas hidrógeno (H₂) y óxido de sodio', 'Solo agua pura sin sales', 'Ácido carbónico y sodio metálico'],
+          answer: 0
+        },
+        {
+          question: '2. ¿Qué cambio de color indica el punto final de la titulación al usar fenolftaleína en medio básico?',
+          options: ['De azul a amarillo', 'De incoloro a rosa tenue persistente', 'De rojo intenso a verde', 'No cambia de color nunca'],
+          answer: 1
+        },
+        {
+          question: '3. Al titular 25.0 mL de HCl 0.1 M con NaOH 0.1 M, ¿en qué volumen de NaOH se alcanza el punto de equivalencia (pH = 7.0)?',
+          options: ['12.5 mL', '25.0 mL', '50.0 mL', '5.0 mL'],
+          answer: 1
+        },
+        {
+          question: '4. ¿Cómo se debe leer correctamente el nivel de líquido (menisco) en una bureta graduada?',
+          options: ['Por encima de la parte superior del menisco', 'A la altura de los ojos, alineado con la base inferior del menisco', 'Mirando desde arriba en ángulo de 45°', 'Agitando la bureta mientras se lee'],
+          answer: 1
+        }
+      ],
+      submissions: []
+    },
+    {
+      id: 'eval-7',
+      title: 'Examen Práctico 2D: Punto de Ebullición y Control Térmico',
+      evalType: 'lab2d',
+      topic: 'Determinación de Punto de Ebullición y Destilación',
+      description: 'Calentar una muestra en matraz Erlenmeyer con Mechero Bunsen monitoreando continuamente con el termómetro digital hasta registrar el cambio de fase.',
+      targetClassrooms: ['5A'],
+      status: 'published',
+      createdAt: '04/11/2026 15:00',
+      publishedAt: '04/11/2026 15:10',
+      allowedInstruments: ['erlenmeyer', 'beaker', 'bunsen', 'thermometer'],
+      allowedReagents: ['h2o'],
+      questions: [],
+      submissions: []
     }
   ],
 
@@ -8167,9 +8305,40 @@ const App = {
 
     const feedbackEl = document.getElementById('quizFeedbackText');
     feedbackEl.innerHTML = `
-      <strong>Retroalimentación Automática:</strong> Acertaste ${correctCount} de ${totalQuestions} preguntas.<br>
+      <strong>Retroalimentación Automática:</strong> Acertaste <strong>${correctCount} de ${totalQuestions}</strong> preguntas.<br>
       ${isPassed ? 'Demostraste dominio cabal de los conceptos evaluados en la práctica y cuestionario docente.' : 'Se recomienda repasar los conceptos en el Libro Guía y consultar al Asistente Quimi antes de volver a intentar.'}
     `;
+
+    // Solucionario automático: mostrar qué marcó el estudiante y cuál es la respuesta correcta
+    const breakdownEl = document.getElementById('quizAnswersBreakdown');
+    if (breakdownEl) {
+      let breakdownHtml = `
+        <div style="font-size: 0.84rem; font-weight: 800; color: #0f172a; margin-bottom: 0.55rem; display: flex; align-items: center; gap: 0.4rem;">
+          <span>🎯</span> Solucionario y Respuestas Correctas
+        </div>
+      `;
+      questions.forEach((q, qIndex) => {
+        const selected = document.querySelector(`input[name="question_${qIndex}"]:checked`);
+        const selectedVal = selected ? parseInt(selected.value) : -1;
+        const isCorrect = selectedVal === q.answer;
+        const correctText = q.options[q.answer] || 'N/A';
+        const userText = selectedVal >= 0 ? q.options[selectedVal] : 'Sin responder';
+
+        breakdownHtml += `
+          <div class="quiz-answer-item ${isCorrect ? 'correct' : 'incorrect'}">
+            <div style="font-weight: 700; font-size: 0.8rem; color: #0f172a; margin-bottom: 0.25rem;">
+              ${isCorrect ? '✅' : '❌'} ${q.question}
+            </div>
+            <div style="font-size: 0.76rem; color: ${isCorrect ? '#166534' : '#991b1b'};">
+              Tu respuesta: <strong>${userText}</strong>
+            </div>
+            ${!isCorrect ? `<div style="font-size: 0.76rem; color: #15803d; margin-top: 0.15rem;">✔ Respuesta correcta: <strong>${correctText}</strong></div>` : ''}
+          </div>
+        `;
+      });
+      breakdownEl.innerHTML = breakdownHtml;
+      breakdownEl.style.display = 'block';
+    }
 
     // Registrar para el usuario actual o Juan Pérez
     const user = this.state.currentUser || this.registeredUsers.find(u => u.id === 'usr-std-1');
@@ -8646,8 +8815,8 @@ const App = {
                         typeBadge = '<span class="salon-chip" style="background: #ede9fe; color: #6d28d9; font-weight: 700; border: 1px solid #ddd6fe;">🌐 Molecular 3D</span>';
                         actionBtn = `<button class="btn btn-primary btn-sm" style="font-size: 0.78rem; font-weight: 700; background: #7c3aed;" onclick="App.startPracticalExam('${ev.id}')">🚀 Rendir Examen 3D</button>`;
                       } else {
-                        typeBadge = '<span class="salon-chip" style="background: #f1f5f9; color: #475569; font-weight: 700;">📝 Teórico</span>';
-                        actionBtn = `<button class="btn btn-secondary btn-sm" style="font-size: 0.78rem; font-weight: 700;" onclick="App.goToQuizFromSalon()">📝 Responder Test</button>`;
+                        typeBadge = '<span class="salon-chip" style="background: #dbeafe; color: #1d4ed8; font-weight: 700; border: 1px solid #bfdbfe;">📝 Examen Teórico</span>';
+                        actionBtn = `<button class="btn btn-primary btn-sm" style="font-size: 0.78rem; font-weight: 700;" onclick="App.goToQuizFromSalon('${ev.id}')">🚀 Aceptar y Resolver</button>`;
                       }
 
                       return `
@@ -8786,9 +8955,14 @@ const App = {
     if (simTab) simTab.click();
   },
 
-  goToQuizFromSalon() {
+  goToQuizFromSalon(evalId = null) {
+    if (evalId) {
+      this.activeTakingQuizType = evalId;
+    }
     const quizTab = document.querySelector('.sidebar-nav-item[data-tab="tab-quiz"]');
     if (quizTab) quizTab.click();
+    this.populateQuizSelector();
+    this.renderQuiz();
   },
 
   // Conjuntos reactivos para selección e invitación de alumnos

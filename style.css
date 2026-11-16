@@ -2203,6 +2203,27 @@ body {
   color: #b91c1c;
 }
 
+/* Solucionario automático en Evaluaciones */
+.quiz-answer-item {
+  padding: 0.7rem 0.85rem;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  margin-bottom: 0.55rem;
+  background: #ffffff;
+}
+
+.quiz-answer-item.correct {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  border-left: 4px solid #16a34a;
+}
+
+.quiz-answer-item.incorrect {
+  background: #fef2f2;
+  border-color: #fecaca;
+  border-left: 4px solid #dc2626;
+}
+
 .evaluations-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));

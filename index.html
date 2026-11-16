@@ -1177,14 +1177,14 @@
 
     <!-- ================= PESTAÑA 4: EVALUACIÓN Y REPORTE ================= -->
     <section id="tab-quiz" class="tab-pane">
-      <div class="section-banner">
-        <strong>Evaluación de Aprendizaje & Emisión de Reporte:</strong>
-        Responda el cuestionario sobre la práctica realizada para obtener su calificación inmediata y generar el informe individual de resultados.
+      <div class="section-banner teacher-section-banner">
+        <strong>📝 Evaluaciones de Aprendizaje &amp; Solucionario Automático:</strong>
+        Acepta tu evaluación asignada, responde las preguntas o ejecuta la práctica y obtén tu calificación inmediata junto con las respuestas correctas.
       </div>
 
       <div class="quiz-grid">
         <!-- Formulario de Evaluación -->
-        <div class="card">
+        <div class="card teacher-table-card">
           <div class="card-title">
             <span>📝 Cuestionario de Evaluación</span>
           </div>
@@ -1233,11 +1233,13 @@
               </div>
             </div>
 
-            <div style="background: #f8fafc; border-radius: 8px; padding: 0.75rem; border: 1px solid #e2e8f0; font-size: 0.82rem; margin-bottom: 1rem;" id="quizFeedbackText">
+            <div style="background: #f8fafc; border-radius: 10px; padding: 0.85rem; border: 1px solid #e2e8f0; font-size: 0.82rem; margin-bottom: 1rem;" id="quizFeedbackText">
               Excelente comprensión de la escala de Pauling y transferencia electrónica en enlaces iónicos.
             </div>
 
-            <button class="btn btn-success" style="width: 100%; justify-content: center;" onclick="App.generatePdfReport()">
+            <div id="quizAnswersBreakdown" style="display: none; margin-bottom: 1rem;"></div>
+
+            <button class="btn btn-success" style="width: 100%; justify-content: center; border-radius: 10px;" onclick="App.generatePdfReport()">
               📥 Generar e Imprimir Reporte en PDF
             </button>
           </div>
