@@ -9479,11 +9479,14 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
         <td><span class="status-tag ${isPass ? 'status-passed' : 'status-pending'}">${s.status}</span></td>
         <td style="color: #64748b; font-size: 0.8rem;">${s.date}</td>
         <td>
-          <button class="btn btn-secondary" style="font-size: 0.74rem; padding: 0.3rem 0.65rem; border-radius: 8px;" onclick="App.showDialog('Estudiante: ${s.name}\\nSalón: ${c.name}\\nPráctica: ${s.practice}\\nCalificación: ${s.score}/20\\nFecha registrada: ${s.date}', 'Detalle de Intento', '📋')">
+          <button type="button" class="btn btn-secondary" style="font-size: 0.74rem; padding: 0.3rem 0.65rem; border-radius: 8px;">
             🔍 Ver
           </button>
         </td>
       `;
+      tr.querySelector('button').addEventListener('click', () => {
+        this.showDialog(`Estudiante: ${s.name}\nSalón: ${c.name}\nPráctica: ${s.practice}\nCalificación: ${s.score}/20\nFecha registrada: ${s.date}`, 'Detalle de Intento', '📋');
+      });
       tbody.appendChild(tr);
     });
   },
@@ -10621,8 +10624,8 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
     else exam.submissions.push(submission);
 
     // Actualizar usuario y su historial de notas permanente
-    user.score = rubricResult.vigesimalScore;
-    user.status = rubricResult.vigesimalScore >= 11 ? 'Aprobado' : 'Pendiente';
+    user.score = finalVigesimal;
+    user.status = isSuccess ? 'Aprobado' : 'Pendiente';
     user.attempts = (parseInt(user.attempts, 10) || 0) + 1;
     user.date = new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString().slice(0, 5);
     user.practice = exam.title;
@@ -10630,8 +10633,8 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
     user.notesHistory = user.notesHistory || [];
     user.notesHistory.unshift({
       test: exam.title,
-      score: rubricResult.vigesimalScore,
-      letterGrade: rubricResult.letterGrade,
+      score: finalVigesimal,
+      letterGrade: finalLetter,
       date: user.date,
       status: user.status
     });
@@ -10681,7 +10684,7 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
     this.syncScoreToDb({
       userId: user.id,
       classroomId: targetClassroomId,
-      score: rubricResult.vigesimalScore,
+      score: finalVigesimal,
       attempts: user.attempts,
       status: user.status,
       date: user.date,
