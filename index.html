@@ -1262,16 +1262,39 @@
       <!-- Vista autorizada para docentes y administradores -->
       <div id="teacherContentAuthorized">
 
+        <!-- Hero Banner Moderno del Docente -->
+        <div class="teacher-hero-banner">
+          <div class="teacher-hero-glow"></div>
+          <div class="teacher-hero-content">
+            <div class="teacher-hero-badge">
+              <span class="pulse-dot"></span>
+              <span>Laboratorio Virtual • I.E. Alexander Fleming</span>
+            </div>
+            <h2 class="teacher-hero-title">Centro de Gestión Académica Docente</h2>
+            <p class="teacher-hero-subtitle">
+              Supervisa tus salones en tiempo real, evalúa el desempeño en prácticas químicas y publica cuestionarios con rúbrica vigesimal (0–20).
+            </p>
+          </div>
+          <div class="teacher-hero-actions">
+            <button class="teacher-hero-btn primary" onclick="App.openCreateClassroomModal()">
+              <span>➕</span> Nuevo Salón
+            </button>
+            <button class="teacher-hero-btn secondary" onclick="App.switchTeacherSubtab('evaluations'); App.openEvaluationEditor();">
+              <span>📝</span> Nueva Evaluación
+            </button>
+          </div>
+        </div>
+
         <!-- Sub-Navegación del Panel Docente: Salones vs Evaluaciones vs Admin -->
         <div class="teacher-subnav">
           <button id="btnSubnavAdmin" class="teacher-subnav-btn" onclick="App.switchTeacherSubtab('admin')" style="display: none;">
-            🛡️ Auditoría Global de Usuarios & Notas
+            🛡️ Auditoría Global de Usuarios &amp; Notas
           </button>
           <button id="btnSubnavSalones" class="teacher-subnav-btn active" onclick="App.switchTeacherSubtab('salones')">
-            🏫 Salones
+            🏫 Mis Salones
           </button>
           <button id="btnSubnavEvals" class="teacher-subnav-btn" onclick="App.switchTeacherSubtab('evaluations')">
-            📝 Gestión de Evaluaciones & Cuestionarios
+            📝 Evaluaciones &amp; Cuestionarios
           </button>
         </div>
 
@@ -1338,20 +1361,24 @@
             </div>
 
             <!-- Métricas Específicas del Salón -->
-            <div class="stats-row">
-              <div class="stat-box">
+            <div class="stats-row teacher-kpi-row">
+              <div class="stat-box kpi-blue">
+                <div class="stat-icon">👥</div>
                 <div class="stat-val" id="salonMetricStudents">15</div>
                 <div class="stat-lbl">Alumnos Matriculados</div>
               </div>
-              <div class="stat-box">
+              <div class="stat-box kpi-green">
+                <div class="stat-icon">✅</div>
                 <div class="stat-val" id="salonMetricPassing">100%</div>
                 <div class="stat-lbl">Tasa de Aprobación</div>
               </div>
-              <div class="stat-box">
+              <div class="stat-box kpi-indigo">
+                <div class="stat-icon">📊</div>
                 <div class="stat-val" id="salonMetricAverage">17.6</div>
                 <div class="stat-lbl">Promedio del Salón</div>
               </div>
-              <div class="stat-box">
+              <div class="stat-box kpi-amber">
+                <div class="stat-icon">🧪</div>
                 <div class="stat-val" id="salonMetricCompleted">100%</div>
                 <div class="stat-lbl">Prácticas Entregadas</div>
               </div>

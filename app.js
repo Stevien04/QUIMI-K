@@ -8287,28 +8287,37 @@ const App = {
             </div>
           </div>
 
-          <div class="classroom-info-list">
+          <div class="classroom-info-list" style="margin-bottom: 0.9rem;">
             <div class="classroom-info-item">
-              <span>Práctica Asignada:</span>
-              <strong>${c.assignedPractice}</strong>
+              <span>🧪 Práctica Activa:</span>
+              <strong style="text-align: right; max-width: 190px;">${c.assignedPractice}</strong>
             </div>
-            <div class="classroom-info-item">
-              <span>Alumnos Registrados:</span>
-              <strong>${totalStudents} alumnos</strong>
+          </div>
+
+          <div class="classroom-mini-kpis">
+            <div class="classroom-mini-kpi">
+              <div class="classroom-mini-kpi-lbl">Alumnos</div>
+              <div class="classroom-mini-kpi-val">${totalStudents}</div>
             </div>
-            <div class="classroom-info-item">
-              <span>Promedio de Notas:</span>
-              <strong style="color: #2563eb;">${avgScore} / 20</strong>
+            <div class="classroom-mini-kpi">
+              <div class="classroom-mini-kpi-lbl">Promedio</div>
+              <div class="classroom-mini-kpi-val" style="color: #2563eb;">${avgScore} / 20</div>
             </div>
-            <div class="classroom-info-item">
-              <span>Tasa de Aprobación:</span>
-              <strong style="color: #16a34a;">${passRate}%</strong>
+          </div>
+
+          <div class="classroom-progress-wrap">
+            <div class="classroom-progress-header">
+              <span>Tasa de Aprobación</span>
+              <span style="color: #059669;">${passRate}%</span>
+            </div>
+            <div class="classroom-progress-track">
+              <div class="classroom-progress-fill" style="width: ${passRate}%;"></div>
             </div>
           </div>
         </div>
 
-        <button class="btn btn-primary" style="width: 100%; justify-content: center;" onclick="App.enterClassroom('${c.id}')">
-          👉 Ingresar a este Salón
+        <button class="btn classroom-enter-btn" onclick="App.enterClassroom('${c.id}')">
+          Ingresar al Salón →
         </button>
       `;
       container.appendChild(card);
@@ -9211,7 +9220,7 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
 
     this.renderClassroomStudents(c);
 
-    this.showDialog(`Has ingresado al Salón: ${c.name}.\nA continuación puedes revisar y calificar a los alumnos de esta aula.`, 'Salón Seleccionado', '🏫');
+    this.showToast(`🏫 Salón activo: ${c.name} (${c.students.length} alumnos)`);
   },
 
   renderClassroomStudents(c) {
@@ -9233,16 +9242,27 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
     c.students.forEach(s => {
       const tr = document.createElement('tr');
       const isPass = s.score >= 14;
+      const cleanName = (s.name || 'ES').replace(/\s*\([^)]*\)/g, '').trim();
+      const initials = cleanName
+        .split(/\s+/)
+        .slice(0, 2)
+        .map(w => w.charAt(0).toUpperCase())
+        .join('') || 'ES';
 
       tr.innerHTML = `
-        <td><strong>${s.name}</strong></td>
+        <td>
+          <div class="student-cell-flex">
+            <span class="student-row-avatar">${initials}</span>
+            <strong>${s.name}</strong>
+          </div>
+        </td>
         <td>${s.practice}</td>
         <td><span class="status-tag status-pending">${s.attempts}</span></td>
-        <td><strong style="color: ${isPass ? '#16a34a' : '#dc2626'}">${s.score} / 20</strong></td>
+        <td><span class="score-pill ${isPass ? 'pass' : 'fail'}">${s.score} / 20</span></td>
         <td><span class="status-tag ${isPass ? 'status-passed' : 'status-pending'}">${s.status}</span></td>
         <td style="color: #64748b; font-size: 0.8rem;">${s.date}</td>
         <td>
-          <button class="btn btn-secondary" style="font-size: 0.72rem; padding: 0.2rem 0.5rem;" onclick="App.showDialog('Estudiante: ${s.name}\\nSalón: ${c.name}\\nPráctica: ${s.practice}\\nCalificación: ${s.score}/20\\nFecha registrada: ${s.date}', 'Detalle de Intento', '📋')">
+          <button class="btn btn-secondary" style="font-size: 0.74rem; padding: 0.3rem 0.65rem; border-radius: 8px;" onclick="App.showDialog('Estudiante: ${s.name}\\nSalón: ${c.name}\\nPráctica: ${s.practice}\\nCalificación: ${s.score}/20\\nFecha registrada: ${s.date}', 'Detalle de Intento', '📋')">
             🔍 Ver
           </button>
         </td>
