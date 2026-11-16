@@ -9479,11 +9479,14 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
         <td><span class="status-tag ${isPass ? 'status-passed' : 'status-pending'}">${s.status}</span></td>
         <td style="color: #64748b; font-size: 0.8rem;">${s.date}</td>
         <td>
-          <button class="btn btn-secondary" style="font-size: 0.74rem; padding: 0.3rem 0.65rem; border-radius: 8px;" onclick="App.showDialog('Estudiante: ${s.name}\\nSalón: ${c.name}\\nPráctica: ${s.practice}\\nCalificación: ${s.score}/20\\nFecha registrada: ${s.date}', 'Detalle de Intento', '📋')">
+          <button type="button" class="btn btn-secondary" style="font-size: 0.74rem; padding: 0.3rem 0.65rem; border-radius: 8px;">
             🔍 Ver
           </button>
         </td>
       `;
+      tr.querySelector('button').addEventListener('click', () => {
+        this.showDialog(`Estudiante: ${s.name}\nSalón: ${c.name}\nPráctica: ${s.practice}\nCalificación: ${s.score}/20\nFecha registrada: ${s.date}`, 'Detalle de Intento', '📋');
+      });
       tbody.appendChild(tr);
     });
   },
@@ -9517,8 +9520,131 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
 
   exportTeacherReport() {
     const c = this.classrooms.find(item => item.id === this.activeClassroomId);
-    const salonName = c ? c.name : 'General';
-    this.showDialog(`Exportación completada con éxito.\nSe generó el Acta de Calificaciones oficial para el salón ${salonName} (Colegio Alexander Fleming).`, 'Acta de Notas Generada', '📊');
+    if (!['teacher', 'admin'].includes(this.state.currentUser?.role) || !c) {
+      this.showDialog('Ingrese como docente o administrador y seleccione un salón para exportar su acta.');
+      return;
+    }
+    const evaluations = this.evaluations.filter(e => e.status === 'published' && e.targetClassrooms?.includes(c.id));
+    if (!evaluations.length) {
+      this.showDialog('Este salón todavía no tiene evaluaciones publicadas para exportar.');
+      return;
+    }
+    this.teacherExportClassroomId = c.id;
+    document.getElementById('teacherExportClassroom').innerText = c.name;
+    const select = document.getElementById('teacherExportEvaluation');
+    select.innerHTML = '';
+    evaluations.forEach(e => {
+      const option = document.createElement('option');
+      option.value = e.id;
+      option.textContent = e.title;
+      select.appendChild(option);
+    });
+    document.getElementById('modalTeacherExport').style.display = 'flex';
+    this.updateTeacherExportPreview();
+    select.focus();
+  },
+
+  closeTeacherExport() {
+    document.getElementById('modalTeacherExport').style.display = 'none';
+    this.teacherExportClassroomId = null;
+  },
+
+  getTeacherExportSelection() {
+    if (!['teacher', 'admin'].includes(this.state.currentUser?.role)) return null;
+    const classroom = this.classrooms.find(c => c.id === this.teacherExportClassroomId);
+    const evaluation = this.evaluations.find(e => e.id === document.getElementById('teacherExportEvaluation').value);
+    if (!classroom || !evaluation || evaluation.status !== 'published' || !evaluation.targetClassrooms?.includes(classroom.id)) return null;
+    return { classroom, evaluation };
+  },
+
+  buildTeacherEvaluationReport(classroom, evaluation) {
+    const theory = ['quiz', 'theory'].includes(evaluation.evalType);
+    const minimum = theory ? 14 : 11;
+    const numeric = value => typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 20;
+    const normalizeName = name => (name || '').replace(/\s*\(Tú\)\s*$/i, '').trim().toLocaleLowerCase('es');
+    const roster = classroom.students || [];
+    const entries = roster.map(student => {
+      // Algunas filas antiguas no tienen ID; solo se resuelven nombres únicos.
+      const sameName = roster.filter(s => normalizeName(s.name) === normalizeName(student.name));
+      const users = this.registeredUsers.filter(u => u.classroomId === classroom.id && normalizeName(u.name) === normalizeName(student.name));
+      const id = student.id || (sameName.length === 1 && users.length === 1 ? users[0].id : null);
+      return { id, name: student.name, submission: null };
+    });
+    (evaluation.submissions || []).forEach(submission => {
+      if (!submission.studentId || (submission.classroomId && submission.classroomId !== classroom.id)) return;
+      const entry = entries.find(s => s.id === submission.studentId);
+      if (entry) {
+        if (!entry.submission) entry.submission = submission;
+      } else if (submission.classroomId === classroom.id) {
+        // Conservar entregas de alumnos que ya no están en la lista del salón.
+        entries.push({ id: submission.studentId, name: submission.studentName, submission });
+      }
+    });
+    const rows = entries.map(entry => {
+      const s = entry.submission;
+      const hasScore = s && numeric(s.score);
+      const rule = theory ? 'Cuestionario (0–20)' : s && numeric(s.quizScore)
+        ? '70 % práctica + 30 % cuestionario; redondeo al entero'
+        : 'Nota práctica sin cuestionario ponderado';
+      return [classroom.name, evaluation.title, entry.name, entry.id || '',
+        !theory && s && numeric(s.proceduralScore) ? s.proceduralScore : '',
+        theory ? hasScore ? s.score : '' : s && numeric(s.quizScore) ? s.quizScore : '',
+        hasScore ? s.score : '', hasScore ? s.letterGrade || '' : '',
+        !s ? 'Sin entrega registrada' : !hasScore ? 'Nota no registrada' : s.score >= minimum ? 'Aprobado' : 'Desaprobado',
+        s?.date || '', minimum, rule, evaluation.id];
+    });
+    return {
+      headers: ['Salón', 'Evaluación', 'Estudiante', 'ID estudiante', 'Nota práctica (0–20)', 'Cuestionario (0–20)',
+        'Nota final (0–20)', 'Calificación literal', 'Estado', 'Fecha de realización', 'Mínimo aprobatorio', 'Criterio de cálculo', 'ID evaluación'],
+      rows,
+      submitted: entries.filter(e => e.submission).length,
+      missing: entries.filter(e => !e.submission).length,
+      theory
+    };
+  },
+
+  teacherReportCsv(report) {
+    const cell = value => {
+      let text = String(value ?? '');
+      // Evitar que los textos se interpreten como fórmulas al abrir el CSV.
+      if (/^[\s\uFEFF]*[=+\-@]/u.test(text)) text = "'" + text;
+      return '"' + text.replace(/"/g, '""') + '"';
+    };
+    return '\uFEFF' + [report.headers, ...report.rows].map(row => row.map(cell).join(';')).join('\r\n') + '\r\n';
+  },
+
+  updateTeacherExportPreview() {
+    const selection = this.getTeacherExportSelection();
+    const button = document.getElementById('teacherExportDownload');
+    button.disabled = !selection;
+    const summary = document.getElementById('teacherExportSummary');
+    if (!selection) {
+      summary.innerText = 'Seleccione una evaluación publicada de este salón.';
+      return;
+    }
+    const report = this.buildTeacherEvaluationReport(selection.classroom, selection.evaluation);
+    summary.innerText = `${report.rows.length} estudiantes · ${report.submitted} con entrega registrada · ${report.missing} sin entrega registrada.\n` +
+      (report.theory ? 'Evaluación teórica: nota de cuestionario sobre 20. Mínimo aprobatorio: 14.' : 'Con cuestionario: 70 % práctica + 30 % cuestionario, con redondeo. Mínimo aprobatorio: 11.');
+  },
+
+  downloadTeacherReport() {
+    const selection = this.getTeacherExportSelection();
+    if (!selection) {
+      this.showDialog('Seleccione una evaluación publicada de este salón antes de descargar.');
+      return;
+    }
+    const report = this.buildTeacherEvaluationReport(selection.classroom, selection.evaluation);
+    const blob = new Blob([this.teacherReportCsv(report)], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const filename = `acta-${selection.classroom.id}-${selection.evaluation.id}`.normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9_-]/g, '-').slice(0, 140);
+    link.href = url;
+    link.download = filename + '.csv';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   },
 
   // ================= GESTIÓN DE EVALUACIONES Y CUESTIONARIOS DEL DOCENTE =================
@@ -10621,8 +10747,8 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
     else exam.submissions.push(submission);
 
     // Actualizar usuario y su historial de notas permanente
-    user.score = rubricResult.vigesimalScore;
-    user.status = rubricResult.vigesimalScore >= 11 ? 'Aprobado' : 'Pendiente';
+    user.score = finalVigesimal;
+    user.status = isSuccess ? 'Aprobado' : 'Pendiente';
     user.attempts = (parseInt(user.attempts, 10) || 0) + 1;
     user.date = new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString().slice(0, 5);
     user.practice = exam.title;
@@ -10630,8 +10756,8 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
     user.notesHistory = user.notesHistory || [];
     user.notesHistory.unshift({
       test: exam.title,
-      score: rubricResult.vigesimalScore,
-      letterGrade: rubricResult.letterGrade,
+      score: finalVigesimal,
+      letterGrade: finalLetter,
       date: user.date,
       status: user.status
     });
@@ -10681,7 +10807,7 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
     this.syncScoreToDb({
       userId: user.id,
       classroomId: targetClassroomId,
-      score: rubricResult.vigesimalScore,
+      score: finalVigesimal,
       attempts: user.attempts,
       status: user.status,
       date: user.date,

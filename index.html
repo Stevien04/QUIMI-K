@@ -3200,6 +3200,27 @@
     </div>
   </div>
 
+  <div class="eval-modal-backdrop" id="modalTeacherExport" style="display: none;">
+    <div class="eval-modal-card" style="max-width: 600px;" role="dialog" aria-modal="true" aria-labelledby="teacherExportTitle">
+      <div class="eval-modal-header">
+        <h3 id="teacherExportTitle">Exportar acta de calificaciones</h3>
+        <button type="button" class="btn btn-secondary" aria-label="Cerrar exportación" onclick="App.closeTeacherExport()">✕</button>
+      </div>
+      <div class="eval-modal-body">
+        <p>Salón: <strong id="teacherExportClassroom"></strong></p>
+        <label for="teacherExportEvaluation">Evaluación</label>
+        <select id="teacherExportEvaluation" class="form-input" onchange="App.updateTeacherExportPreview()"></select>
+        <p id="teacherExportSummary" aria-live="polite" style="white-space: pre-line; margin-top: 1rem;"></p>
+        <p style="font-size: 0.85rem; color: #475569;">El CSV incluye las notas guardadas para esta evaluación, sin recalcularlas. Las notas generales del perfil no sustituyen una entrega. Si no existe una entrega registrada, la nota queda vacía.</p>
+        <p style="font-size: 0.85rem; color: #475569;">Revise los criterios y resultados experimentales en «Evaluaciones &amp; Cuestionarios → Ver Resultados Alumnos → Ver Ficha RF007» antes de usar el acta como definitiva.</p>
+      </div>
+      <div class="eval-modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="App.closeTeacherExport()">Cancelar</button>
+        <button type="button" class="btn btn-primary" id="teacherExportDownload" onclick="App.downloadTeacherReport()">Descargar CSV para Excel</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ================= CUADRO DE MENSAJE CENTRADO (REEMPLAZA ALERTS) ================= -->
   <div class="custom-dialog-backdrop" id="customDialogBackdrop">
     <div class="custom-dialog-card">

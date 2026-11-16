@@ -5,6 +5,8 @@ import json
 import urllib.parse
 import os
 import sys
+import threading
+from functools import wraps
 
 DIRECTORY = os.path.dirname(os.path.abspath(__file__))
 PORT = 8000
@@ -34,6 +36,14 @@ def get_pg_connection():
         return None
 
 DB_CACHE_FILE = os.path.join(DIRECTORY, 'database_quimik.json')
+LOCAL_DB_LOCK = threading.RLock()
+
+def with_local_db_lock(operation):
+    @wraps(operation)
+    def locked_operation(*args, **kwargs):
+        with LOCAL_DB_LOCK:
+            return operation(*args, **kwargs)
+    return locked_operation
 
 def get_initial_database():
     return {
@@ -190,6 +200,7 @@ def get_initial_database():
         ]
     }
 
+@with_local_db_lock
 def load_local_db_cache():
     if os.path.exists(DB_CACHE_FILE):
         try:
@@ -204,6 +215,7 @@ def load_local_db_cache():
     init_data['engine'] = 'Base de Datos Local Persistente'
     return init_data
 
+@with_local_db_lock
 def save_local_db_cache(data):
     try:
         with open(DB_CACHE_FILE, 'w', encoding='utf-8') as f:
@@ -211,6 +223,7 @@ def save_local_db_cache(data):
     except Exception as e:
         print(f"Error saving local db cache: {e}")
 
+@with_local_db_lock
 def update_local_db_item(category, item, key='id', remove=False):
     try:
         cache = load_local_db_cache() or get_initial_database()
@@ -446,6 +459,26 @@ def delete_evaluation_from_pg(eval_id):
             conn.close()
         return True
 
+def find_classroom_student(students, user_id, user_name):
+    if not user_id:
+        return None
+    match = next((s for s in students if s.get('id') == user_id), None)
+    if match is not None:
+        return match
+    if not user_name:
+        return None
+    # Las filas de demostración antiguas no tienen ID y añaden " (Tú)" al nombre.
+    def normalized_name(name):
+        name = name.strip()
+        suffix = ' (Tú)'
+        if name.endswith(suffix):
+            name = name[:-len(suffix)]
+        return name.strip().casefold()
+    matches = [s for s in students if not s.get('id')
+               and normalized_name(s.get('name', '')) == normalized_name(user_name)]
+    return matches[0] if len(matches) == 1 else None
+
+@with_local_db_lock
 def save_score_to_pg(data):
     user_id = data.get('userId')
     classroom_id = data.get('classroomId')
@@ -455,6 +488,7 @@ def save_score_to_pg(data):
     date_val = data.get('date')
     practice = data.get('practice')
     notes_history = data.get('notesHistory')
+    user_name = None
 
     # Actualizar en caché local
     cache = load_local_db_cache()
@@ -462,6 +496,7 @@ def save_score_to_pg(data):
         if user_id:
             for u in cache.get('users', []):
                 if u.get('id') == user_id:
+                    user_name = u.get('name')
                     u['score'] = float(score) if score != '-' else 18
                     u['attempts'] = int(attempts) if str(attempts).isdigit() else 1
                     u['status'] = status
@@ -474,15 +509,15 @@ def save_score_to_pg(data):
         if classroom_id:
             for c in cache.get('classrooms', []):
                 if c.get('id') == classroom_id:
-                    for s in c.get('students', []):
-                        if s.get('id') == user_id or s.get('name', '').startswith(user_id):
-                            s['score'] = float(score) if score != '-' else 18
-                            s['attempts'] = int(attempts) if str(attempts).isdigit() else 1
-                            s['status'] = status
-                            s['date'] = date_val
-                            if practice:
-                                s['practice'] = practice
-                            break
+                    s = find_classroom_student(c.get('students', []), user_id, user_name)
+                    if s is not None:
+                        s['id'] = user_id
+                        s['score'] = float(score) if score != '-' else 18
+                        s['attempts'] = int(attempts) if str(attempts).isdigit() else 1
+                        s['status'] = status
+                        s['date'] = date_val
+                        if practice:
+                            s['practice'] = practice
         save_local_db_cache(cache)
 
     conn = get_pg_connection()
@@ -507,14 +542,19 @@ def save_score_to_pg(data):
             row = cur.fetchone()
             if row and row[0]:
                 students = row[0]
-                for s in students:
-                    if s.get('id') == user_id or s.get('name', '').startswith(user_id):
-                        s['score'] = float(score) if score != '-' else 18
-                        s['attempts'] = int(attempts) if str(attempts).isdigit() else 1
-                        s['status'] = status
-                        s['date'] = date_val
-                        if practice:
-                            s['practice'] = practice
+                if not user_name:
+                    cur.execute("SELECT name FROM users WHERE id = %s;", (user_id,))
+                    user_row = cur.fetchone()
+                    user_name = user_row[0] if user_row else None
+                s = find_classroom_student(students, user_id, user_name)
+                if s is not None:
+                    s['id'] = user_id
+                    s['score'] = float(score) if score != '-' else 18
+                    s['attempts'] = int(attempts) if str(attempts).isdigit() else 1
+                    s['status'] = status
+                    s['date'] = date_val
+                    if practice:
+                        s['practice'] = practice
                 cur.execute("UPDATE classrooms SET students = %s WHERE id = %s;", (json.dumps(students), classroom_id))
 
         conn.commit()
