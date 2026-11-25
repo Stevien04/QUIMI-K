@@ -12110,20 +12110,35 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
 
   resetBenchObjects() {
     if (!this.labBench) return;
-    this.labBench.balance.visible = true;
-    this.labBench.bunsen.visible = true;
-    this.labBench.bunsen.isOn = false;
-    this.labBench.buretteStand.visible = true;
-    this.labBench.buretteStand.isDripping = false;
-    this.labBench.buretteStand.volumeAddedMl = 0.0;
-    this.labBench.vessels = [];
-    this.labBench.vesselCounter = 1;
-    this.labBench.selectedInstrument = null;
-    this.labBench.draggedInstrument = null;
-    this.labBench.initDefaultObjects();
+    this.labBench.reset();
+    // El nuevo experimento empieza sin acciones procedimentales del intento anterior.
+    ChemEngine.resetTelemetry();
+    ChemEngine.logTelemetry('session_start', 'lab_platform', 'restart');
+    this.updateSimulationPauseUI();
     this.labBench.showToast('🔄 Mesa restaurada al estado inicial.');
     this.updateDigitalSensorsUI();
     this.refreshTelemetryUI();
+  },
+
+  toggleSimulationPause() {
+    if (!this.labBench) return;
+    this.labBench.setPaused(!this.labBench.isPaused);
+    this.updateSimulationPauseUI();
+    this.labBench.showToast(this.labBench.isPaused
+      ? 'Simulación pausada: el volumen, la temperatura y los trasvases no avanzan.'
+      : 'Simulación reanudada desde el estado conservado.');
+    this.updateDigitalSensorsUI();
+  },
+
+  updateSimulationPauseUI() {
+    const paused = Boolean(this.labBench && this.labBench.isPaused);
+    const button = document.getElementById('btnSimulationPause');
+    if (button) {
+      button.innerText = paused ? 'Reanudar simulación' : 'Pausar simulación';
+      button.setAttribute('aria-pressed', String(paused));
+    }
+    const status = document.getElementById('simulationRunStatus');
+    if (status) status.innerText = paused ? 'Simulación pausada' : 'Simulación en curso';
   },
 
   clearAllBench() {
@@ -12155,7 +12170,9 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
         btn.classList.remove('btn-active-flow');
       }
     }
-    this.labBench.showToast(this.labBench.buretteStand.isDripping ? '💧 Flujo de NaOH activado.' : '⏸️ Flujo detenido.');
+    this.labBench.showToast(this.labBench.buretteStand.isDripping
+      ? (this.labBench.isPaused ? 'Llave abierta. La simulación continúa pausada.' : '💧 Flujo de NaOH activado.')
+      : '⏸️ Flujo detenido.');
     this.updateDigitalSensorsUI();
     this.refreshTelemetryUI();
   },
@@ -12363,7 +12380,7 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
             </span>
             <span class="reagent-pill-badge" style="border-left: 3px solid ${s.isDripping ? '#22c55e' : '#64748b'}; width: 100%; display: flex; justify-content: space-between;">
               <span>💧 Estado Válvula:</span>
-              <strong style="color: ${s.isDripping ? '#16a34a' : '#475569'};">${s.isDripping ? 'ABIERTA (Goteando)' : 'CERRADA'}</strong>
+              <strong style="color: ${s.isDripping ? '#16a34a' : '#475569'};">${s.isDripping ? (this.labBench.isPaused ? 'ABIERTA (Simulación pausada)' : 'ABIERTA (Goteando)') : 'CERRADA'}</strong>
             </span>
           `;
         }
@@ -12486,7 +12503,7 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
               📊 <strong>En Bureta:</strong> ${remaining.toFixed(1)} mL / 50.0 mL
             </span>
             <span class="reagent-pill-badge" style="border-left: 3px solid ${this.labBench.buretteStand.isDripping ? '#22c55e' : '#64748b'};">
-              💧 <strong>Llave:</strong> ${this.labBench.buretteStand.isDripping ? 'ABIERTA (Flujo activo)' : 'CERRADA'}
+              💧 <strong>Llave:</strong> ${this.labBench.buretteStand.isDripping ? (this.labBench.isPaused ? 'ABIERTA (Simulación pausada)' : 'ABIERTA (Flujo activo)') : 'CERRADA'}
             </span>
             <button type="button" class="btn btn-secondary btn-sm" onclick="App.titrationDripToggle()" style="font-weight: 700;">
               ${this.labBench.buretteStand.isDripping ? '⏸️ Cerrar Llave' : '💧 Abrir Llave'}

@@ -96,6 +96,14 @@ const SimulationCanvas = (function () {
         visible: true
       };
 
+      this.initialEquipment = {
+        balance: { ...this.balance },
+        bunsen: { ...this.bunsen },
+        buretteStand: { ...this.buretteStand }
+      };
+      this.isPaused = false;
+      this.pausedAt = null;
+
       // Animación de gota y vertido
       this.dripAnimY = 0;
       this.pouringState = null; // { fromVessel, toVessel, progress, maxProgress }
@@ -234,10 +242,37 @@ const SimulationCanvas = (function () {
       }
     }
 
+    setPaused(paused) {
+      this.isPaused = Boolean(paused);
+      this.pausedAt = this.isPaused ? Date.now() : null;
+    }
+
+    reset() {
+      this.balance = { ...this.initialEquipment.balance };
+      this.bunsen = { ...this.initialEquipment.bunsen };
+      this.buretteStand = { ...this.initialEquipment.buretteStand };
+      this.vessels = [];
+      this.vesselCounter = 1;
+      this.selectedVessel = null;
+      this.draggedVessel = null;
+      this.selectedInstrument = null;
+      this.draggedInstrument = null;
+      this.dragOffsetX = 0;
+      this.dragOffsetY = 0;
+      this.dripAnimY = 0;
+      this.pouringState = null;
+      this.titrationHistory = [{ v: 0, ph: 1.0 }];
+      this.notifications = [];
+      this.setPaused(false);
+      this.initDefaultObjects();
+      if (this.benchCanvas) this.benchCanvas.style.cursor = 'default';
+    }
+
     // =======================================================================
     // 2. FÍSICA Y QUÍMICA DE LA MESA (Loop Update)
     // =======================================================================
     update() {
+      if (this.isPaused) return;
       // 1. Goteo de bureta
       if (this.buretteStand && this.buretteStand.visible !== false && this.buretteStand.isDripping) {
         if (this.buretteStand.volumeAddedMl >= 50.0) {
@@ -760,7 +795,7 @@ const SimulationCanvas = (function () {
 
       // Llama animada si está encendido
       if (b.isOn) {
-        const time = Date.now() / 60;
+        const time = (this.isPaused ? this.pausedAt : Date.now()) / 60;
         const flicker = Math.sin(time) * 3;
 
         // Llama azul cónica interior (oxidante no luminosa)
@@ -884,7 +919,7 @@ const SimulationCanvas = (function () {
       ctx.fillText(`Bureta: ${chemName}`, s.baseX + s.baseW / 2, s.baseY + s.baseH + 13);
       ctx.fillStyle = s.isDripping ? '#16A34A' : '#475569';
       ctx.font = 'bold 9px monospace';
-      ctx.fillText(`Dosificado: ${s.volumeAddedMl.toFixed(1)} mL | ${s.isDripping ? '💧 FLUJO ACTIVO' : '⏸️ LLAVE CERRADA'}`, s.baseX + s.baseW / 2, s.baseY + s.baseH + 25);
+      ctx.fillText(`Dosificado: ${s.volumeAddedMl.toFixed(1)} mL | ${this.isPaused ? 'SIMULACIÓN PAUSADA' : (s.isDripping ? '💧 FLUJO ACTIVO' : '⏸️ LLAVE CERRADA')}`, s.baseX + s.baseW / 2, s.baseY + s.baseH + 25);
       ctx.restore();
     }
 
@@ -1582,7 +1617,7 @@ const SimulationCanvas = (function () {
             s.isDripping = !s.isDripping;
             this.selectedInstrument = 'burette';
             this.selectedVessel = null;
-            this.showToast(s.isDripping ? '💧 Llave de bureta abierta (Flujo activo).' : '⏸️ Llave de bureta cerrada.');
+            this.showToast(s.isDripping ? (this.isPaused ? 'Llave abierta. La simulación continúa pausada.' : '💧 Llave de bureta abierta (Flujo activo).') : '⏸️ Llave de bureta cerrada.');
             if (window.App && window.App.updateDigitalSensorsUI) window.App.updateDigitalSensorsUI();
             return;
           }

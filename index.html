@@ -399,6 +399,9 @@
             </div>
 
             <div class="stage-top-controls">
+              <button type="button" class="btn btn-outline" id="btnSimulationPause" onclick="App.toggleSimulationPause()" aria-label="Pausar simulación" aria-pressed="false" style="min-height: 44px;">
+                Pausar simulación
+              </button>
               <button class="btn btn-primary" onclick="App.pourSelectedAction()" title="Trasvasar líquido al otro recipiente">
                 🧪 Verter / Trasvasar
               </button>
@@ -422,7 +425,7 @@
               </button>
               <div style="margin-left: auto; display: flex; align-items: center; gap: 0.5rem;">
                 <div style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.70rem; color: #166534; font-weight: 700; background: #DCFCE7; padding: 0.2rem 0.5rem; border-radius: 8px; border: 1px solid #86efac;">
-                  <span>●</span> ChemEngine 60 FPS
+                  <span>●</span> <span id="simulationRunStatus" role="status">Simulación en curso</span>
                 </div>
               </div>
             </div>
