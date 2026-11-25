@@ -4,7 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>QUIMI-K | Laboratorio Virtual de Química</title>
+  <script src="theme.js?v=1"></script>
   <link rel="stylesheet" href="style.css?v=7.2">
+  <link rel="stylesheet" href="theme.css?v=1">
   <!-- 3Dmol.js Quimioinformática (Producción - README.md) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/3Dmol/2.0.4/3Dmol-min.js"></script>
 </head>
@@ -58,6 +60,12 @@
 
       <!-- Lateral Derecho: Formulario de Autenticación / Registro -->
       <div class="login-form-side">
+        <div class="theme-login-control">
+          <button type="button" class="theme-toggle" data-theme-toggle aria-label="Modo oscuro" aria-pressed="false">
+            <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20.9 13A9 9 0 0 1 11 3.1 9 9 0 1 0 20.9 13Z"/></svg>
+            <span data-theme-label>Modo claro</span>
+          </button>
+        </div>
         <div class="login-card-header">
           <h2>Bienvenido al Laboratorio</h2>
           <p>Ingrese sus credenciales institucionales para acceder a su entorno de trabajo.</p>
@@ -268,6 +276,10 @@
           🔬 Mesa de Laboratorio &amp; Simulador
         </div>
         <div class="top-context-actions" style="margin-left: auto; display: flex; align-items: center; gap: 0.65rem;">
+          <button type="button" class="theme-toggle" data-theme-toggle aria-label="Modo oscuro" aria-pressed="false">
+            <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20.9 13A9 9 0 0 1 11 3.1 9 9 0 1 0 20.9 13Z"/></svg>
+            <span data-theme-label>Modo claro</span>
+          </button>
           <!-- BOTÓN ROBOT: ASISTENTE DE FLUJO INTUITIVO (RF012) -->
           <button type="button" class="btn-topbar-robot" id="btnRobotFlowAdvisor" style="display: none;" onclick="App.toggleRobotFlowAdvisor()" title="Haga clic para ver el flujo intuitivo y sugerencias inteligentes de Quimi (RF012)">
             <span class="robot-avatar-emoji">🤖</span>
