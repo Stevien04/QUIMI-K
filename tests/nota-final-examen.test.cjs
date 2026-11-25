@@ -18,9 +18,13 @@ function setup({ practical = 20, existingStudent = true, realEngine = false } = 
     document: {
       addEventListener() {},
       getElementById(id) {
-        if (!elements.has(id)) elements.set(id, { style: {}, innerText: '', innerHTML: '' });
+        if (!elements.has(id)) elements.set(id, {
+          style: {}, innerText: '', innerHTML: '', children: [],
+          appendChild(child) { this.children.push(child); }
+        });
         return elements.get(id);
       },
+      createElement() { return { style: {}, innerHTML: '' }; },
       querySelector() { return { value: '1' }; }
     },
     window: {},
@@ -78,8 +82,9 @@ function setup({ practical = 20, existingStudent = true, realEngine = false } = 
   for (const method of ['updateUserUI', 'renderInstrumentsRack', 'renderReagentsShelf', 'renderStudentSalonView']) {
     app[method] = () => {};
   }
+  const renderReport = app.viewSubmissionReport.bind(app);
   app.viewSubmissionReport = submission => { displayed = submission; };
-  return { app, user, exam, context, storage, requests, displayed: () => displayed };
+  return { app, user, exam, context, storage, requests, elements, renderReport, displayed: () => displayed };
 }
 
 function verify(h, { final, letter, practical, quiz }) {
@@ -165,4 +170,80 @@ test('flujo de entrega y cuestionario con el motor químico real', () => {
   h.app.submitPostSimulationQuiz();
   verify(h, { practical: 20, quiz: 0, final: 14, letter: 'A' });
   assert.equal(h.app._pendingPostSimSubmission, null);
+});
+
+test('la entrega oficial usa 50 mL reales aunque un intento anterior registró 25 mL', () => {
+  const h = setup({ realEngine: true });
+  h.context.window.ChemEngine.logTelemetry('finish_titration', 'submission', 25);
+  const previousHistory = JSON.stringify(h.user.notesHistory);
+  h.app.executeOfficialExamSubmission(h.exam, h.user, 50, 12, '25 °C', 20);
+  const submission = h.exam.submissions[0];
+  assert.equal(submission.rubricDetails[3].score, 0);
+  assert.equal(submission.rubricDetails[3].errorPercent, 100);
+  assert.equal(submission.volumeAddedMl, '50.00');
+  assert.match(submission.verdict, /Error: 100.00 %/);
+  assert.equal(submission.proceduralScore, 2);
+  assert.equal(submission.score, 7);
+  assert.equal(JSON.stringify(h.user.notesHistory.slice(1)), previousHistory);
+});
+
+test('24 mL obtiene todos los puntos de exactitud y conserva el cálculo final 70/30', () => {
+  const h = setup({ realEngine: true });
+  h.app.executeOfficialExamSubmission(h.exam, h.user, 24, 6, '25 °C', 20);
+  const submission = h.exam.submissions[0];
+  assert.equal(submission.rubricDetails[3].score, 5);
+  assert.equal(submission.rubricDetails[3].errorPercent, 4);
+  assert.equal(submission.proceduralScore, 7);
+  assert.equal(submission.score, 11);
+  assert.match(submission.verdict, /Error: 4.00 %/);
+});
+
+test('sin bureta o sin volumen no abrir el cuestionario ni guardar una nota ficticia', () => {
+  const h = setup({ realEngine: true });
+  const notices = [];
+  h.app.showToast = text => notices.push(text);
+  const before = JSON.stringify([h.user, h.exam, h.app.classrooms]);
+  h.app.labBench = null;
+  h.app.submitPracticalExam();
+  h.app.executeOfficialExamSubmission(h.exam, h.user, null, 7, '25 °C', 20);
+  assert.equal(JSON.stringify([h.user, h.exam, h.app.classrooms]), before);
+  assert.equal(h.requests.length, 0);
+  assert.equal(notices.length, 2);
+  assert.ok(notices.every(text => text.includes('Sin datos suficientes')));
+});
+
+test('la ficha de práctica libre muestra el volumen medido y la retroalimentación real', () => {
+  const h = setup({ realEngine: true });
+  const engine = h.context.window.ChemEngine;
+  engine.logTelemetry('finish_titration', 'practice_submission', 50);
+  const rubric = engine.evaluateProceduralRubric({ targetVolume: 25 }, engine.getTelemetryJSONB().events);
+  h.app.showEvaluationReportModal(rubric);
+  assert.equal(h.displayed().volumeAddedMl, '50.00');
+  assert.match(h.displayed().verdict, /Error: 100.00 %/);
+  h.renderReport(h.displayed());
+  assert.equal(h.elements.get('reportExpVolume').innerText, '50.00 mL');
+});
+
+test('abrir una ficha histórica conserva su nota y rúbrica sin recalcularlas', () => {
+  const h = setup({ realEngine: true });
+  const stored = {
+    studentName: 'Estudiante de prueba', score: 5, letterGrade: 'C',
+    volumeAddedMl: '50.0', finalPh: '1.60', date: 'Fecha anterior',
+    rubricDetails: [{ criteria: 'Exactitud anterior', score: 5, maxScore: 5, feedback: 'Retroalimentación histórica' }]
+  };
+  const before = JSON.stringify(stored);
+  h.context.window.ChemEngine.evaluateProceduralRubric = () => { throw Error('No recalcular fichas históricas'); };
+  h.renderReport(stored);
+  assert.equal(h.elements.get('reportScoreDisplay').innerText, '5 / 20');
+  assert.match(h.elements.get('reportRubricBody').children[0].innerHTML, /Retroalimentación histórica/);
+  assert.equal(JSON.stringify(stored), before);
+});
+
+test('mostrar cero como medición real y una medición ausente sin inventar 25 mL', () => {
+  const h = setup();
+  const submission = { score: 0, rubricDetails: [] };
+  h.renderReport({ ...submission, volumeAddedMl: 0 });
+  assert.equal(h.elements.get('reportExpVolume').innerText, '0 mL');
+  h.renderReport(submission);
+  assert.equal(h.elements.get('reportExpVolume').innerText, 'Sin medición registrada');
 });

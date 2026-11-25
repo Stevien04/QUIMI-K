@@ -10558,7 +10558,8 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
     }
 
     const volEl = document.getElementById('reportExpVolume');
-    if (volEl) volEl.innerText = `${sub.volumeAddedMl || '25.0'} mL`;
+    if (volEl) volEl.innerText = sub.volumeAddedMl !== null && sub.volumeAddedMl !== undefined && sub.volumeAddedMl !== ''
+      ? `${sub.volumeAddedMl} mL` : 'Sin medición registrada';
 
     const phEl = document.getElementById('reportExpPh');
     const phVal = parseFloat(sub.finalPh || '7.0');
@@ -10601,6 +10602,7 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
       return;
     }
     const user = this.state.currentUser || { name: 'Juan Pérez', classroom: '4to Año "A"' };
+    const accuracy = rubric.details.find(item => item.criteria.startsWith('4.'));
     const defaultSub = {
       studentName: user.name,
       classroomName: user.classroom || '4to A',
@@ -10609,11 +10611,11 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
       score: rubric.vigesimalScore,
       letterGrade: rubric.letterGrade,
       date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString().slice(0, 5),
-      volumeAddedMl: '25.0',
+      volumeAddedMl: Number.isFinite(accuracy?.measuredVolumeMl) ? accuracy.measuredVolumeMl.toFixed(2) : null,
       finalPh: '7.00',
       temperature: '25.0 °C',
       reactionEquation: 'HCl + NaOH → NaCl + H₂O',
-      verdict: rubric.vigesimalScore >= 11 ? '✅ Objetivo experimental cumplido con precisión.' : '⚠️ Requiere refuerzo procedimental.',
+      verdict: `${rubric.vigesimalScore >= 11 ? '✅ Práctica aprobada.' : '⚠️ Requiere refuerzo procedimental.'} ${accuracy?.feedback || ''}`,
       rubricDetails: rubric.details
     };
     this.viewSubmissionReport(defaultSub);
@@ -10656,7 +10658,7 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
       if (titleEl) titleEl.innerText = `Modo Examen Práctico: ${item.title}`;
       if (salonEl) salonEl.innerText = item.targetClassrooms.map(c => this.getClassroomName(c)).join(', ');
       if (countEl) countEl.innerText = `${item.allowedInstruments ? item.allowedInstruments.length : 14} autorizadas`;
-      if (probDescEl) probDescEl.innerText = item.description || this.getDefaultProblemDescription(item.topic);
+      if (probDescEl) probDescEl.innerText = `${item.description || this.getDefaultProblemDescription(item.topic)}\n\n${this.volumetricAccuracyGuide}`;
       if (aiStatusEl) {
         if (item.allowAiAssistant === false) {
           aiStatusEl.innerHTML = '<span style="background: #fee2e2; color: #991b1b; padding: 0.1rem 0.5rem; border-radius: 4px; border: 1px solid #fca5a5; font-size: 0.70rem; font-weight: 700;">🔒 Asistente Quimi: Deshabilitado por el Docente (Sin Ayuda)</span>';
@@ -10674,7 +10676,7 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
     this.renderReagentsShelf();
 
     this.showDialog(
-      `Has iniciado el examen práctico:\n"${item.title}"\n\n🎯 PROBLEMA A RESOLVER (Guía Asignada):\n${item.description || this.getDefaultProblemDescription(item.topic)}\n\n🔬 Tu docente ha configurado las herramientas permitidas para esta evaluación.\n${item.allowAiAssistant === false ? '🔒 Nota: El asistente virtual de flujo inteligente ha sido desactivado por el docente para este examen.\n\n' : ''}Al completar la práctica asignada, pulsa "📋 Finalizar Práctica y Ver Resultados (RF007)".`,
+      `Has iniciado el examen práctico:\n"${item.title}"\n\n🎯 PROBLEMA A RESOLVER (Guía Asignada):\n${item.description || this.getDefaultProblemDescription(item.topic)}\n\n${this.volumetricAccuracyGuide}\n\n🔬 Tu docente ha configurado las herramientas permitidas para esta evaluación.\n${item.allowAiAssistant === false ? '🔒 Nota: El asistente virtual de flujo inteligente ha sido desactivado por el docente para este examen.\n\n' : ''}Al completar la práctica asignada, pulsa "📋 Finalizar Práctica y Ver Resultados (RF007)".`,
       'Examen Práctico Iniciado',
       '⚗️'
     );
@@ -10704,7 +10706,11 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
     const user = this.state.currentUser || { id: 'u_student_1', name: 'Juan Pérez', classroomId: '4A', classroom: '4to Año "A"' };
 
     // Evaluar práctica con ChemEngine
-    const vAdded = this.labBench ? this.labBench.buretteStand.volumeAddedMl : 25.0;
+    const vAdded = this.labBench?.buretteStand?.volumeAddedMl;
+    if (!Number.isFinite(vAdded) || vAdded < 0) {
+      this.showToast('Sin datos suficientes para evaluar exactitud. Registra el volumen gastado antes de entregar.');
+      return;
+    }
     const tipX = (this.labBench && this.labBench.buretteStand) ? this.labBench.buretteStand.tipX : 565;
     const vessels = (this.labBench && this.labBench.vessels) ? this.labBench.vessels : [];
     const receivingFlask = vessels.find(v => (tipX >= v.x - 25 && tipX <= v.x + (v.width || 70) + 25)) || vessels[0];
@@ -10732,6 +10738,10 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
   },
 
   executeOfficialExamSubmission(exam, user, vAdded, finalPh, temp, quizScore = null) {
+    if (!Number.isFinite(vAdded) || vAdded < 0) {
+      this.showToast('Sin datos suficientes para evaluar exactitud. Registra el volumen gastado antes de entregar.');
+      return;
+    }
     ChemEngine.logTelemetry('exam_submission', 'exam_practice_finish', vAdded, {
       examId: exam.id,
       examTitle: exam.title,
@@ -10749,9 +10759,8 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
     const finalLetter = finalVigesimal >= 18 ? 'AD' : (finalVigesimal >= 14 ? 'A' : (finalVigesimal >= 11 ? 'B' : 'C'));
 
     const isSuccess = finalVigesimal >= 11;
-    const verdict = isSuccess
-      ? `✅ Objetivo cumplido: El resultado experimental (${vAdded.toFixed(1)} mL de adición volumétrica, pH ${finalPh.toFixed(2)}) y el cuestionario interactivo (${quizScore !== null ? quizScore.toFixed(0) : '20'}/20) resuelven satisfactoriamente la práctica de laboratorio.`
-      : `⚠️ Requiere refuerzo: El volumen gastado (${vAdded.toFixed(1)} mL) o pH final (${finalPh.toFixed(2)}) difieren del punto de equivalencia requerido.`;
+    const accuracy = rubricResult.details.find(item => item.criteria.startsWith('4.'));
+    const verdict = `${isSuccess ? '✅ Evaluación aprobada.' : '⚠️ Requiere refuerzo.'} ${accuracy?.feedback || ''}`;
 
     // Guardar submission en el examen (RF007 & RF016)
     const submission = {
@@ -10767,7 +10776,7 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
       quizScore: quizScore,
       date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString().slice(0, 5),
       finalPh: finalPh.toFixed(2),
-      volumeAddedMl: vAdded.toFixed(1),
+      volumeAddedMl: vAdded.toFixed(2),
       temperature: temp,
       reactionEquation: 'HCl + NaOH → NaCl + H₂O',
       phenomenonObservation: finalPh >= 7.0 ? 'Viraje persistente a rosa tenue. Neutralización estequiométrica completada.' : 'Solución en estado ácido inicial remanente.',
@@ -11759,6 +11768,7 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
   atomicSim: null,
   separationSim: null,
   molecular3DSim: null,
+  volumetricAccuracyGuide: 'Exactitud del volumen (5 de los 20 puntos): hasta 5 % de error, 5/5; más de 5 % hasta 10 %, 4/5; más de 10 % hasta 20 %, 2/5; más de 20 %, 0/5. No se exige 0 % de error para el puntaje completo. Los demás criterios se evalúan por separado.',
   practiceConfig2026: {
     id: 'practica-titulacion-01',
     title: 'Titulación de HCl con NaOH 0.1 M y Viraje de Fenolftaleína',
@@ -12554,7 +12564,11 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
 
   finishTitrationPractice() {
     if (!this.labBench) return;
-    const vAdded = this.labBench.buretteStand.volumeAddedMl;
+    const vAdded = this.labBench.buretteStand?.volumeAddedMl;
+    if (!Number.isFinite(vAdded) || vAdded < 0) {
+      this.showToast('Sin datos suficientes para evaluar exactitud. Registra el volumen gastado antes de entregar.');
+      return;
+    }
     const receivingFlask = this.labBench.vessels[0];
     const finalPh = receivingFlask ? this.labBench.getVesselPH(receivingFlask) : 7.0;
 

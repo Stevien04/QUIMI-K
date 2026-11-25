@@ -966,21 +966,40 @@ const ChemEngine = (function () {
     });
 
     // Criterio 4: Resultados y estequiometría (0 - 5 pts)
-    const endVolume = sessionTelemetry.find(e => e.action === 'finish_titration')?.value || 25.0;
-    const targetVolume = practiceConfig?.targetVolume || 25.0;
-    const errorMargin = Math.abs(endVolume - targetVolume) / targetVolume;
-    let crit4 = 5.0;
-    if (errorMargin <= 0.02) crit4 = 5.0;
-    else if (errorMargin <= 0.05) crit4 = 4.0;
-    else if (errorMargin <= 0.10) crit4 = 3.0;
-    else if (errorMargin <= 0.20) crit4 = 1.5;
-    else crit4 = 0.5;
+    // Usar la última entrega, tanto del examen como de la práctica libre.
+    // Un cero es una medición válida; la ausencia de datos no equivale a 25 mL.
+    const lastSubmission = [...sessionTelemetry].reverse().find(e =>
+      e.action === 'finish_titration' || e.action === 'exam_submission');
+    const endVolume = lastSubmission?.value;
+    const targetVolume = practiceConfig?.targetVolume;
+    const hasMeasurement = Number.isFinite(endVolume) && endVolume >= 0;
+    const hasTarget = Number.isFinite(targetVolume) && targetVolume > 0;
+    const errorMargin = hasMeasurement && hasTarget
+      ? Math.abs(endVolume - targetVolume) / targetVolume : null;
+    let crit4 = 0;
+    let accuracyFeedback = 'Sin datos suficientes para evaluar exactitud. Registra el volumen gastado antes de entregar.';
+    if (!hasTarget) {
+      accuracyFeedback = 'Sin datos suficientes para evaluar exactitud: falta un volumen objetivo válido en la guía. Consulta al docente.';
+    } else if (hasMeasurement) {
+      // Evitar descuentos por el pequeño error numérico de sumar gotas de 0,05 mL.
+      const epsilon = 1e-9;
+      if (errorMargin <= 0.05 + epsilon) crit4 = 5;
+      else if (errorMargin <= 0.10 + epsilon) crit4 = 4;
+      else if (errorMargin <= 0.20 + epsilon) crit4 = 2;
+      const guidance = crit4 === 5
+        ? 'Resultado dentro del margen aceptado de ±5 %. No es necesario obtener 0 % de error para lograr el puntaje completo.'
+        : `Dosificaste ${endVolume > targetVolume ? 'más' : 'menos'} volumen del esperado. Revisa el menisco y dosifica gota a gota cerca del objetivo.`;
+      accuracyFeedback = `Volumen esperado: ${targetVolume.toFixed(2)} mL. Volumen obtenido: ${endVolume.toFixed(2)} mL. Error: ${(errorMargin * 100).toFixed(2)} %. ${guidance}`;
+    }
 
     rubricDetails.push({
       criteria: '4. Exactitud cuantitativa de resultados y estequiometría',
       maxScore: 5.0,
       score: crit4,
-      feedback: `Margen de error experimental obtenido: ${(errorMargin * 100).toFixed(1)}% (Tolerancia aceptada: ± 5%).`
+      feedback: accuracyFeedback,
+      measuredVolumeMl: hasMeasurement ? endVolume : null,
+      expectedVolumeMl: hasTarget ? targetVolume : null,
+      errorPercent: errorMargin === null ? null : errorMargin * 100
     });
 
     // Criterio 5: Conocimiento científico y fundamentación (0 - 3 pts)
