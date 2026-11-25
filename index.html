@@ -924,7 +924,7 @@
     <section id="tab-assistant" class="tab-pane">
       <div class="section-banner">
         <strong>Tutor Virtual de Laboratorio "Quimi":</strong>
-        Seleccione entre <strong>1) Interacción con el Asistente</strong> (consultas guiadas rápidas) o <strong>2) Respuestas Contextuales</strong> (absolución de preguntas abiertas referidas al laboratorio asignado y conectadas directamente con los conceptos, fórmulas y procedimientos del <strong>Libro Guía Digital</strong>).
+        Seleccione entre <strong>1) Interacción con el Asistente</strong> (consultas guiadas rápidas) o <strong>2) Respuestas Contextuales</strong> (consultas predefinidas referidas al laboratorio asignado y conectadas directamente con los conceptos, fórmulas y procedimientos del <strong>Libro Guía Digital</strong>).
       </div>
 
       <div style="max-width: 960px; margin: 0 auto;">
@@ -942,7 +942,7 @@
             <div style="width: 40px; height: 40px; border-radius: 10px; background: #dcfce7; color: #16a34a; display: flex; align-items: center; justify-content: center; font-size: 1.35rem; flex-shrink: 0;">🧠</div>
             <div>
               <div style="font-size: 0.92rem; font-weight: 800; color: #0f172a;">2. Respuestas Contextuales (Lab + Libro Digital)</div>
-              <div style="font-size: 0.75rem; color: #64748b;">Absuelve cualquier pregunta del laboratorio asignado y del Libro Guía</div>
+              <div style="font-size: 0.75rem; color: #64748b;">Consultas guiadas del laboratorio asignado y del Libro Guía</div>
             </div>
           </button>
         </div>
@@ -964,24 +964,13 @@
             </div>
           </div>
 
-          <!-- Entrada libre de consulta general + Selector de Preguntas Predefinidas -->
-          <form onsubmit="App.handleGeneralQuimiSubmit(event)" style="margin-top: 0.85rem; display: flex; gap: 0.6rem; align-items: center; width: 100%;">
-            <input
-              type="text"
-              id="quimiGeneralInput"
-              style="flex: 1; width: 100%; max-width: 100%; margin: 0; padding: 0.72rem 1rem; font-size: 0.88rem; border: 2px solid #cbd5e1; border-radius: 10px; outline: none;"
-              placeholder="💬 Escribe una consulta rápida o saludo a Quimi (ej. Hola, ¿qué es la química?, ¿qué es un átomo?, ¿cómo funciona el sistema?)..."
-              autocomplete="off"
-            >
-            <button type="submit" class="btn btn-primary" style="padding: 0.74rem 1.15rem; font-weight: 700; font-size: 0.86rem; white-space: nowrap;">
-              Enviar a Quimi
-            </button>
-          </form>
+          <!-- Consultas predefinidas del asistente -->
+          <p style="margin-top: 0.85rem; font-size: 0.82rem; color: #475569;">Selecciona una de las preguntas disponibles para consultar a Quimi.</p>
 
           <!-- Selector de Preguntas Predefinidas -->
           <div style="margin-top: 0.9rem;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
-              <span style="font-size: 0.8rem; font-weight: 700; color: #334155;">O selecciona una consulta frecuente sobre la práctica:</span>
+              <span style="font-size: 0.8rem; font-weight: 700; color: #334155;">Consultas frecuentes sobre la práctica:</span>
               <button type="button" class="btn btn-outline" style="font-size: 0.76rem; padding: 0.25rem 0.65rem;" onclick="App.switchAssistantSubtab('contextual')">
                 ✍️ Ir a Respuestas Contextuales (Lab + Libro Digital) →
               </button>
@@ -1017,7 +1006,7 @@
                   <span style="font-size: 0.7rem; background: #dcfce7; color: #166534; padding: 0.15rem 0.55rem; border-radius: 999px; font-weight: 700; border: 1px solid #86efac;">Conectado al Libro Guía Digital</span>
                 </div>
                 <p style="font-size: 0.8rem; color: #64748b; margin: 0.15rem 0 0 0;">
-                  Absuelve cualquier pregunta sobre el laboratorio asignado extrayendo conceptos, fórmulas y procedimientos del <strong>Libro Guía Digital</strong>.
+                  Responde consultas predefinidas sobre el laboratorio asignado extrayendo conceptos, fórmulas y procedimientos del <strong>Libro Guía Digital</strong>.
                 </p>
               </div>
             </div>
@@ -1031,7 +1020,7 @@
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
               <div>
                 <div style="font-size: 0.73rem; font-weight: 800; text-transform: uppercase; color: #15803d; letter-spacing: 0.03em;">
-                  📌 Contexto del Laboratorio Asignado al Estudiante
+                  📌 Contexto del Laboratorio de Consulta
                 </div>
                 <div id="quimiActiveLabBannerTitle" style="font-size: 0.98rem; font-weight: 800; color: #0f172a; margin-top: 0.15rem;">
                   Práctica 1: Síntesis de Cloruro de Sodio (2Na + Cl₂ → 2NaCl)
@@ -1042,7 +1031,7 @@
               </div>
 
               <div style="display: flex; flex-direction: column; gap: 0.25rem; min-width: 250px;">
-                <label for="quimiContextLabSelector" style="font-size: 0.74rem; font-weight: 700; color: #1e293b;">Cambiar Laboratorio Asignado a Consultar:</label>
+                <label for="quimiContextLabSelector" style="font-size: 0.74rem; font-weight: 700; color: #1e293b;">Laboratorio que deseas consultar:</label>
                 <select id="quimiContextLabSelector" class="select-control" style="font-size: 0.82rem; padding: 0.4rem 0.65rem; background: #ffffff;" onchange="App.changeContextualLabPractice(this.value)">
                   <option value="0">🧪 Lab 1: Síntesis de NaCl (Enlace Iónico)</option>
                   <option value="1">💧 Lab 2: Molécula Polar H₂O (Enlace Covalente)</option>
@@ -1057,19 +1046,8 @@
             <!-- Renderizado dinámicamente por App.initContextualAssistant() -->
           </div>
 
-          <!-- Buscador / Formulario de Pregunta Libre Contextual -->
-          <form onsubmit="App.handleContextualQuestionSubmit(event)" style="margin-top: 0.9rem; display: flex; gap: 0.6rem; align-items: center; width: 100%;">
-            <input
-              type="text"
-              id="quimiContextualInput"
-              style="flex: 1; width: 100%; max-width: 100%; margin: 0; padding: 0.78rem 1rem; font-size: 0.9rem; border: 2px solid #94a3b8; border-radius: 10px; outline: none;"
-              placeholder="✍️ Escribe cualquier pregunta básica, del laboratorio asignado o del Libro Digital (ej. Hola, ¿qué es la química?, ¿puedo agregar más temas al libro?, ¿qué es el pH?)..."
-              autocomplete="off"
-            >
-            <button type="submit" class="btn btn-primary" style="padding: 0.78rem 1.25rem; font-weight: 800; font-size: 0.9rem; white-space: nowrap; background: #16a34a; border-color: #15803d;">
-              🔍 Consultar a Quimi
-            </button>
-          </form>
+          <!-- Instrucciones de consulta guiada -->
+          <p style="margin-top: 0.85rem; font-size: 0.82rem; color: #475569;">Selecciona una de las preguntas disponibles para consultar a Quimi.</p>
 
           <!-- Sugerencias Contextuales Dinámicas (Del Laboratorio Asignado + Del Libro Guía Digital) -->
           <div style="margin-top: 0.95rem; display: flex; flex-direction: column; gap: 0.65rem;">
@@ -2184,7 +2162,7 @@
           <div>
             <div style="display: flex; align-items: center; gap: 0.4rem;">
               <span class="category-pill" style="background: #10b981; color: white; font-size: 0.65rem; padding: 0.15rem 0.45rem;">Asistente Conversacional</span>
-              <span style="font-size: 0.68rem; color: #6ee7b7; font-weight: 700;">Respuestas Contextuales &amp; Análisis Ortográfico</span>
+              <span style="font-size: 0.68rem; color: #6ee7b7; font-weight: 700;">Consultas predefinidas del laboratorio</span>
             </div>
             <h3 style="font-size: 1.05rem; font-weight: 800; color: #ffffff; margin: 0.15rem 0 0 0;" id="labConsultHeaderTopic">
               Consulta del Laboratorio: Neutralización Ácido-Base
@@ -2208,7 +2186,7 @@
         <!-- CHIPS DE CONSULTAS RÁPIDAS FRECUENTES -->
         <div style="margin-bottom: 0.85rem;">
           <div style="font-size: 0.70rem; font-weight: 800; color: #475569; text-transform: uppercase; margin-bottom: 0.35rem;">
-            💡 Preguntas Científicas Sugeridas para este Laboratorio:
+            💡 Preguntas disponibles para este laboratorio:
           </div>
           <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
             <button type="button" class="lab-consult-preset-chip" onclick="App.sendLabConsultPreset('¿Por qué cuando combiné el agua y ácido clorhídrico salió tal fórmula?')">
@@ -2226,7 +2204,7 @@
           </div>
         </div>
 
-        <!-- HISTORIAL DE CONSULTAS Y RESPUESTAS CON ANÁLISIS ORTOGRÁFICO -->
+        <!-- HISTORIAL DE CONSULTAS GUIADAS Y RESPUESTAS -->
         <div id="labConsultHistoryContainer" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 0.85rem; min-height: 200px; max-height: 320px; overflow-y: auto; margin-bottom: 0.85rem; display: flex; flex-direction: column;">
           <!-- Mensaje inicial de bienvenida de Quimi -->
           <div class="lab-consult-bubble bot">
@@ -2234,20 +2212,15 @@
               <span>🤖</span> <strong>Quimi (Asistente de Laboratorio):</strong>
             </div>
             <div>
-              ¡Hola! Estoy aquí para absolver <strong>estrictamente cualquier duda científica o procedimental sobre este laboratorio asignado</strong>.
+              ¡Hola! Estoy aquí para absolver <strong>las consultas científicas y procedimentales disponibles sobre este laboratorio asignado</strong>.
               <br><br>
-              ✍️ <em>Nota pedagógica:</em> Analizaré también la <strong>ortografía y redacción científica</strong> de tus preguntas para ayudarte a redactar con precisión profesional. ¡Pregúntame lo que necesites!
+              Selecciona uno de los botones de preguntas para recibir una explicación.
             </div>
           </div>
         </div>
 
-        <!-- FORMULARIO DE CONSULTA -->
-        <form onsubmit="App.handleLabConsultSubmit(event)" style="display: flex; gap: 0.5rem; align-items: center;">
-          <input type="text" id="labConsultInput" class="form-input" style="flex: 1; font-size: 0.82rem; padding: 0.5rem 0.8rem; background: #f8fafc;" placeholder="Escribe tu duda sobre este laboratorio (ej. ¿Por qué cuando combiné el agua y ácido clorhídrico salió tal fórmula?)..." required autocomplete="off">
-          <button type="submit" class="btn btn-primary" style="background: #047857; border-color: #059669; font-weight: 700; padding: 0.5rem 1rem; flex-shrink: 0;">
-            💬 Preguntar
-          </button>
-        </form>
+        <!-- Instrucciones de consulta guiada -->
+        <p style="margin-top: 0.85rem; font-size: 0.82rem; color: #475569;">Selecciona una de las preguntas disponibles para consultar a Quimi.</p>
       </div>
 
       <div class="eval-modal-footer" style="padding: 0.65rem 1.1rem; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">

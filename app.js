@@ -6061,8 +6061,6 @@ const App = {
     }
 
     modal.style.display = 'flex';
-    const input = document.getElementById('labConsultInput');
-    if (input) setTimeout(() => input.focus(), 100);
   },
 
   closeLabConsultModal() {
@@ -6071,19 +6069,7 @@ const App = {
   },
 
   sendLabConsultPreset(questionText) {
-    const input = document.getElementById('labConsultInput');
-    if (input) input.value = questionText;
     this.processLabConsultQuestion(questionText);
-  },
-
-  handleLabConsultSubmit(event) {
-    if (event) event.preventDefault();
-    const input = document.getElementById('labConsultInput');
-    if (!input) return;
-    const text = input.value.trim();
-    if (!text) return;
-    input.value = '';
-    this.processLabConsultQuestion(text);
   },
 
   analyzeQuestionOrthography(raw) {
@@ -6634,6 +6620,7 @@ const App = {
   },
 
   processLabConsultQuestion(questionText) {
+    if (!this.validateQuimiQuestion('lab', questionText)) return;
     const historyContainer = document.getElementById('labConsultHistoryContainer');
     if (!historyContainer) return;
 
@@ -6649,6 +6636,7 @@ const App = {
     const scientificAnswer = this.getLabContextualAnswer(questionText);
 
     setTimeout(() => {
+      if (!this.isQuimiAvailable()) return;
       const botBubble = document.createElement('div');
       botBubble.className = 'lab-consult-bubble bot';
 
@@ -7197,26 +7185,92 @@ const App = {
   },
 
   // ================= ASISTENTE VIRTUAL "QUIMI" =================
+  // RF013: consultas permitidas en cada apartado del asistente.
+  assistantPresetQuestions: {
+    "general": [
+      "¿Por qué reacciona el Sodio con el Cloro en la Práctica 1?",
+      "¿Cómo se interpreta la diferencia de electronegatividad (ΔEN)?",
+      "¿Cuál es la función del Mechero Bunsen en la reacción?",
+      "¿Qué medidas de seguridad y cuidado exige esta práctica?",
+      "¿Cómo funciona la regla del octeto de Lewis en esta formación?"
+    ],
+    "contextual": [
+      "¿Qué explica el Libro Digital sobre Enlace Químico, Lewis y Pauling (ΔEN)?",
+      "¿Cuál es la fórmula del pH, molaridad y cómo funciona la neutralización ácido-base?",
+      "¿Qué es el mol, el número de Avogadro y la Ley de Lavoisier en estequiometría?",
+      "¿Cuál es el procedimiento de la técnica de pipeteo y lectura del menisco?",
+      "¿Cómo se opera el Mechero Bunsen y qué diferencia hay entre llama azul y amarilla?",
+      "¿Qué dice el Libro Digital sobre el Átomo, Números Cuánticos y Tabla Periódica?",
+      "¿Qué son los Hidrocarburos (alcanos, alquenos, alquinos) y la Química del Carbono?",
+      "¿Cuáles son las normas de bioseguridad, EPP y pictogramas SGA del laboratorio?",
+      "¿En qué consiste mi laboratorio asignado y cuáles son sus pasos?"
+    ],
+    "lab": [
+      "¿Por qué cuando combiné el agua y ácido clorhídrico salió tal fórmula?",
+      "¿Por qué cambia de color la fenolftaleína en el punto de viraje?",
+      "¿Cómo se calcula la concentración desconocida con el volumen gastado?",
+      "¿Por qué se debe agregar el ácido sobre el agua y nunca agua sobre ácido?"
+    ]
+  },
+
+  assistantLabQuestions: {
+    0: [
+      '¿En qué consiste mi laboratorio asignado de Síntesis de NaCl y cuáles son sus pasos?',
+      '¿Cuál es la ecuación, reactivos y diferencia ΔEN en el laboratorio de NaCl?',
+      '¿Qué explica el Libro Guía Digital sobre el Enlace Iónico y la estructura de Lewis?',
+      '¿Qué instrumentos virtuales utilizo en esta práctica y cómo funcionan?'
+    ],
+    1: [
+      '¿En qué consiste mi laboratorio asignado de Formación de Agua (2H₂ + O₂ → 2H₂O)?',
+      '¿Por qué la molécula de agua tiene enlace Covalente Polar (ΔEN = 1.24) y dipolos?',
+      '¿Cuáles son los 4 pasos experimentales del laboratorio de síntesis de H₂O?',
+      '¿Cómo actúa la energía de activación y el Mechero en esta reacción?'
+    ],
+    2: [
+      '¿En qué consiste mi laboratorio asignado de Neutralización Ácido-Base (HCl + NaOH)?',
+      '¿Qué dice el Libro Guía Digital sobre la escala de pH, Molaridad y neutralización?',
+      '¿Cómo se realiza la titulación con la Pipeta Graduada y el Matraz Erlenmeyer?',
+      '¿Por qué al reaccionar HCl con NaOH se obtiene pH 7 neutro y sal NaCl?'
+    ]
+  },
+
+  currentStepQuestion() {
+    const practice = this.practices[this.state.currentPracticeIndex] || this.practices[0];
+    const step = practice.steps[this.state.currentStepIndex] || practice.steps[practice.steps.length - 1];
+    return step ? `¿Cuál es el objetivo científico del paso actual ("${step.name}")?` : null;
+  },
+
+  isQuimiAvailable() {
+    return !(this.activePracticalExam && this.activePracticalExam.allowAiAssistant === false);
+  },
+
+  validateQuimiQuestion(channel, question) {
+    if (!this.isQuimiAvailable()) {
+      this.showToast('🔒 El docente ha deshabilitado las consultas a Quimi para este examen.');
+      return false;
+    }
+    const allowed = [...(this.assistantPresetQuestions[channel] || [])];
+    if (channel === 'contextual') {
+      const index = this.getContextualPracticeIndex();
+      allowed.push(...(this.assistantLabQuestions[index] || this.assistantLabQuestions[0]));
+    }
+    if (channel === 'general') allowed.push(this.currentStepQuestion());
+    if (typeof question !== 'string' || !allowed.includes(question)) {
+      this.showToast('Selecciona una de las consultas disponibles de Quimi.');
+      return false;
+    }
+    return true;
+  },
+
   askQuimiAboutCurrentStep() {
     const assistantTab = document.querySelector('[data-tab="tab-assistant"]');
     if (assistantTab) assistantTab.click();
 
-    const p = this.practices[this.state.currentPracticeIndex];
-    const step = p.steps[this.state.currentStepIndex] || p.steps[p.steps.length - 1];
-    this.askQuimiPreset(`¿Cuál es el objetivo científico del paso actual ("${step.name}")?`);
-  },
-
-  handleGeneralQuimiSubmit(event) {
-    if (event) event.preventDefault();
-    const input = document.getElementById('quimiGeneralInput');
-    if (!input) return;
-    const text = input.value.trim();
-    if (!text) return;
-    input.value = '';
-    this.askQuimiPreset(text);
+    this.askQuimiPreset(this.currentStepQuestion());
   },
 
   askQuimiPreset(questionText) {
+    if (!this.validateQuimiQuestion('general', questionText)) return;
     const chatBox = document.getElementById('quimiChatHistory');
     if (!chatBox) return;
 
@@ -7226,6 +7280,7 @@ const App = {
     chatBox.appendChild(userBubble);
 
     setTimeout(() => {
+      if (!this.isQuimiAvailable()) return;
       const botBubble = document.createElement('div');
       botBubble.className = 'chat-bubble bot';
       botBubble.innerHTML = this.getQuimiResponse(questionText);
@@ -7498,6 +7553,13 @@ const App = {
   // ================= OPCIÓN 2: RESPUESTAS CONTEXTUALES (LABORATORIO ASIGNADO + LIBRO GUÍA DIGITAL) =================
   activeAssistantSubtab: 'general',
   contextualInitialized: false,
+  contextualPracticeIndex: null,
+
+  getContextualPracticeIndex() {
+    return Number.isInteger(this.contextualPracticeIndex) && this.practices[this.contextualPracticeIndex]
+      ? this.contextualPracticeIndex
+      : (this.state.currentPracticeIndex || 0);
+  },
 
   switchAssistantSubtab(mode) {
     this.activeAssistantSubtab = mode === 'contextual' ? 'contextual' : 'general';
@@ -7530,13 +7592,11 @@ const App = {
 
     if (this.activeAssistantSubtab === 'contextual') {
       this.updateContextualAssistantUI();
-      const input = document.getElementById('quimiContextualInput');
-      if (input) setTimeout(() => input.focus(), 60);
     }
   },
 
   updateContextualAssistantUI() {
-    const pIndex = this.state.currentPracticeIndex || 0;
+    const pIndex = this.getContextualPracticeIndex();
     const p = this.practices[pIndex] || this.practices[0];
     const user = this.state.currentUser;
     const salonName = (user && user.classroom) ? user.classroom : '4to "A" Secundaria';
@@ -7548,8 +7608,9 @@ const App = {
 
     const subEl = document.getElementById('quimiActiveLabBannerSub');
     if (subEl) {
-      const stepObj = p.steps[this.state.currentStepIndex] || p.steps[p.steps.length - 1];
-      subEl.innerHTML = `Salón: <strong>${salonName}</strong> • Ecuación: <strong>${p.equation}</strong> • Paso actual: <strong>${stepObj ? stepObj.name : 'Completado'}</strong> • Fuente: <strong>Libro Guía Digital (${this.guideEntries.length} capítulos)</strong>`;
+      const stepIndex = pIndex === this.state.currentPracticeIndex ? this.state.currentStepIndex : 0;
+      const stepObj = p.steps[stepIndex] || p.steps[p.steps.length - 1];
+      subEl.innerHTML = `Salón: <strong>${salonName}</strong> • Ecuación: <strong>${p.equation}</strong> • Paso de referencia: <strong>${stepObj ? stepObj.name : 'Completado'}</strong> • Fuente: <strong>Libro Guía Digital (${this.guideEntries.length} capítulos)</strong>`;
     }
 
     const selEl = document.getElementById('quimiContextLabSelector');
@@ -7560,26 +7621,7 @@ const App = {
     // Renderizar chips dinámicos propios del laboratorio asignado actual
     const chipsBox = document.getElementById('quimiLabDynamicChips');
     if (chipsBox) {
-      const labQuestionsByPractice = {
-        0: [
-          '¿En qué consiste mi laboratorio asignado de Síntesis de NaCl y cuáles son sus pasos?',
-          '¿Cuál es la ecuación, reactivos y diferencia ΔEN en el laboratorio de NaCl?',
-          '¿Qué explica el Libro Guía Digital sobre el Enlace Iónico y la estructura de Lewis?',
-          '¿Qué instrumentos virtuales utilizo en esta práctica y cómo funcionan?'
-        ],
-        1: [
-          '¿En qué consiste mi laboratorio asignado de Formación de Agua (2H₂ + O₂ → 2H₂O)?',
-          '¿Por qué la molécula de agua tiene enlace Covalente Polar (ΔEN = 1.24) y dipolos?',
-          '¿Cuáles son los 4 pasos experimentales del laboratorio de síntesis de H₂O?',
-          '¿Cómo actúa la energía de activación y el Mechero en esta reacción?'
-        ],
-        2: [
-          '¿En qué consiste mi laboratorio asignado de Neutralización Ácido-Base (HCl + NaOH)?',
-          '¿Qué dice el Libro Guía Digital sobre la escala de pH, Molaridad y neutralización?',
-          '¿Cómo se realiza la titulación con la Pipeta Graduada y el Matraz Erlenmeyer?',
-          '¿Por qué al reaccionar HCl con NaOH se obtiene pH 7 neutro y sal NaCl?'
-        ]
-      };
+      const labQuestionsByPractice = this.assistantLabQuestions;
       const qs = labQuestionsByPractice[pIndex] || labQuestionsByPractice[0];
       chipsBox.innerHTML = qs.map(q => `
         <button type="button" class="btn btn-outline" style="font-size: 0.75rem; padding: 0.3rem 0.65rem; background: #f0fdf4; border-color: #86efac; color: #166534; font-weight: 600;" onclick="App.askContextualQuestion('${q.replace(/'/g, "\\'")}')">
@@ -7597,9 +7639,8 @@ const App = {
   changeContextualLabPractice(val) {
     const idx = parseInt(val, 10);
     if (!isNaN(idx) && this.practices[idx]) {
-      this.selectPractice(idx);
-      const mainSelector = document.getElementById('practiceSelector');
-      if (mainSelector) mainSelector.value = String(idx);
+      // Consultar otro tema no debe reiniciar ni modificar la mesa experimental.
+      this.contextualPracticeIndex = idx;
       this.updateContextualAssistantUI();
 
       const p = this.practices[idx];
@@ -7608,7 +7649,7 @@ const App = {
         const botBubble = document.createElement('div');
         botBubble.className = 'chat-bubble bot';
         botBubble.innerHTML = `
-          🔄 <strong>Contexto de Laboratorio actualizado:</strong> Ahora estoy sincronizado con <strong>${p.title}</strong> (Ecuación: <code>${p.equation}</code>) y con los <strong>${this.guideEntries.length} capítulos del Libro Guía Digital</strong>. Escribe cualquier pregunta o selecciona un tema abajo.
+          🔄 <strong>Contexto de Laboratorio actualizado:</strong> Ahora estoy sincronizado con <strong>${p.title}</strong> (Ecuación: <code>${p.equation}</code>) y con los <strong>${this.guideEntries.length} capítulos del Libro Guía Digital</strong>. Selecciona una de las consultas disponibles abajo.
         `;
         chatBox.appendChild(botBubble);
         chatBox.scrollTop = chatBox.scrollHeight;
@@ -7619,7 +7660,7 @@ const App = {
   clearContextualChat() {
     const chatBox = document.getElementById('quimiContextualChatHistory');
     if (!chatBox) return;
-    const pIndex = this.state.currentPracticeIndex || 0;
+    const pIndex = this.getContextualPracticeIndex();
     const p = this.practices[pIndex] || this.practices[0];
 
     chatBox.innerHTML = `
@@ -7628,23 +7669,14 @@ const App = {
           <span style="background: #dcfce7; color: #166534; font-size: 0.72rem; font-weight: 800; padding: 0.15rem 0.55rem; border-radius: 999px;">🧠 MODO RESPUESTAS CONTEXTUALES ACTIVO</span>
           <span style="background: #dbeafe; color: #1e40af; font-size: 0.72rem; font-weight: 700; padding: 0.15rem 0.55rem; border-radius: 999px;">📖 Conectado al Libro Guía Digital</span>
         </div>
-        ¡Hola! Estoy en el apartado de <strong>Respuestas Contextuales</strong>. Aquí puedo absolver <strong>cualquier pregunta que escribas</strong> sobre tu laboratorio asignado actual (<strong>${p.title}</strong> • <code>${p.equation}</code>), sobre los <strong>8 instrumentos virtuales</strong> o sobre todos los temas del sistema.<br><br>
-        Toda mi información proviene directamente del <strong>Libro Guía Digital</strong> (explicaciones simples de conceptos, fórmulas científicas y procedimientos de laboratorio). <strong>Escribe tu consulta abajo o pulsa uno de los botones sugeridos:</strong>
+        ¡Hola! Estoy en el apartado de <strong>Respuestas Contextuales</strong>. Aquí puedo absolver <strong>las consultas predefinidas disponibles</strong> sobre tu laboratorio asignado actual (<strong>${p.title}</strong> • <code>${p.equation}</code>), sobre los <strong>8 instrumentos virtuales</strong> o sobre todos los temas del sistema.<br><br>
+        Toda mi información proviene directamente del <strong>Libro Guía Digital</strong> (explicaciones simples de conceptos, fórmulas científicas y procedimientos de laboratorio). <strong>Selecciona uno de los botones de consulta:</strong>
       </div>
     `;
   },
 
-  handleContextualQuestionSubmit(event) {
-    if (event) event.preventDefault();
-    const input = document.getElementById('quimiContextualInput');
-    if (!input) return;
-    const text = input.value.trim();
-    if (!text) return;
-    input.value = '';
-    this.askContextualQuestion(text);
-  },
-
   askContextualQuestion(questionText) {
+    if (!this.validateQuimiQuestion('contextual', questionText)) return;
     const chatBox = document.getElementById('quimiContextualChatHistory');
     if (!chatBox) return;
 
@@ -7659,11 +7691,13 @@ const App = {
     chatBox.appendChild(userBubble);
     chatBox.scrollTop = chatBox.scrollHeight;
 
+    const answer = this.buildContextualAnswerFromGuideAndLab(questionText, this.getContextualPracticeIndex());
     setTimeout(() => {
+      if (!this.isQuimiAvailable()) return;
       const botBubble = document.createElement('div');
       botBubble.className = 'chat-bubble bot';
       botBubble.style.maxWidth = '95%';
-      botBubble.innerHTML = this.buildContextualAnswerFromGuideAndLab(questionText);
+      botBubble.innerHTML = answer;
       chatBox.appendChild(botBubble);
       chatBox.scrollTop = chatBox.scrollHeight;
     }, 280);
@@ -7678,7 +7712,7 @@ const App = {
       .trim();
   },
 
-  buildContextualAnswerFromGuideAndLab(rawQuestion) {
+  buildContextualAnswerFromGuideAndLab(rawQuestion, practiceIndex = this.state.currentPracticeIndex || 0) {
     this.loadCustomGuideEntries();
     const qNorm = this.normalizeQueryText(rawQuestion);
 
@@ -7698,9 +7732,10 @@ const App = {
 
     const tokens = qNorm.split(/\s+/).filter(w => (w.length >= 3 || w === 'ph' || w === 'si' || w === 'na' || w === 'cl') && !stopWords.has(w));
 
-    const pIndex = this.state.currentPracticeIndex || 0;
+    const pIndex = practiceIndex;
     const activePractice = this.practices[pIndex] || this.practices[0];
-    const currentStep = activePractice.steps[this.state.currentStepIndex] || activePractice.steps[0];
+    const stepIndex = pIndex === this.state.currentPracticeIndex ? this.state.currentStepIndex : 0;
+    const currentStep = activePractice.steps[stepIndex] || activePractice.steps[0];
 
     // 1. Mapa de palabras clave hacia los capítulos del Libro Guía Digital (this.guideEntries)
     const guideKeywordMap = {
