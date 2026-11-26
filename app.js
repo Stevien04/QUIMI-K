@@ -2426,7 +2426,7 @@ const App = {
       ).join('');
 
       item.innerHTML = `
-        <div class="step-header" onclick="App.toggleInspectStep(${idx})" style="display: flex; justify-content: space-between; align-items: center; gap: 0.4rem; cursor: pointer;">
+        <div class="step-header responsive-row" onclick="App.toggleInspectStep(${idx})" style="display: flex; justify-content: space-between; align-items: center; gap: 0.4rem; cursor: pointer;">
           <div style="display: flex; align-items: center; gap: 0.35rem;">
             <span style="background: ${isCompleted ? '#16a34a' : (isActive ? '#2563eb' : '#64748b')}; color: #ffffff; font-size: 0.68rem; font-weight: 800; padding: 0.1rem 0.42rem; border-radius: 999px;">
               Paso ${step.step}
@@ -2612,7 +2612,7 @@ const App = {
 
       return `
         <div style="background: #ffffff; border: 1.5px solid ${isDoneInCurrentLab ? '#86efac' : '#cbd5e1'}; border-left: 5px solid ${isDoneInCurrentLab ? '#16a34a' : '#0284c7'}; border-radius: 10px; padding: 1rem 1.15rem; box-shadow: 0 2px 6px rgba(15,23,42,0.04);">
-          <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.55rem;">
+          <div class="responsive-row" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.55rem;">
             <div>
               <div style="display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap;">
                 <span style="background: #0284c7; color: #ffffff; font-size: 0.74rem; font-weight: 800; padding: 0.18rem 0.6rem; border-radius: 999px;">
@@ -2631,7 +2631,7 @@ const App = {
           </div>
 
           <!-- Metadatos de Instrumento y Reactivo/Medición -->
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-bottom: 0.65rem;">
+          <div class="responsive-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-bottom: 0.65rem;">
             <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.45rem 0.65rem; font-size: 0.78rem;">
               <strong style="color: #0369a1; display: block; font-size: 0.7rem; text-transform: uppercase;">Instrumento Virtual Empleado:</strong>
               <span style="color: #0f172a; font-weight: 700;">${st.instrument || 'Instrumental de mesa'}</span>
@@ -2653,7 +2653,7 @@ const App = {
           </div>
 
           <!-- Explicación a Nivel Molecular y Norma de Bioseguridad -->
-          <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 0.6rem;">
+          <div class="responsive-grid" style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 0.6rem;">
             <div style="background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 0.5rem 0.7rem; font-size: 0.76rem; color: #0c4a6e; line-height: 1.4;">
               <strong>⚛️ ¿Qué ocurre a nivel molecular?</strong><br>
               ${st.molecularObservation || st.hint}
@@ -2669,7 +2669,7 @@ const App = {
 
     bodyEl.innerHTML = `
       <!-- Resumen General del Laboratorio -->
-      <div style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #f8fafc; border-radius: 10px; padding: 0.9rem 1.15rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+      <div class="responsive-row" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #f8fafc; border-radius: 10px; padding: 0.9rem 1.15rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
         <div>
           <div style="font-size: 0.72rem; color: #38bdf8; font-weight: 800; text-transform: uppercase;">Objetivo Científico del Laboratorio ${idx + 1}</div>
           <div style="font-size: 0.92rem; font-weight: 700; margin-top: 0.15rem;">${p.subtext}</div>
@@ -4554,7 +4554,7 @@ const App = {
       const isHeat = this.state.heatActive;
       return `
         <div>
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+          <div class="responsive-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
             <span style="font-size: 0.85rem; color: #94a3b8;">Tipo de Llama:</span>
             <div style="display: flex; gap: 0.4rem;">
               <button class="btn ${this.instrumentState.bunsenFlameType === 'yellow' ? 'btn-secondary' : 'btn-outline'}" style="font-size: 0.75rem;" onclick="App.setBunsenFlame('yellow')">
@@ -5072,7 +5072,7 @@ const App = {
 
     hud.style.display = 'block';
     hud.innerHTML = `
-      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(148,163,184,0.2); padding-bottom: 0.3rem; margin-bottom: 0.35rem;">
+      <div class="responsive-row" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(148,163,184,0.2); padding-bottom: 0.3rem; margin-bottom: 0.35rem;">
         <span style="font-weight: 800; color: #38bdf8; font-size: 0.8rem;">🔬 Inspector Subatómico: ${p.displayLabel || p.symbol}</span>
         <span style="background: rgba(56,189,248,0.2); color: #bae6fd; padding: 0.08rem 0.4rem; border-radius: 4px; font-family: monospace; font-size: 0.68rem;">Z = ${p.z || '-'}</span>
       </div>
@@ -5535,7 +5535,7 @@ const App = {
 
       return `
         <div style="border: 1.5px solid ${borderCol}; background: ${bgCol}; border-radius: 8px; padding: 0.6rem 0.7rem; transition: all 0.2s;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+          <div class="responsive-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
             <strong style="font-size: 0.75rem; color: #0f172a;">${st.title}</strong>
             <span style="font-size: 0.65rem; font-weight: 800; color: ${badgeCol};">${badgeTxt}</span>
           </div>
@@ -6427,7 +6427,7 @@ const App = {
 
         <div style="display: flex; flex-direction: column; gap: 0.45rem; margin-bottom: 0.75rem;">
           <div style="background: #ffffff; border: 1.5px solid ${hasBurette ? '#86efac' : '#f59e0b'}; border-radius: 8px; padding: 0.55rem 0.8rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div class="responsive-row" style="display: flex; justify-content: space-between; align-items: center;">
               <strong style="color: #0f172a; font-size: 0.82rem;">1. Soporte Universal con Bureta Graduada (50 mL)</strong>
               <span style="font-size: 0.68rem; font-weight: 800; padding: 0.12rem 0.5rem; border-radius: 999px; background: ${hasBurette ? '#dcfce7; color: #166534;' : '#fef3c7; color: #92400e;'}">
                 ${hasBurette ? '✅ Colocada en mesa' : '⚠️ Falta colocar'}
@@ -6439,7 +6439,7 @@ const App = {
           </div>
 
           <div style="background: #ffffff; border: 1.5px solid ${hasFlask ? '#86efac' : '#f59e0b'}; border-radius: 8px; padding: 0.55rem 0.8rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div class="responsive-row" style="display: flex; justify-content: space-between; align-items: center;">
               <strong style="color: #0f172a; font-size: 0.82rem;">2. Matraz Erlenmeyer (250 mL)</strong>
               <span style="font-size: 0.68rem; font-weight: 800; padding: 0.12rem 0.5rem; border-radius: 999px; background: ${hasFlask ? '#dcfce7; color: #166534;' : '#fef3c7; color: #92400e;'}">
                 ${hasFlask ? '✅ Colocado en mesa' : '⚠️ Falta colocar'}
@@ -6451,7 +6451,7 @@ const App = {
           </div>
 
           <div style="background: #ffffff; border: 1.5px solid #86efac; border-radius: 8px; padding: 0.55rem 0.8rem;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div class="responsive-row" style="display: flex; justify-content: space-between; align-items: center;">
               <strong style="color: #0f172a; font-size: 0.82rem;">3. Sensor Digital de pH (Peachímetro) y Curva</strong>
               <span style="font-size: 0.68rem; font-weight: 800; padding: 0.12rem 0.5rem; border-radius: 999px; background: #dcfce7; color: #166534;">
                 ✅ Activo en panel derecho
@@ -6463,7 +6463,7 @@ const App = {
           </div>
 
           <div style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: 8px; padding: 0.55rem 0.8rem;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div class="responsive-row" style="display: flex; justify-content: space-between; align-items: center;">
               <strong style="color: #0f172a; font-size: 0.82rem;">4. Vaso de Precipitados (100 / 250 mL)</strong>
               <span style="font-size: 0.68rem; font-weight: 800; padding: 0.12rem 0.5rem; border-radius: 999px; background: #f1f5f9; color: #475569;">
                 Opcional / Auxiliar
@@ -7135,7 +7135,7 @@ const App = {
 
       <!-- CAJA DESTACADA: SUGERENCIA INTELIGENTE DEL SIGUIENTE PASO -->
       <div style="background: linear-gradient(135deg, #eff6ff, #f0f9ff); border: 2px solid #38bdf8; border-radius: 10px; padding: 0.85rem 1rem; margin-bottom: 1rem; box-shadow: 0 4px 12px rgba(14, 165, 233, 0.12);">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+        <div class="responsive-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
           <div style="display: flex; align-items: center; gap: 0.45rem;">
             <span style="font-size: 1.25rem;">🤖</span>
             <strong style="color: #0369a1; font-size: 0.82rem;">Quimi te sugiere (Paso ${state.activeIdx + 1} de ${totalSteps}):</strong>
@@ -7159,7 +7159,7 @@ const App = {
 
       <!-- BARRA DE PROGRESO DEL FLUJO -->
       <div style="margin-bottom: 1rem;">
-        <div style="display: flex; justify-content: space-between; font-size: 0.7rem; color: #64748b; font-weight: 700; margin-bottom: 0.3rem;">
+        <div class="responsive-row" style="display: flex; justify-content: space-between; font-size: 0.7rem; color: #64748b; font-weight: 700; margin-bottom: 0.3rem;">
           <span>Progreso del Flujo Experimental</span>
           <span>${completedCount} / ${totalSteps} pasos completados</span>
         </div>
@@ -7929,7 +7929,7 @@ const App = {
       const toolSteps = matchedTool.steps.map(s => `<li><strong>${s.title}:</strong> ${s.desc}</li>`).join('');
       toolHtml = `
         <div style="background: #eff6ff; border: 1px solid #93c5fd; border-left: 4px solid #2563eb; border-radius: 10px; padding: 0.85rem 1rem; margin-bottom: 0.75rem;">
-          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.35rem;">
+          <div class="responsive-row" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.35rem;">
             <span style="font-size: 0.78rem; font-weight: 800; color: #1d4ed8; text-transform: uppercase;">
               ${matchedTool.icon} Instrumento Virtual del Laboratorio: ${matchedTool.title}
             </span>
@@ -7951,7 +7951,7 @@ const App = {
     // Construir bloque principal extraído del LIBRO GUÍA DIGITAL (this.guideEntries)
     const renderGuideCard = (entry, isPrimary = true) => `
       <div style="background: #ffffff; border: 1px solid ${isPrimary ? '#7dd3fc' : '#e2e8f0'}; border-left: 4px solid ${isPrimary ? '#0284c7' : '#64748b'}; border-radius: 10px; padding: 0.9rem 1rem; margin-bottom: 0.65rem; box-shadow: 0 1px 4px rgba(15, 23, 42, 0.05);">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.4rem;">
+        <div class="responsive-row" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.4rem;">
           <div>
             <span style="font-size: 0.7rem; font-weight: 800; text-transform: uppercase; background: #e0f2fe; color: #0369a1; padding: 0.15rem 0.5rem; border-radius: 999px;">
               📖 Extraído del Libro Guía Digital • ${entry.category}
@@ -8729,7 +8729,7 @@ const App = {
     let multiSalonSelectorHtml = '';
     if (mySalons.length > 1) {
       multiSalonSelectorHtml = `
-        <div style="background: #ffffff; border-radius: 12px; border: 1px solid #cbd5e1; padding: 0.85rem 1.25rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; box-shadow: var(--shadow-sm); width: 100%; box-sizing: border-box;">
+        <div class="responsive-row" style="background: #ffffff; border-radius: 12px; border: 1px solid #cbd5e1; padding: 0.85rem 1.25rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem; box-shadow: var(--shadow-sm); width: 100%; box-sizing: border-box;">
           <div style="display: flex; align-items: center; gap: 0.65rem;">
             <div style="width: 38px; height: 38px; border-radius: 10px; background: #e0f2fe; display: flex; align-items: center; justify-content: center; font-size: 1.3rem;">🏫</div>
             <div>
@@ -8763,7 +8763,7 @@ const App = {
         ${multiSalonSelectorHtml}
 
         <!-- BANNER DE BIENVENIDA AL SALÓN ACTIVO -->
-        <div class="section-banner" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border-color: #bfdbfe; width: 100%; box-sizing: border-box;">
+        <div class="section-banner responsive-row" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border-color: #bfdbfe; width: 100%; box-sizing: border-box;">
           <div>
             <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
               <span class="badge-role badge-role-student" style="font-size: 0.72rem; padding: 0.2rem 0.6rem; background: #dcfce7; color: #166534; border: 1px solid #86efac; font-weight: 700;">
@@ -8786,14 +8786,14 @@ const App = {
         </div>
 
         <!-- GRID PRINCIPAL DEL SALÓN -->
-        <div style="display: grid; grid-template-columns: 1.35fr 1fr; gap: 1.25rem; align-items: start; width: 100%;">
+        <div class="responsive-grid" style="display: grid; grid-template-columns: 1.35fr 1fr; gap: 1.25rem; align-items: start; width: 100%;">
           
           <!-- TARJETA DETALLES DEL SALÓN Y PRÁCTICA -->
           <div style="display: flex; flex-direction: column; gap: 1.25rem;">
             
             <!-- TARJETA DEL SALÓN -->
             <div style="background: #ffffff; border-radius: 14px; border: 1px solid #e2e8f0; padding: 1.5rem; box-shadow: var(--shadow-sm);">
-              <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.25rem;">
+              <div class="responsive-row" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.25rem;">
                 <div style="display: flex; align-items: center; gap: 0.85rem;">
                   <div style="width: 52px; height: 52px; border-radius: 12px; background: #e0f2fe; color: #0284c7; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; box-shadow: 0 2px 6px rgba(2, 132, 199, 0.15);">
                     🏫
@@ -8810,7 +8810,7 @@ const App = {
 
               <!-- PRÁCTICA ASIGNADA POR LA PROFESORA -->
               <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 1.15rem; margin-bottom: 1.25rem;">
-                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.35rem;">
+                <div class="responsive-row" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.35rem;">
                   <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: #64748b; letter-spacing: 0.5px;">
                     🧪 Práctica de Laboratorio Asignada por la Docente
                   </div>
@@ -8845,7 +8845,7 @@ const App = {
               if (salonEvaluations.length === 0) return '';
               return `
                 <div style="background: #ffffff; border-radius: 14px; border: 1px solid #bfdbfe; padding: 1.25rem 1.5rem; box-shadow: var(--shadow-sm);">
-                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem;">
+                  <div class="responsive-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem;">
                     <h4 style="font-size: 0.95rem; font-weight: 800; color: #1e3a8a; margin: 0; display: flex; align-items: center; gap: 0.4rem;">
                       <span>📋</span> Evaluaciones y Prácticas Asignadas a tu Salón
                     </h4>
@@ -8876,8 +8876,8 @@ const App = {
                       }
 
                       return `
-                        <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 0.85rem 1rem; background: ${isSubmitted ? '#f0fdf4' : '#f8fafc'}; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.65rem;">
-                          <div style="flex: 1; min-width: 260px;">
+                        <div class="responsive-row" style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 0.85rem 1rem; background: ${isSubmitted ? '#f0fdf4' : '#f8fafc'}; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.65rem;">
+                          <div class="responsive-min" style="flex: 1; min-width: 260px;">
                             <div style="display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.25rem;">
                               ${typeBadge}
                               <strong style="color: #0f172a; font-size: 0.9rem;">${ev.title}</strong>
@@ -8901,7 +8901,7 @@ const App = {
 
             <!-- MI RENDIMIENTO EN ESTE SALÓN (SUMA DE TODAS LAS NOTAS) -->
             <div style="background: #ffffff; border-radius: 14px; border: 1px solid #e2e8f0; padding: 1.25rem 1.5rem; box-shadow: var(--shadow-sm);">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+              <div class="responsive-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
                 <h4 style="font-size: 0.95rem; font-weight: 800; color: #0f172a; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
                   <span>📊 Tu Desempeño en el Salón</span>
                 </h4>
@@ -8910,7 +8910,7 @@ const App = {
                 </span>
               </div>
 
-              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; text-align: center; margin-bottom: 0.85rem;">
+              <div class="responsive-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; text-align: center; margin-bottom: 0.85rem;">
                 <div style="background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 10px; padding: 0.85rem 0.5rem;">
                   <span style="font-size: 0.72rem; color: #166534; font-weight: 700; display: block; margin-bottom: 0.25rem;">Suma Total de Notas</span>
                   <strong style="font-size: 1.45rem; color: #15803d; font-weight: 900;">${totalScoreSum} pts</strong>
@@ -8934,13 +8934,13 @@ const App = {
 
               <!-- DESGLOSE DE CADA NOTA QUE SUMA AL TOTAL -->
               <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.65rem 0.85rem;">
-                <div style="font-size: 0.73rem; font-weight: 800; color: #334155; margin-bottom: 0.45rem; display: flex; align-items: center; justify-content: space-between;">
+                <div class="responsive-row" style="font-size: 0.73rem; font-weight: 800; color: #334155; margin-bottom: 0.45rem; display: flex; align-items: center; justify-content: space-between;">
                   <span>📋 Desglose de Evaluaciones que sumaron ${totalScoreSum} puntos:</span>
                   <span style="color: #64748b; font-weight: 600;">${notesList.length} evaluaciones rendidas</span>
                 </div>
                 <div style="display: flex; flex-direction: column; gap: 0.35rem;">
                   ${notesList.map((n, idx) => `
-                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.74rem; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 0.35rem 0.6rem;">
+                    <div class="responsive-row" style="display: flex; justify-content: space-between; align-items: center; font-size: 0.74rem; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 0.35rem 0.6rem;">
                       <div style="display: flex; align-items: center; gap: 0.4rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                         <span style="color: #64748b; font-size: 0.68rem; font-weight: 700;">#${idx + 1}</span>
                         <strong style="color: #1e293b;">${n.title}</strong>
@@ -8961,7 +8961,7 @@ const App = {
 
           <!-- COMPAÑEROS DE SALÓN -->
           <div style="background: #ffffff; border-radius: 14px; border: 1px solid #e2e8f0; padding: 1.25rem 1.5rem; box-shadow: var(--shadow-sm);">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem;">
+            <div class="responsive-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem;">
               <h4 style="font-size: 0.95rem; font-weight: 800; color: #0f172a; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
                 <span>👥 Mis Compañeros de Aula</span>
               </h4>
@@ -8973,7 +8973,7 @@ const App = {
                 const isMe = c.id === user.id || c.name.replace(' (Tú)', '').trim() === user.name.trim();
                 const initials = c.name.replace(' (Tú)', '').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
                 return `
-                  <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 0.75rem; border-radius: 8px; background: ${isMe ? '#eff6ff' : '#f8fafc'}; border: 1px solid ${isMe ? '#bfdbfe' : '#e2e8f0'};">
+                  <div class="responsive-row" style="display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 0.75rem; border-radius: 8px; background: ${isMe ? '#eff6ff' : '#f8fafc'}; border: 1px solid ${isMe ? '#bfdbfe' : '#e2e8f0'};">
                     <div style="display: flex; align-items: center; gap: 0.6rem;">
                       <div class="student-invite-avatar" style="width: 32px; height: 32px; font-size: 0.72rem; background: ${isMe ? 'linear-gradient(135deg, #2563eb, #1d4ed8)' : '#94a3b8'};">
                         ${initials}
@@ -9832,7 +9832,7 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
               <span style="font-size: 0.72rem; color: #64748b; font-weight: 700; text-transform: uppercase;">Salones Asignados:</span>
               <div class="eval-classrooms-list">${classroomChips}</div>
             </div>
-            <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: #64748b; margin-top: 0.35rem; align-items: center;">
+            <div class="responsive-row" style="display: flex; justify-content: space-between; font-size: 0.75rem; color: #64748b; margin-top: 0.35rem; align-items: center;">
               <span>📥 Entregas registradas: <strong style="color: #0284c7; font-size: 0.85rem;">${subsCount}</strong> alumnos</span>
               <span>📅 ${isPublished ? `Enviado: ${item.publishedAt}` : `Creado: ${item.createdAt}`}</span>
             </div>
@@ -11231,7 +11231,7 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
         ];
 
         historyList.innerHTML = history.map(h => `
-          <div style="display: flex; justify-content: space-between; align-items: center; background: #f8fafc; border: 1px solid #e2e8f0; padding: 0.45rem 0.65rem; border-radius: 6px; font-size: 0.78rem;">
+          <div class="responsive-row" style="display: flex; justify-content: space-between; align-items: center; background: #f8fafc; border: 1px solid #e2e8f0; padding: 0.45rem 0.65rem; border-radius: 6px; font-size: 0.78rem;">
             <div>
               <strong>${h.test}</strong>
               <div style="font-size: 0.7rem; color: #64748b;">📅 ${h.date}</div>
@@ -12155,6 +12155,11 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
     this.updateDigitalSensorsUI();
   },
 
+  panLabViewport(direction) {
+    const viewport = document.getElementById('labCanvasViewport');
+    if (viewport) viewport.scrollBy({ left: Math.sign(direction) * viewport.clientWidth * 0.8, behavior: 'auto' });
+  },
+
   updateSimulationPauseUI() {
     const paused = Boolean(this.labBench && this.labBench.isPaused);
     const button = document.getElementById('btnSimulationPause');
@@ -12698,7 +12703,7 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
         <div class="curr-module-card">
           <h3>⚖️ Módulo 01: Química y Magnitudes (Arquímedes)</h3>
           <p>Determine la densidad de un sólido por desplazamiento de volumen.</p>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+          <div class="responsive-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
             <div style="background: #F8FAFC; border: 1px solid #E2E8F0; padding: 1rem; border-radius: 8px;">
               <label for="inpDensityMass">Masa del sólido (g):</label>
               <input type="number" id="inpDensityMass" class="form-control" value="54.0" step="0.1">
@@ -12719,7 +12724,7 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
       container.innerHTML = `
         <div class="curr-module-card">
           <h3>🌡️ Módulo 02: Materia y Cinética 2D</h3>
-          <div style="display: grid; grid-template-columns: 1fr 280px; gap: 1rem; margin-top: 1rem;">
+          <div class="responsive-grid" style="display: grid; grid-template-columns: 1fr 280px; gap: 1rem; margin-top: 1rem;">
             <canvas id="canvasKineticParticles" width="460" height="260" style="width: 100%; height: 260px; background: #0F172A; border-radius: 8px;"></canvas>
             <div style="background: #F8FAFC; border: 1px solid #E2E8F0; padding: 1rem; border-radius: 8px;">
               <label>Temperatura: <strong id="lblKineticTemp">25.0 °C</strong></label>
@@ -12739,7 +12744,7 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
       container.innerHTML = `
         <div class="curr-module-card">
           <h3>🌪️ Módulo 03: Separación de Mezclas</h3>
-          <div style="display: grid; grid-template-columns: 1fr 240px; gap: 1rem; margin-top: 1rem;">
+          <div class="responsive-grid" style="display: grid; grid-template-columns: 1fr 240px; gap: 1rem; margin-top: 1rem;">
             <canvas id="canvasSeparation" width="460" height="280" style="width: 100%; height: 280px; background: #FFFFFF; border: 1px solid #CBD5E1; border-radius: 8px;"></canvas>
             <div style="background: #F8FAFC; border: 1px solid #E2E8F0; padding: 1rem; border-radius: 8px;">
               <button class="btn btn-primary" style="width: 100%; margin-top: 1rem;" onclick="App.startSeparationAction()">▶️ Iniciar Filtrado</button>
@@ -12754,7 +12759,7 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
       container.innerHTML = `
         <div class="curr-module-card">
           <h3>⚛️ Módulo 04: Estructura Atómica e Isótopos (Bohr)</h3>
-          <div style="display: grid; grid-template-columns: 1fr 280px; gap: 1rem; margin-top: 1rem;">
+          <div class="responsive-grid" style="display: grid; grid-template-columns: 1fr 280px; gap: 1rem; margin-top: 1rem;">
             <canvas id="canvasAtomicModel" width="460" height="280" style="width: 100%; height: 280px; background: #0B1120; border-radius: 8px;"></canvas>
             <div style="background: #F8FAFC; border: 1px solid #E2E8F0; padding: 1rem; border-radius: 8px; font-size: 0.85rem;">
               <label>🔴 Protones (Z): <strong id="lblProtons">6</strong></label>
@@ -12792,7 +12797,7 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
       container.innerHTML = `
         <div class="curr-module-card">
           <h3>🔗 Módulo 07: Enlace Químico y Regla de Pauling</h3>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+          <div class="responsive-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
             <select id="selBondEl1" class="form-control" onchange="App.runBondEvaluation()">
               <option value="Na">Sodio (Na) - EN: 0.93</option>
               <option value="H">Hidrógeno (H) - EN: 2.20</option>
@@ -12812,21 +12817,21 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
       container.innerHTML = `
         <div class="curr-module-card">
           <h3>🏷️ Módulo 08: Funciones Inorgánicas (IUPAC, Stock, Tradicional)</h3>
-          <table class="report-table" style="margin-top: 1rem;">
+          <div class="responsive-table" role="region" tabindex="0" aria-label="Tabla con desplazamiento horizontal"><table class="report-table" style="margin-top: 1rem;">
             <thead><tr><th scope="col">Fórmula</th><th scope="col">Función</th><th scope="col">Tradicional</th><th scope="col">Stock</th><th scope="col">IUPAC</th></tr></thead>
             <tbody>
               ${ChemEngine.nomenclatures.map(n => `
                 <tr><td><strong>${n.displayFormula || n.formula}</strong></td><td>${n.type}</td><td>${n.traditional}</td><td>${n.stock}</td><td>${n.iupac}</td></tr>
               `).join('')}
             </tbody>
-          </table>
+          </table></div>
         </div>
       `;
     } else if (modNumber === 9) {
       container.innerHTML = `
         <div class="curr-module-card">
           <h3>💥 Módulo 09: Reacciones Químicas y Fenomenología</h3>
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin-top: 1rem;">
+          <div class="responsive-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin-top: 1rem;">
             ${ChemEngine.reactions.map(r => `
               <div style="background: #FFFFFF; border: 1px solid #CBD5E1; border-radius: 8px; padding: 1rem;">
                 <h4 style="margin: 0; color: #1E40AF;">${r.name}</h4>
@@ -12841,7 +12846,7 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
       container.innerHTML = `
         <div class="curr-module-card">
           <h3>🧮 Módulo 10: Estequiometría Cuantitativa</h3>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+          <div class="responsive-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
             <div style="background: #F8FAFC; border: 1px solid #CBD5E1; padding: 1rem; border-radius: 8px;">
               <label for="inpStoichMolesA">Moles de H₂:</label>
               <input type="number" id="inpStoichMolesA" class="form-control" value="4.0" step="0.5">

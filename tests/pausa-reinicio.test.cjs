@@ -45,6 +45,22 @@ function state(bench) {
   });
 }
 
+test('recorrer la vista móvil desplaza la mesa sin cambiar el experimento', () => {
+  const { app, bench, elements } = setup();
+  const movements = [];
+  elements.set('labCanvasViewport', {
+    clientWidth: 320,
+    scrollBy(options) { movements.push(options.left); }
+  });
+  const before = state(bench);
+  app.panLabViewport(1);
+  app.panLabViewport(-1);
+  assert.deepEqual(movements, [256, -256]);
+  assert.equal(state(bench), before);
+  elements.delete('labCanvasViewport');
+  assert.doesNotThrow(() => app.panLabViewport(1));
+});
+
 test('pausar congela la dosificación, el pH y la curva; reanudar conserva el avance', () => {
   const { bench } = setup();
   bench.buretteStand.isDripping = true;
