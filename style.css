@@ -4192,3 +4192,26 @@ body.simulator-active .top-context-bar {
 }
 
 
+
+/* RNF002: controles identificables y navegación mediante teclado. */
+@media screen {
+  :where(button, a[href], input, select, textarea, [tabindex]):focus-visible {
+    outline: 3px solid #0f172a !important;
+    outline-offset: 3px;
+  }
+  html[data-theme="dark"] :where(button, a[href], input, select, textarea, [tabindex]):focus-visible {
+    outline-color: #93c5fd !important;
+  }
+  button.reagent-card, button.tool-rack-item {
+    width: 100%;
+    text-align: left;
+    font-family: inherit;
+    color: var(--text-main);
+  }
+  .reagent-name, .tool-text .tool-name { font-size: .82rem; }
+  .reagent-formula, .tool-text .tool-cat { font-size: .75rem; line-height: 1.4; }
+  .hero-footer-note, .sidebar-nav-title { color: #b1bfd1; }
+  .btn-success { background: #047857 !important; color: #fff !important; }
+  .btn-success:hover { background: #065f46 !important; }
+  .classroom-enter-btn { background: #0369a1 !important; color: #fff !important; }
+}

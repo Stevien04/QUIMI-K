@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>QUIMI-K | Laboratorio Virtual de Química</title>
   <script src="theme.js?v=1"></script>
-  <link rel="stylesheet" href="style.css?v=7.2">
-  <link rel="stylesheet" href="theme.css?v=1">
+  <link rel="stylesheet" href="style.css?v=7.3">
+  <link rel="stylesheet" href="theme.css?v=2">
   <!-- 3Dmol.js Quimioinformática (Producción - README.md) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/3Dmol/2.0.4/3Dmol-min.js"></script>
 </head>
@@ -85,11 +85,11 @@
         <div id="authPaneLogin">
           <form onsubmit="App.handleLoginForm(event)">
             <div class="form-group">
-              <label>Correo Institucional o Gmail:</label>
+              <label for="loginEmail">Correo Institucional o Gmail:</label>
               <input type="email" id="loginEmail" class="form-input" placeholder="ejemplo@fleming.edu.pe o @gmail.com" required value="estudiante@fleming.edu.pe">
             </div>
             <div class="form-group">
-              <label>Contraseña:</label>
+              <label for="loginPassword">Contraseña:</label>
               <input type="password" id="loginPassword" class="form-input" placeholder="••••••••" required value="123456">
             </div>
 
@@ -124,15 +124,15 @@
         <div id="authPaneRegister" style="display: none;">
           <form onsubmit="App.handleRegisterForm(event)">
             <div class="form-group">
-              <label>Nombres y Apellidos:</label>
+              <label for="regFullName">Nombres y Apellidos:</label>
               <input type="text" id="regFullName" class="form-input" placeholder="Juan Carlos Pérez" required>
             </div>
             <div class="form-group">
-              <label>Correo Institucional o Gmail:</label>
+              <label for="regEmail">Correo Institucional o Gmail:</label>
               <input type="email" id="regEmail" class="form-input" placeholder="usuario@fleming.edu.pe o @gmail.com" required>
             </div>
             <div class="form-group">
-              <label>Rol en la Institución:</label>
+              <label for="regRole">Rol en la Institución:</label>
               <select id="regRole" class="form-input" required onchange="App.onRegisterRoleChange()">
                 <option value="student">👨‍🎓 Estudiante de Secundaria</option>
                 <option value="teacher">👩‍🏫 Docente de Ciencias (Envía Solicitud de Ingreso)</option>
@@ -142,7 +142,7 @@
               </div>
             </div>
             <div class="form-group">
-              <label>Contraseña:</label>
+              <label for="regPassword">Contraseña:</label>
               <input type="password" id="regPassword" class="form-input" placeholder="Mínimo 6 caracteres" minlength="6" required>
             </div>
 
@@ -319,7 +319,7 @@
             <div class="powerbi-panel" id="panelReagents" data-expanded="true">
               <!-- Franja Colapsada Vertical (Estilo Power BI) -->
               <div class="powerbi-rail-collapsed" onclick="App.togglePowerBiPanel('reagents')" title="Clic para expandir Reactivos Químicos">
-                <button class="powerbi-btn-chevron" title="Expandir Reactivos">»</button>
+                <button class="powerbi-btn-chevron" title="Expandir Reactivos" aria-label="Expandir Reactivos">»</button>
                 <div class="powerbi-rail-icon">🛡️</div>
                 <div class="powerbi-rail-text">Reactivos (SGA)</div>
               </div>
@@ -331,11 +331,11 @@
                     <span>🛡️ Reactivos (SGA)</span>
                     <a href="javascript:void(0)" onclick="App.showSGAModal('h2o')" style="font-size: 0.65rem; color: #2563eb; text-decoration: underline; margin-left: 0.25rem;">FDS</a>
                   </div>
-                  <button class="powerbi-btn-chevron" onclick="App.togglePowerBiPanel('reagents')" title="Ocultar Reactivos a la izquierda (Colapsar)">«</button>
+                  <button class="powerbi-btn-chevron" onclick="App.togglePowerBiPanel('reagents')" title="Ocultar Reactivos a la izquierda (Colapsar)" aria-label="Ocultar Reactivos a la izquierda (Colapsar)">«</button>
                 </div>
                 <!-- Buscador de Reactivos estilo Power BI -->
                 <div class="powerbi-search-box">
-                  <input type="text" id="searchReagentsInput" placeholder="🔍 Buscar reactivo..." oninput="App.filterReagents(this.value)">
+                  <input type="text" id="searchReagentsInput" aria-label="Buscar reactivos" placeholder="🔍 Buscar reactivo..." oninput="App.filterReagents(this.value)">
                 </div>
                 <div class="scrollable-shelf" id="reagentsShelf"></div>
               </div>
@@ -345,7 +345,7 @@
             <div class="powerbi-panel" id="panelInstruments" data-expanded="true">
               <!-- Franja Colapsada Vertical (Estilo Power BI) -->
               <div class="powerbi-rail-collapsed" onclick="App.togglePowerBiPanel('instruments')" title="Clic para expandir Instrumental Virtual">
-                <button class="powerbi-btn-chevron" title="Expandir Instrumental">»</button>
+                <button class="powerbi-btn-chevron" title="Expandir Instrumental" aria-label="Expandir Instrumental">»</button>
                 <div class="powerbi-rail-icon">🧰</div>
                 <div class="powerbi-rail-text">Instrumental Virtual</div>
               </div>
@@ -357,11 +357,11 @@
                     <span>🧰 Instrumental</span>
                     <span style="font-size: 0.65rem; color: #0284c7; font-weight: 700; background: #e0f2fe; padding: 0.1rem 0.35rem; border-radius: 8px;">14</span>
                   </div>
-                  <button class="powerbi-btn-chevron" onclick="App.togglePowerBiPanel('instruments')" title="Ocultar Instrumental a la izquierda (Colapsar)">«</button>
+                  <button class="powerbi-btn-chevron" onclick="App.togglePowerBiPanel('instruments')" title="Ocultar Instrumental a la izquierda (Colapsar)" aria-label="Ocultar Instrumental a la izquierda (Colapsar)">«</button>
                 </div>
                 <!-- Buscador de Instrumental estilo Power BI -->
                 <div class="powerbi-search-box">
-                  <input type="text" id="searchInstrumentsInput" placeholder="🔍 Buscar instrumental..." oninput="App.filterInstruments(this.value)">
+                  <input type="text" id="searchInstrumentsInput" aria-label="Buscar instrumentos" placeholder="🔍 Buscar instrumental..." oninput="App.filterInstruments(this.value)">
                 </div>
                 <div class="scrollable-shelf" id="instrumentsRack"></div>
               </div>
@@ -480,7 +480,7 @@
                   <button type="button" class="btn-card-guide-corner" id="btnActiveVesselGuideCorner" onclick="App.openActiveToolGuideModal()" title="Ver uso correcto y peligros (RF009)">
                     💡 Guía
                   </button>
-                  <button class="btn-card-close" onclick="App.removeSelectedVessel()" title="Retirar este recipiente de la mesa">✕</button>
+                  <button class="btn-card-close" onclick="App.removeSelectedVessel()" title="Retirar este recipiente de la mesa" aria-label="Retirar este recipiente de la mesa">✕</button>
                 </div>
               </div>
               <div class="digital-lcd-readout" id="cardVesselVolumeDisplay" style="font-size: 1.15rem; color: #38bdf8; display: flex; justify-content: space-between; align-items: center;">
@@ -510,7 +510,7 @@
                 <div style="display: flex; gap: 0.25rem; align-items: center;">
                   <button type="button" class="btn-card-guide-corner" onclick="App.openToolGuideModal('digital_balance')" title="Uso correcto y peligros (RF009)">💡 Guía</button>
                   <button class="btn-tare" onclick="App.tareBalance()" title="Tarar la balanza a 0.00 g">[TARA]</button>
-                  <button class="btn-card-close" onclick="App.removeInstrumentDirect('balance')" title="Retirar balanza de la mesa">✕</button>
+                  <button class="btn-card-close" onclick="App.removeInstrumentDirect('balance')" title="Retirar balanza de la mesa" aria-label="Retirar balanza de la mesa">✕</button>
                 </div>
               </div>
               <div class="digital-lcd-readout" id="sensorBalanceDisplay">0.00 g</div>
@@ -543,7 +543,7 @@
                 <span>🔥 Mechero Bunsen</span>
                 <div style="display: flex; gap: 0.25rem; align-items: center;">
                   <button type="button" class="btn-card-guide-corner" onclick="App.openToolGuideModal('bunsen_burner')" title="Uso correcto y peligros (RF009)">💡 Guía</button>
-                  <button class="btn-card-close" onclick="App.removeInstrumentDirect('bunsen')" title="Retirar mechero de la mesa">✕</button>
+                  <button class="btn-card-close" onclick="App.removeInstrumentDirect('bunsen')" title="Retirar mechero de la mesa" aria-label="Retirar mechero de la mesa">✕</button>
                 </div>
               </div>
               <div class="digital-lcd-readout" id="sensorBunsenDisplay" style="color: #fb923c; font-size: 1.05rem; display: flex; justify-content: space-between; align-items: center;">
@@ -567,7 +567,7 @@
                 <div style="display: flex; gap: 0.25rem; align-items: center;">
                   <button type="button" class="btn-card-guide-corner" onclick="App.openToolGuideModal('burette')" title="Uso correcto y peligros (RF009)">💡 Guía</button>
                   <span style="font-size: 0.65rem; color: #0284c7;">± 0.02 mL</span>
-                  <button class="btn-card-close" onclick="App.removeInstrumentDirect('burette')" title="Retirar soporte con bureta de la mesa">✕</button>
+                  <button class="btn-card-close" onclick="App.removeInstrumentDirect('burette')" title="Retirar soporte con bureta de la mesa" aria-label="Retirar soporte con bureta de la mesa">✕</button>
                 </div>
               </div>
               <canvas id="canvasMeniscusZoom" width="160" height="160"></canvas>
@@ -581,7 +581,7 @@
             <div class="sensor-card" id="cardSensorTitration">
               <div class="sensor-title" style="width: 100%; display: flex; justify-content: space-between; align-items: center;">
                 <span>📈 Curva de Neutralización</span>
-                <button class="btn-card-close" onclick="App.removeInstrumentDirect('burette')" title="Retirar titulación de la mesa">✕</button>
+                <button class="btn-card-close" onclick="App.removeInstrumentDirect('burette')" title="Retirar titulación de la mesa" aria-label="Retirar titulación de la mesa">✕</button>
               </div>
               <canvas id="canvasTitrationGraph" width="300" height="150"></canvas>
               <div style="font-size: 0.68rem; color: #64748b; margin-top: 0.25rem;">Banda rosa: Viraje fenolftaleína (pH 8.2 - 10.0)</div>
@@ -648,7 +648,7 @@
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
             <div style="border: 1px solid var(--border); border-radius: 8px; max-height: 380px; overflow-y: auto;">
               <table class="report-table" style="margin: 0;">
-                <thead><tr><th>Tiempo</th><th>Acción</th><th>Objetivo</th><th>Valor</th></tr></thead>
+                <thead><tr><th scope="col">Tiempo</th><th scope="col">Acción</th><th scope="col">Objetivo</th><th scope="col">Valor</th></tr></thead>
                 <tbody id="telemetryTableBody"></tbody>
               </table>
             </div>
@@ -697,7 +697,7 @@
 
             <!-- Selector de Reacciones Guiadas Preconfiguradas -->
             <div style="display: flex; align-items: center; gap: 0.5rem;">
-              <label style="font-size: 0.78rem; font-weight: 700; color: #e2e8f0;">Reacciones Predefinidas:</label>
+              <label for="selectPresetReaction" style="font-size: 0.78rem; font-weight: 700; color: #e2e8f0;">Reacciones Predefinidas:</label>
               <select id="selectPresetReaction" class="select-control" style="background: #1e293b; color: #f8fafc; border-color: #475569; font-size: 0.82rem; padding: 0.35rem 0.65rem; border-radius: 8px;" onchange="App.onSelectReactionPreset(this.value)">
                 <option value="custom">🧪 Combinación Libre (Elige Ranura A y B)</option>
                 <option value="reaction-h2o">💧 2H₂ + O₂ ➔ 2H₂O (Síntesis de Agua)</option>
@@ -752,7 +752,7 @@
                 <button type="button" id="btnSlotA" onclick="App.setActiveElementSlot('A')" style="background: #38bdf8; color: #0f172a; border: none; font-size: 0.72rem; font-weight: 800; padding: 0.15rem 0.5rem; border-radius: 4px; cursor: pointer;">
                   Ranura A (Activa)
                 </button>
-                <select id="selectElementA" class="select-control" style="background: #0f172a; color: #38bdf8; border-color: #38bdf8; font-size: 0.75rem; padding: 0.15rem 0.35rem; border-radius: 4px; max-width: 110px;" onchange="App.onSelectElementDropdown('A', this.value)"></select>
+                <select id="selectElementA" aria-label="Primer elemento químico" class="select-control" style="background: #0f172a; color: #38bdf8; border-color: #38bdf8; font-size: 0.75rem; padding: 0.15rem 0.35rem; border-radius: 4px; max-width: 110px;" onchange="App.onSelectElementDropdown('A', this.value)"></select>
               </div>
               <div id="rxReactant1Name" style="font-size: 1.8rem; font-weight: 900; color: #38bdf8; line-height: 1.1;">Na</div>
               <div id="rxReactant1Meta" style="font-size: 0.72rem; color: #94a3b8;">Sodio (EN: 0.93)</div>
@@ -767,7 +767,7 @@
                 <button type="button" id="btnSlotB" onclick="App.setActiveElementSlot('B')" style="background: #334155; color: #ffffff; border: none; font-size: 0.72rem; font-weight: 800; padding: 0.15rem 0.5rem; border-radius: 4px; cursor: pointer;">
                   Ranura B
                 </button>
-                <select id="selectElementB" class="select-control" style="background: #0f172a; color: #f87171; border-color: #f87171; font-size: 0.75rem; padding: 0.15rem 0.35rem; border-radius: 4px; max-width: 110px;" onchange="App.onSelectElementDropdown('B', this.value)"></select>
+                <select id="selectElementB" aria-label="Segundo elemento químico" class="select-control" style="background: #0f172a; color: #f87171; border-color: #f87171; font-size: 0.75rem; padding: 0.15rem 0.35rem; border-radius: 4px; max-width: 110px;" onchange="App.onSelectElementDropdown('B', this.value)"></select>
               </div>
               <div id="rxReactant2Name" style="font-size: 1.8rem; font-weight: 900; color: #f87171; line-height: 1.1;">Cl</div>
               <div id="rxReactant2Meta" style="font-size: 0.72rem; color: #94a3b8;">Cloro (EN: 3.16)</div>
@@ -912,7 +912,7 @@
               </p>
 
               <div style="display: flex; gap: 0.35rem; margin-bottom: 0.65rem;">
-                <input type="text" id="inputPubChemSearch" placeholder="Ej: caffeine, aspirin, ethanol..." style="flex: 1; background: #0f172a; border: 1px solid #334155; border-radius: 6px; padding: 0.35rem 0.6rem; color: #f8fafc; font-size: 0.78rem;">
+                <input type="text" id="inputPubChemSearch" aria-label="Buscar compuesto en PubChem" placeholder="Ej: caffeine, aspirin, ethanol..." style="flex: 1; background: #0f172a; border: 1px solid #334155; border-radius: 6px; padding: 0.35rem 0.6rem; color: #f8fafc; font-size: 0.78rem;">
                 <button type="button" class="btn btn-primary" style="font-size: 0.75rem; padding: 0.35rem 0.75rem;" onclick="App.searchPubChemMolecule()">
                   Ver 3D
                 </button>
@@ -1121,8 +1121,8 @@
       <div class="card">
         <!-- Barra de Búsqueda Interactiva -->
         <div class="guide-search-box" style="position: relative;">
-          <input type="text" id="guideSearchInput" class="search-input" placeholder="🔍 Buscar por término, fórmula o procedimiento (ej. Pauling, Lewis, Mol, Átomo, Redox, pH, Hidrocarburos)..." oninput="App.filterGuideEntries(this.value)">
-          <button id="guideSearchClearBtn" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; font-size: 1rem; color: #94a3b8; cursor: pointer; display: none;" onclick="App.clearGuideSearch()">✕</button>
+          <input type="text" id="guideSearchInput" aria-label="Buscar en el libro guía" class="search-input" placeholder="🔍 Buscar por término, fórmula o procedimiento (ej. Pauling, Lewis, Mol, Átomo, Redox, pH, Hidrocarburos)..." oninput="App.filterGuideEntries(this.value)">
+          <button id="guideSearchClearBtn" aria-label="Limpiar búsqueda del libro" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; font-size: 1rem; color: #94a3b8; cursor: pointer; display: none;" onclick="App.clearGuideSearch()">✕</button>
         </div>
 
         <!-- Filtros por Unidades Temáticas del Currículo -->
@@ -1184,7 +1184,7 @@
 
           <!-- Selector de Cuestionario: Práctica del Laboratorio vs Cuestionarios Asignados por el Docente -->
           <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0.75rem; margin-bottom: 1rem;">
-            <label style="font-size: 0.78rem; font-weight: 700; color: #475569; display: block; margin-bottom: 0.35rem;">
+            <label for="activeQuizSelector" style="font-size: 0.78rem; font-weight: 700; color: #475569; display: block; margin-bottom: 0.35rem;">
               Seleccionar Evaluación a Resolver:
             </label>
             <select id="activeQuizSelector" class="form-input" style="padding: 0.45rem; font-size: 0.85rem;" onchange="App.handleQuizSelectorChange(this.value)">
@@ -1412,7 +1412,7 @@
                 </div>
                 <div class="teacher-search-wrap">
                   <span class="teacher-search-icon">🔍</span>
-                  <input type="text" id="salonStudentSearchInput" class="teacher-search-input" placeholder="Buscar alumno o estado..." oninput="App.filterClassroomStudentsTable()">
+                  <input type="text" id="salonStudentSearchInput" aria-label="Buscar estudiantes del salón" class="teacher-search-input" placeholder="Buscar alumno o estado..." oninput="App.filterClassroomStudentsTable()">
                 </div>
               </div>
 
@@ -1420,13 +1420,13 @@
                 <table class="custom-table">
                   <thead>
                     <tr>
-                      <th>Estudiante</th>
-                      <th>Práctica en Curso</th>
-                      <th>Intentos</th>
-                      <th>Calificación</th>
-                      <th>Estado</th>
-                      <th>Fecha y Hora</th>
-                      <th>Acción</th>
+                      <th scope="col">Estudiante</th>
+                      <th scope="col">Práctica en Curso</th>
+                      <th scope="col">Intentos</th>
+                      <th scope="col">Calificación</th>
+                      <th scope="col">Estado</th>
+                      <th scope="col">Fecha y Hora</th>
+                      <th scope="col">Acción</th>
                     </tr>
                   </thead>
                   <tbody id="teacherTableBody">
@@ -1534,7 +1534,7 @@
             <div class="admin-filters-grid">
               <!-- Búsqueda en vivo -->
               <div style="flex: 1; min-width: 240px;">
-                <label style="font-size: 0.75rem; font-weight: 700; color: #475569; display: block; margin-bottom: 0.25rem;">
+                <label for="adminSearchInput" style="font-size: 0.75rem; font-weight: 700; color: #475569; display: block; margin-bottom: 0.25rem;">
                   🔍 Búsqueda Rápida de Usuario:
                 </label>
                 <input type="text" id="adminSearchInput" class="form-input" placeholder="Buscar por nombre, apellido o correo institucional..." oninput="App.filterAdminUsers()">
@@ -1542,7 +1542,7 @@
 
               <!-- Filtro de Rol -->
               <div style="min-width: 180px;">
-                <label style="font-size: 0.75rem; font-weight: 700; color: #475569; display: block; margin-bottom: 0.25rem;">
+                <label for="adminRoleFilter" style="font-size: 0.75rem; font-weight: 700; color: #475569; display: block; margin-bottom: 0.25rem;">
                   👤 Filtrar por Perfil / Rol:
                 </label>
                 <select id="adminRoleFilter" class="form-input" onchange="App.filterAdminUsers()">
@@ -1555,7 +1555,7 @@
 
               <!-- Filtro de Salón -->
               <div style="min-width: 180px;">
-                <label style="font-size: 0.75rem; font-weight: 700; color: #475569; display: block; margin-bottom: 0.25rem;">
+                <label for="adminSalonFilter" style="font-size: 0.75rem; font-weight: 700; color: #475569; display: block; margin-bottom: 0.25rem;">
                   🏫 Filtrar por Salón / Sección:
                 </label>
                 <select id="adminSalonFilter" class="form-input" onchange="App.filterAdminUsers()">
@@ -1580,16 +1580,16 @@
               <table class="custom-table" id="adminUsersTable">
                 <thead>
                   <tr>
-                    <th>Usuario / Nombres</th>
-                    <th>Correo Institucional</th>
-                    <th>Rol</th>
-                    <th>Salón / Sección</th>
-                    <th>Práctica en Curso</th>
-                    <th>Intentos</th>
-                    <th>Calificación</th>
-                    <th>Estado</th>
-                    <th>Fecha / Hora</th>
-                    <th>Acción</th>
+                    <th scope="col">Usuario / Nombres</th>
+                    <th scope="col">Correo Institucional</th>
+                    <th scope="col">Rol</th>
+                    <th scope="col">Salón / Sección</th>
+                    <th scope="col">Práctica en Curso</th>
+                    <th scope="col">Intentos</th>
+                    <th scope="col">Calificación</th>
+                    <th scope="col">Estado</th>
+                    <th scope="col">Fecha / Hora</th>
+                    <th scope="col">Acción</th>
                   </tr>
                 </thead>
                 <tbody id="adminUsersTableBody">
@@ -1769,7 +1769,7 @@
           <h3 style="font-size: 1.2rem; font-weight: 800; color: #0f172a; margin: 0;" id="evalModalTitle">Crear Práctica de Laboratorio &amp; Evaluación Interactiva (RF016)</h3>
           <span style="font-size: 0.78rem; color: #64748b;" id="evalModalSubtitle">Configure el reto experimental en mesa, herramientas autorizadas y las preguntas que el estudiante resolverá al finalizar la simulación</span>
         </div>
-        <button class="btn btn-outline" style="padding: 0.25rem 0.55rem; font-size: 0.85rem;" onclick="App.closeEvaluationEditor()">✕</button>
+        <button class="btn btn-outline" style="padding: 0.25rem 0.55rem; font-size: 0.85rem;" onclick="App.closeEvaluationEditor()" aria-label="Cerrar ventana">✕</button>
       </div>
 
       <div class="eval-modal-body">
@@ -1778,11 +1778,11 @@
 
           <div style="display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 0.85rem; margin-bottom: 1rem;">
             <div class="form-group" style="margin-bottom: 0;">
-              <label>Título de la Evaluación:</label>
+              <label for="editorEvalTitle">Título de la Evaluación:</label>
               <input type="text" id="editorEvalTitle" class="form-input" placeholder="Ej. Examen Práctico: Titulación de HCl con NaOH" required>
             </div>
             <div class="form-group" style="margin-bottom: 0;">
-              <label>Modalidad / Entorno:</label>
+              <label for="editorEvalType">Modalidad / Entorno:</label>
               <select id="editorEvalType" class="form-input" onchange="App.onEvaluationTypeChange()">
                 <option value="lab2d">⚗️ Examen Práctico en Mesa 2D</option>
                 <option value="molecular3d">🌐 Examen Práctico Molecular 3D</option>
@@ -1790,7 +1790,7 @@
               </select>
             </div>
             <div class="form-group" style="margin-bottom: 0;">
-              <label>Tema o Guía de Práctica:</label>
+              <label for="editorEvalTopic">Tema o Guía de Práctica:</label>
               <select id="editorEvalTopic" class="form-input" onchange="App.onEvaluationTopicChange()">
                 <option value="Neutralización Ácido-Base">Neutralización Ácido-Base (HCl + NaOH)</option>
                 <option value="Síntesis de NaCl">Síntesis de NaCl (Enlace Iónico)</option>
@@ -1812,7 +1812,7 @@
                 El alumno leerá este problema en su simulador y en su ficha final de resultados
               </span>
             </div>
-            <textarea id="editorEvalDescription" class="form-input" rows="2" style="font-size: 0.82rem; padding: 0.45rem 0.65rem; background: #ffffff; line-height: 1.4;" placeholder="Escriba el problema o reto experimental que el estudiante debe resolver en el laboratorio..."></textarea>
+            <textarea id="editorEvalDescription" aria-label="Problema o reto de la evaluación" class="form-input" rows="2" style="font-size: 0.82rem; padding: 0.45rem 0.65rem; background: #ffffff; line-height: 1.4;" placeholder="Escriba el problema o reto experimental que el estudiante debe resolver en el laboratorio..."></textarea>
           </div>
 
           <!-- SECCIÓN DE HERRAMIENTAS Y REACTIVOS AUTORIZADOS POR EL DOCENTE (SOLO EXAMEN PRÁCTICO) -->
@@ -1823,7 +1823,7 @@
                 <span style="font-size: 0.72rem; color: #15803d;">Solo las herramientas marcadas estarán visibles para el alumno. Las demás desaparecerán de su estante durante el examen.</span>
               </div>
               <div style="display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap;">
-                <input type="text" id="searchExamToolsInput" placeholder="🔍 Filtrar instrumental..." class="form-input" style="font-size: 0.76rem; padding: 0.22rem 0.6rem; width: 175px; height: 28px; background: #ffffff;" oninput="App.filterExamTools(this.value)">
+                <input type="text" id="searchExamToolsInput" aria-label="Filtrar instrumentos autorizados" placeholder="🔍 Filtrar instrumental..." class="form-input" style="font-size: 0.76rem; padding: 0.22rem 0.6rem; width: 175px; height: 28px; background: #ffffff;" oninput="App.filterExamTools(this.value)">
                 <button type="button" class="btn btn-outline" style="font-size: 0.70rem; padding: 0.2rem 0.5rem; background: #ffffff;" onclick="App.toggleAllExamTools(true)">☑️ Todas</button>
                 <button type="button" class="btn btn-outline" style="font-size: 0.70rem; padding: 0.2rem 0.5rem; background: #ffffff;" onclick="App.toggleAllExamTools(false)">⬜ Ninguna</button>
                 <button type="button" class="btn btn-secondary" style="font-size: 0.70rem; padding: 0.2rem 0.5rem; font-weight: 700; color: #166534; border-color: #86efac; background: #ffffff;" onclick="App.applyExamToolPreset('titration')">🎯 Preset Titulación</button>
@@ -1839,7 +1839,7 @@
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem; flex-wrap: wrap; gap: 0.5rem;">
                 <span style="font-size: 0.76rem; font-weight: 700; color: #166534;">🧪 Reactivos Químicos Permitidos en la Mesa:</span>
                 <div style="display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap;">
-                  <input type="text" id="searchExamReagentsInput" placeholder="🔍 Filtrar reactivos..." class="form-input" style="font-size: 0.76rem; padding: 0.22rem 0.6rem; width: 165px; height: 28px; background: #ffffff;" oninput="App.filterExamReagents(this.value)">
+                  <input type="text" id="searchExamReagentsInput" aria-label="Filtrar reactivos autorizados" placeholder="🔍 Filtrar reactivos..." class="form-input" style="font-size: 0.76rem; padding: 0.22rem 0.6rem; width: 165px; height: 28px; background: #ffffff;" oninput="App.filterExamReagents(this.value)">
                   <button type="button" class="btn btn-outline" style="font-size: 0.68rem; padding: 0.15rem 0.45rem; background: #ffffff;" onclick="App.toggleAllExamReagents(true)">☑️ Todos</button>
                   <button type="button" class="btn btn-outline" style="font-size: 0.68rem; padding: 0.15rem 0.45rem; background: #ffffff;" onclick="App.toggleAllExamReagents(false)">⬜ Ninguno</button>
                 </div>
@@ -1933,7 +1933,7 @@
           <h3 style="font-size: 1.15rem; font-weight: 800; color: #0f172a; margin: 0;" id="viewerModalTitle">Detalle de la Evaluación</h3>
           <span style="font-size: 0.78rem; color: #64748b;" id="viewerModalSubtitle">Vista de solo lectura del cuestionario</span>
         </div>
-        <button class="btn btn-outline" style="padding: 0.25rem 0.55rem; font-size: 0.85rem;" onclick="App.closeEvaluationViewer()">✕</button>
+        <button class="btn btn-outline" style="padding: 0.25rem 0.55rem; font-size: 0.85rem;" onclick="App.closeEvaluationViewer()" aria-label="Cerrar ventana">✕</button>
       </div>
       <div class="eval-modal-body" id="viewerModalBody">
         <!-- Renderizado de las preguntas en modo lectura -->
@@ -1960,7 +1960,7 @@
             <span style="font-size: 0.76rem; color: #166534;">I.E. Alexander Fleming • Visualización de Resultados de la Guía Asignada (RF007)</span>
           </div>
         </div>
-        <button class="btn btn-outline" style="padding: 0.25rem 0.55rem; font-size: 0.85rem;" onclick="App.closeReportModal()">✕</button>
+        <button class="btn btn-outline" style="padding: 0.25rem 0.55rem; font-size: 0.85rem;" onclick="App.closeReportModal()" aria-label="Cerrar ventana">✕</button>
       </div>
 
       <div class="eval-modal-body" style="padding: 1.25rem;">
@@ -2028,9 +2028,9 @@
             <table class="report-table" style="margin: 0; width: 100%;">
               <thead>
                 <tr style="background: #f8fafc;">
-                  <th style="padding: 0.6rem 0.85rem; font-size: 0.78rem;">Criterio Evaluado</th>
-                  <th style="padding: 0.6rem 0.85rem; font-size: 0.78rem; text-align: center; width: 110px;">Puntaje</th>
-                  <th style="padding: 0.6rem 0.85rem; font-size: 0.78rem;">Retroalimentación Técnica</th>
+                  <th scope="col" style="padding: 0.6rem 0.85rem; font-size: 0.78rem;">Criterio Evaluado</th>
+                  <th scope="col" style="padding: 0.6rem 0.85rem; font-size: 0.78rem; text-align: center; width: 110px;">Puntaje</th>
+                  <th scope="col" style="padding: 0.6rem 0.85rem; font-size: 0.78rem;">Retroalimentación Técnica</th>
                 </tr>
               </thead>
               <tbody id="reportRubricBody">
@@ -2061,7 +2061,7 @@
             <span style="font-size: 0.76rem; color: #2563eb;">Registro y Telemetría de Ejecución de Guía de Laboratorio (RF007)</span>
           </div>
         </div>
-        <button class="btn btn-outline" style="padding: 0.25rem 0.55rem; font-size: 0.85rem;" onclick="App.closeSubmissionsModal()">✕</button>
+        <button class="btn btn-outline" style="padding: 0.25rem 0.55rem; font-size: 0.85rem;" onclick="App.closeSubmissionsModal()" aria-label="Cerrar ventana">✕</button>
       </div>
 
       <div class="eval-modal-body" style="padding: 1.25rem;">
@@ -2084,12 +2084,12 @@
           <table class="report-table" style="margin: 0; width: 100%;">
             <thead>
               <tr style="background: #f8fafc;">
-                <th style="padding: 0.6rem 0.85rem; font-size: 0.78rem;">Estudiante</th>
-                <th style="padding: 0.6rem 0.85rem; font-size: 0.78rem;">Salón</th>
-                <th style="padding: 0.6rem 0.85rem; font-size: 0.78rem;">Fecha y Hora</th>
-                <th style="padding: 0.6rem 0.85rem; font-size: 0.78rem; text-align: center;">Nota (0-20)</th>
-                <th style="padding: 0.6rem 0.85rem; font-size: 0.78rem; text-align: center;">Estado</th>
-                <th style="padding: 0.6rem 0.85rem; font-size: 0.78rem; text-align: center;">Acción</th>
+                <th scope="col" style="padding: 0.6rem 0.85rem; font-size: 0.78rem;">Estudiante</th>
+                <th scope="col" style="padding: 0.6rem 0.85rem; font-size: 0.78rem;">Salón</th>
+                <th scope="col" style="padding: 0.6rem 0.85rem; font-size: 0.78rem;">Fecha y Hora</th>
+                <th scope="col" style="padding: 0.6rem 0.85rem; font-size: 0.78rem; text-align: center;">Nota (0-20)</th>
+                <th scope="col" style="padding: 0.6rem 0.85rem; font-size: 0.78rem; text-align: center;">Estado</th>
+                <th scope="col" style="padding: 0.6rem 0.85rem; font-size: 0.78rem; text-align: center;">Acción</th>
               </tr>
             </thead>
             <tbody id="submTableBody">
@@ -2114,7 +2114,7 @@
           <span class="category-pill" id="guideModalCategory" style="margin-bottom: 0.35rem; display: inline-block;">Materia y Medición</span>
           <h3 style="font-size: 1.2rem; font-weight: 800; color: #0f172a; margin: 0;" id="guideModalTitle">Título del Tema</h3>
         </div>
-        <button class="btn btn-outline" style="padding: 0.25rem 0.55rem; font-size: 0.85rem;" onclick="App.closeGuideModal()">✕</button>
+        <button class="btn btn-outline" style="padding: 0.25rem 0.55rem; font-size: 0.85rem;" onclick="App.closeGuideModal()" aria-label="Cerrar ventana">✕</button>
       </div>
       <div class="eval-modal-body guide-modal-content" id="guideModalBody">
         <!-- Contenido detallado del capítulo generado por JS -->
@@ -2148,7 +2148,7 @@
             </h3>
           </div>
         </div>
-        <button class="btn btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.85rem; color: #e2e8f0; border-color: #475569;" onclick="App.closeRobotFlowAdvisor()">✕</button>
+        <button class="btn btn-outline" style="padding: 0.2rem 0.5rem; font-size: 0.85rem; color: #e2e8f0; border-color: #475569;" onclick="App.closeRobotFlowAdvisor()" aria-label="Cerrar ventana">✕</button>
       </div>
 
       <div class="eval-modal-body" style="padding: 1.1rem; max-height: 72vh; overflow-y: auto;" id="robotFlowBody">
@@ -2184,7 +2184,7 @@
             </h3>
           </div>
         </div>
-        <button class="btn btn-outline" style="padding: 0.25rem 0.55rem; font-size: 0.85rem; color: #ffffff; border-color: rgba(255,255,255,0.3);" onclick="App.closeLabConsultModal()">✕</button>
+        <button class="btn btn-outline" style="padding: 0.25rem 0.55rem; font-size: 0.85rem; color: #ffffff; border-color: rgba(255,255,255,0.3);" onclick="App.closeLabConsultModal()" aria-label="Cerrar ventana">✕</button>
       </div>
 
       <div class="eval-modal-body" style="padding: 1rem 1.15rem; max-height: 68vh; overflow-y: auto;">
@@ -2312,7 +2312,7 @@
             <h3 style="font-size: 1.15rem; font-weight: 800; color: #0f172a; margin: 0.2rem 0 0 0;" id="toolModalTitle">Pipeta Graduada</h3>
           </div>
         </div>
-        <button class="btn btn-outline" style="padding: 0.25rem 0.55rem; font-size: 0.85rem;" onclick="App.closeToolGuide()">✕</button>
+        <button class="btn btn-outline" style="padding: 0.25rem 0.55rem; font-size: 0.85rem;" onclick="App.closeToolGuide()" aria-label="Cerrar ventana">✕</button>
       </div>
 
       <div class="eval-modal-body" style="padding: 1.25rem;">
@@ -2432,7 +2432,7 @@
                     <span style="color: #cbd5e1; font-weight: 700;">🔄 Inclinar / Girar (Vierte al inclinar ≥ 30°):</span>
                     <strong id="lblToolAngle" style="color: #38bdf8;">0°</strong>
                   </div>
-                  <input type="range" id="sliderToolAngle" min="-80" max="80" value="0" style="width: 100%; cursor: pointer;" oninput="App.updateInteractiveToolControl()">
+                  <input type="range" id="sliderToolAngle" aria-label="Inclinación del instrumento en grados" min="-80" max="80" value="0" style="width: 100%; cursor: pointer;" oninput="App.updateInteractiveToolControl()">
                   <div style="display: flex; gap: 0.25rem; margin-top: 0.22rem;">
                     <button type="button" class="btn btn-outline" style="flex: 1; font-size: 0.68rem; padding: 0.16rem 0.25rem; color: #cbd5e1; border-color: #475569;" onclick="App.animateToolTo(null, null, -45)">↺ -45°</button>
                     <button type="button" class="btn btn-outline" style="flex: 1; font-size: 0.68rem; padding: 0.16rem 0.25rem; color: #cbd5e1; border-color: #475569;" onclick="App.animateToolTo(null, null, 0)">0° Vertical</button>
@@ -2446,7 +2446,7 @@
                     <span style="color: #cbd5e1; font-weight: 700;">↔️ Desplazar Horizontalmente (Izq ↔ Der):</span>
                     <strong id="lblToolPosX" style="color: #38bdf8;">Centro</strong>
                   </div>
-                  <input type="range" id="sliderToolPosX" min="-185" max="185" value="0" style="width: 100%; cursor: pointer;" oninput="App.onSliderPosXChange(this.value)">
+                  <input type="range" id="sliderToolPosX" aria-label="Posición horizontal del instrumento" min="-185" max="185" value="0" style="width: 100%; cursor: pointer;" oninput="App.onSliderPosXChange(this.value)">
                 </div>
 
                 <!-- Zoom + Botones de desplazamiento animado suave -->
@@ -2456,7 +2456,7 @@
                       <span style="color: #94a3b8;">🔍 Zoom:</span>
                       <strong id="lblToolScale" style="color: #38bdf8;">100%</strong>
                     </div>
-                    <input type="range" id="sliderToolScale" min="75" max="140" value="100" style="width: 100%; cursor: pointer;" oninput="App.updateInteractiveToolControl()">
+                    <input type="range" id="sliderToolScale" aria-label="Escala del instrumento" min="75" max="140" value="100" style="width: 100%; cursor: pointer;" oninput="App.updateInteractiveToolControl()">
                   </div>
                   <div style="display: flex; gap: 0.25rem;">
                     <button type="button" class="btn btn-outline" style="font-size: 0.68rem; padding: 0.25rem 0.45rem; color: #38bdf8; border-color: #0284c7;" onclick="App.animateToolTo(-150, 14, null)" title="Deslizar suavemente al vaso izquierdo">⬅️ Vaso Izq</button>
@@ -2518,7 +2518,7 @@
             <span style="font-size: 0.78rem; color: #64748b;" id="detailUserEmail">estudiante@fleming.edu.pe</span>
           </div>
         </div>
-        <button class="btn btn-outline" style="padding: 0.25rem 0.55rem; font-size: 0.85rem;" onclick="App.closeUserDetailModal()">✕</button>
+        <button class="btn btn-outline" style="padding: 0.25rem 0.55rem; font-size: 0.85rem;" onclick="App.closeUserDetailModal()" aria-label="Cerrar ventana">✕</button>
       </div>
 
       <div class="eval-modal-body" style="padding: 1.25rem;">
@@ -2626,24 +2626,24 @@
             <span style="font-size: 0.78rem; color: #64748b;">Directorio de la I.E. Alexander Fleming</span>
           </div>
         </div>
-        <button class="btn btn-outline" style="padding: 0.25rem 0.55rem; font-size: 0.85rem;" onclick="App.closeAdminCreateUserModal()">✕</button>
+        <button class="btn btn-outline" style="padding: 0.25rem 0.55rem; font-size: 0.85rem;" onclick="App.closeAdminCreateUserModal()" aria-label="Cerrar ventana">✕</button>
       </div>
 
       <form onsubmit="App.handleAdminCreateUser(event)">
         <div class="eval-modal-body" style="padding: 1.25rem;">
           <div class="form-group">
-            <label>Nombres y Apellidos Completos:</label>
+            <label for="adminNewUserName">Nombres y Apellidos Completos:</label>
             <input type="text" id="adminNewUserName" class="form-input" placeholder="Ej. Ricardo Medina Morales" required>
           </div>
 
           <div class="form-group">
-            <label>Correo Institucional Fleming:</label>
+            <label for="adminNewUserEmail">Correo Institucional Fleming:</label>
             <input type="email" id="adminNewUserEmail" class="form-input" placeholder="ejemplo@fleming.edu.pe" required>
           </div>
 
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
             <div class="form-group">
-              <label>Rol Institucional:</label>
+              <label for="adminNewUserRole">Rol Institucional:</label>
               <select id="adminNewUserRole" class="form-input" required onchange="App.onAdminRoleSelectChange()">
                 <option value="student">👨‍🎓 Estudiante</option>
                 <option value="teacher">👩‍🏫 Docente</option>
@@ -2652,7 +2652,7 @@
             </div>
 
             <div class="form-group">
-              <label>Salón / Sección:</label>
+              <label for="adminNewUserSalon">Salón / Sección:</label>
               <select id="adminNewUserSalon" class="form-input" required>
                 <option value="4A">4to Año "A"</option>
                 <option value="4B">4to Año "B"</option>
@@ -2663,7 +2663,7 @@
           </div>
 
           <div class="form-group">
-            <label>Contraseña Temporal:</label>
+            <label for="adminNewUserPass">Contraseña Temporal:</label>
             <input type="password" id="adminNewUserPass" class="form-input" placeholder="Mínimo 4 caracteres" value="123456" required>
           </div>
         </div>
@@ -2691,7 +2691,7 @@
             <span style="font-size: 0.78rem; color: #64748b;">Validación Administrativa Institucional</span>
           </div>
         </div>
-        <button class="btn btn-outline" style="padding: 0.25rem 0.55rem; font-size: 0.85rem;" onclick="App.closeAssignTeacherModal()">✕</button>
+        <button class="btn btn-outline" style="padding: 0.25rem 0.55rem; font-size: 0.85rem;" onclick="App.closeAssignTeacherModal()" aria-label="Cerrar ventana">✕</button>
       </div>
 
       <div class="eval-modal-body" style="padding: 1.25rem;">
@@ -2702,7 +2702,7 @@
         </div>
 
         <div class="form-group">
-          <label>Salones Asignados a su Cargo:</label>
+          <label for="assignTeacherSalones">Salones Asignados a su Cargo:</label>
           <select id="assignTeacherSalones" class="form-input">
             <option value="Salones 4°A, 4°B, 5°A">Salones 4°A, 4°B y 5°A (Ciencias)</option>
             <option value="Salones 4°A y 4°B">Salones 4°A y 4°B (4to Secundaria)</option>
@@ -2712,7 +2712,7 @@
         </div>
 
         <div class="form-group">
-          <label>Especialidad / Asignatura:</label>
+          <label for="assignTeacherSubject">Especialidad / Asignatura:</label>
           <input type="text" id="assignTeacherSubject" class="form-input" value="Química y Ciencias Naturales">
         </div>
 
@@ -2743,7 +2743,7 @@
             <span style="font-size: 0.78rem; color: #64748b;">Gestión Administrativa de Permisos y Perfiles</span>
           </div>
         </div>
-        <button class="btn btn-outline" style="padding: 0.25rem 0.55rem; font-size: 0.85rem;" onclick="App.closeEditRoleModal()">✕</button>
+        <button class="btn btn-outline" style="padding: 0.25rem 0.55rem; font-size: 0.85rem;" onclick="App.closeEditRoleModal()" aria-label="Cerrar ventana">✕</button>
       </div>
 
       <div class="eval-modal-body" style="padding: 1.25rem;">
@@ -2757,7 +2757,7 @@
         </div>
 
         <div class="form-group">
-          <label>Designar Rol del Usuario (Estudiante o Docente):</label>
+          <label for="editRoleSelect">Designar Rol del Usuario (Estudiante o Docente):</label>
           <select id="editRoleSelect" class="form-input" onchange="App.onEditRoleChange()">
             <option value="student">👨‍🎓 Estudiante</option>
             <option value="teacher">👩‍🏫 Docente</option>
@@ -2765,14 +2765,14 @@
         </div>
 
         <div class="form-group" id="editRoleSalonGroup">
-          <label>Salón / Asignación:</label>
+          <label for="editRoleSalonSelect">Salón / Asignación:</label>
           <select id="editRoleSalonSelect" class="form-input">
             <!-- Dinámico según el rol -->
           </select>
         </div>
 
         <div class="form-group">
-          <label>Estado de Cuenta:</label>
+          <label for="editRoleStatusSelect">Estado de Cuenta:</label>
           <select id="editRoleStatusSelect" class="form-input">
             <option value="Activo">🟢 Activo</option>
             <option value="Aprobado">✅ Aprobado</option>
@@ -2809,7 +2809,7 @@
             <span style="font-size: 0.78rem; color: #64748b;">Colegio Alexander Fleming • Correo Fleming y Gmail</span>
           </div>
         </div>
-        <button class="btn btn-outline" style="padding: 0.25rem 0.55rem; font-size: 0.85rem;" onclick="App.closePasswordRecoveryModal()">✕</button>
+        <button class="btn btn-outline" style="padding: 0.25rem 0.55rem; font-size: 0.85rem;" onclick="App.closePasswordRecoveryModal()" aria-label="Cerrar ventana">✕</button>
       </div>
 
       <!-- Cuerpo del Modal: Paso 1, Paso 2 y Paso 3 -->
@@ -2823,7 +2823,7 @@
 
           <form onsubmit="App.handleSendRecoveryCode(event)">
             <div class="form-group">
-              <label>Correo Electrónico Registrado:</label>
+              <label for="recoveryEmailInput">Correo Electrónico Registrado:</label>
               <input type="email" id="recoveryEmailInput" class="form-input" placeholder="ejemplo@fleming.edu.pe o @gmail.com" required>
             </div>
 
@@ -2849,7 +2849,7 @@
 
           <form onsubmit="App.handleVerifyRecoveryCode(event)">
             <div class="form-group" style="text-align: center;">
-              <label style="display: block; margin-bottom: 0.5rem;">Ingresa el Código de 6 Dígitos:</label>
+              <label for="recoveryCodeInput" style="display: block; margin-bottom: 0.5rem;">Ingresa el Código de 6 Dígitos:</label>
               <input type="text" id="recoveryCodeInput" class="form-input" placeholder="000000" maxlength="6" pattern="[0-9]{6}" required style="text-align: center; font-size: 1.5rem; font-weight: 800; letter-spacing: 6px; width: 220px; margin: 0 auto; display: block;">
             </div>
 
@@ -2881,12 +2881,12 @@
 
           <form onsubmit="App.handleResetPasswordForm(event)">
             <div class="form-group">
-              <label>Nueva Contraseña:</label>
+              <label for="recoveryNewPassword">Nueva Contraseña:</label>
               <input type="password" id="recoveryNewPassword" class="form-input" placeholder="Mínimo 6 caracteres" minlength="6" required>
             </div>
 
             <div class="form-group">
-              <label>Repetir la Contraseña:</label>
+              <label for="recoveryConfirmPassword">Repetir la Contraseña:</label>
               <input type="password" id="recoveryConfirmPassword" class="form-input" placeholder="Confirma tu nueva contraseña" minlength="6" required>
             </div>
 
@@ -2920,26 +2920,26 @@
             <span style="font-size: 0.78rem; color: #64748b;">Colegio Alexander Fleming • Gestión de Aulas</span>
           </div>
         </div>
-        <button class="btn btn-outline" style="padding: 0.25rem 0.55rem; font-size: 0.85rem;" onclick="App.closeCreateClassroomModal()">✕</button>
+        <button class="btn btn-outline" style="padding: 0.25rem 0.55rem; font-size: 0.85rem;" onclick="App.closeCreateClassroomModal()" aria-label="Cerrar ventana">✕</button>
       </div>
 
       <form onsubmit="App.handleCreateClassroom(event)">
         <div class="eval-modal-body" style="padding: 1.25rem; max-height: 75vh; overflow-y: auto;">
           <div class="form-group">
-            <label>Nombre del Salón:</label>
+            <label for="newSalonName">Nombre del Salón:</label>
             <input type="text" id="newSalonName" class="form-input" placeholder="Ej: 5to Año 'B'" required>
           </div>
 
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
             <div class="form-group">
-              <label>Nivel Académico:</label>
+              <label for="newSalonGrade">Nivel Académico:</label>
               <select id="newSalonGrade" class="form-input" required>
                 <option value="Secundaria">Secundaria</option>
                 <option value="Bachillerato">Bachillerato</option>
               </select>
             </div>
             <div class="form-group">
-              <label>Turno:</label>
+              <label for="newSalonTurn">Turno:</label>
               <select id="newSalonTurn" class="form-input" required>
                 <option value="Turno Mañana">Turno Mañana</option>
                 <option value="Turno Tarde">Turno Tarde</option>
@@ -2948,7 +2948,7 @@
           </div>
 
           <div class="form-group">
-            <label>Práctica de Laboratorio Asignada:</label>
+            <label for="newSalonPractice">Práctica de Laboratorio Asignada:</label>
             <select id="newSalonPractice" class="form-input" required>
               <option value="Síntesis de NaCl (Enlace Iónico)">Síntesis de NaCl (Enlace Iónico)</option>
               <option value="Formación de Molécula de Agua (H₂O)">Formación de Molécula de Agua (H₂O)</option>
@@ -2957,12 +2957,12 @@
           </div>
 
           <div class="form-group">
-            <label>Docente / Tutor a Cargo:</label>
+            <label for="newSalonTutor">Docente / Tutor a Cargo:</label>
             <input type="text" id="newSalonTutor" class="form-input" value="Prof. Midori Judith Castillo Peralta" required>
           </div>
 
           <div class="form-group">
-            <label>Capacidad Máxima de Alumnos:</label>
+            <label for="newSalonCapacity">Capacidad Máxima de Alumnos:</label>
             <input type="number" id="newSalonCapacity" class="form-input" value="20" min="5" max="45" required>
           </div>
 
@@ -3021,7 +3021,7 @@
             </span>
           </div>
         </div>
-        <button class="btn btn-outline" style="padding: 0.3rem 0.6rem; font-size: 0.9rem;" onclick="App.closeStudentSelectionModal()">✕</button>
+        <button class="btn btn-outline" style="padding: 0.3rem 0.6rem; font-size: 0.9rem;" onclick="App.closeStudentSelectionModal()" aria-label="Cerrar ventana">✕</button>
       </div>
 
       <div class="eval-modal-body" style="padding: 1.25rem; max-height: 72vh; overflow-y: auto;">
@@ -3029,12 +3029,12 @@
         <div style="display: flex; gap: 0.65rem; flex-wrap: wrap; margin-bottom: 0.85rem; align-items: center;">
           <!-- Buscador -->
           <div style="flex: 1; min-width: 220px;">
-            <input type="text" id="modalRosterSearch" class="form-input" placeholder="🔍 Buscar por nombre, apellido o correo..." style="font-size: 0.85rem;" oninput="App.filterRosterStudents()">
+            <input type="text" id="modalRosterSearch" aria-label="Buscar alumnos por nombre o correo" class="form-input" placeholder="🔍 Buscar por nombre, apellido o correo..." style="font-size: 0.85rem;" oninput="App.filterRosterStudents()">
           </div>
 
           <!-- Filtro por Aula actual -->
           <div style="min-width: 180px;">
-            <select id="modalRosterClassFilter" class="form-input" style="font-size: 0.85rem;" onchange="App.filterRosterStudents()">
+            <select id="modalRosterClassFilter" aria-label="Filtrar alumnos por salón" class="form-input" style="font-size: 0.85rem;" onchange="App.filterRosterStudents()">
               <option value="all">🏫 Todos los Alumnos</option>
               <option value="unassigned">Sin salón asignado</option>
               <option value="4A">4to Año "A"</option>
@@ -3073,14 +3073,14 @@
             <table class="data-table" style="width: 100%; border-collapse: collapse; font-size: 0.84rem; margin: 0;">
               <thead style="background: #f8fafc; position: sticky; top: 0; z-index: 2; border-bottom: 2px solid #e2e8f0;">
                 <tr>
-                  <th style="padding: 0.65rem 0.85rem; width: 45px; text-align: center;">
-                    <input type="checkbox" id="modalRosterMasterCheckbox" onchange="App.toggleRosterMasterCheckbox(this.checked)" style="cursor: pointer; width: 16px; height: 16px;">
+                  <th scope="col" style="padding: 0.65rem 0.85rem; width: 45px; text-align: center;">
+                    <input type="checkbox" id="modalRosterMasterCheckbox" aria-label="Seleccionar todos los alumnos de la lista" onchange="App.toggleRosterMasterCheckbox(this.checked)" style="cursor: pointer; width: 16px; height: 16px;">
                   </th>
-                  <th style="padding: 0.65rem 0.85rem; text-align: left;">Estudiante</th>
-                  <th style="padding: 0.65rem 0.85rem; text-align: left;">Correo Electrónico</th>
-                  <th style="padding: 0.65rem 0.85rem; text-align: left;">Salón Actual</th>
-                  <th style="padding: 0.65rem 0.85rem; text-align: center;">Promedio</th>
-                  <th style="padding: 0.65rem 0.85rem; text-align: center;">Estado</th>
+                  <th scope="col" style="padding: 0.65rem 0.85rem; text-align: left;">Estudiante</th>
+                  <th scope="col" style="padding: 0.65rem 0.85rem; text-align: left;">Correo Electrónico</th>
+                  <th scope="col" style="padding: 0.65rem 0.85rem; text-align: left;">Salón Actual</th>
+                  <th scope="col" style="padding: 0.65rem 0.85rem; text-align: center;">Promedio</th>
+                  <th scope="col" style="padding: 0.65rem 0.85rem; text-align: center;">Estado</th>
                 </tr>
               </thead>
               <tbody id="modalRosterTableBody">
@@ -3139,19 +3139,19 @@
           <span class="badge-role badge-role-teacher" style="margin-bottom: 0.35rem; display: inline-block; background: #e0f2fe; color: #0369a1;">📖 Libro Guía Digital & Base de Conocimiento de Quimi</span>
           <h3 style="font-size: 1.15rem; font-weight: 800; color: #0f172a; margin: 0;">➕ Agregar Nuevo Tema al Libro Digital</h3>
         </div>
-        <button class="eval-modal-close" onclick="App.closeAddGuideModal()">✕</button>
+        <button class="eval-modal-close" onclick="App.closeAddGuideModal()" aria-label="Cerrar ventana">✕</button>
       </div>
 
       <form onsubmit="App.handleSaveNewGuideEntry(event)">
         <div class="eval-modal-body" style="padding: 1.15rem 1.35rem; display: flex; flex-direction: column; gap: 0.8rem;">
           <div>
-            <label style="font-size: 0.78rem; font-weight: 700; color: #334155; display: block; margin-bottom: 0.25rem;">Título del Tema o Concepto:</label>
+            <label for="newGuideTerm" style="font-size: 0.78rem; font-weight: 700; color: #334155; display: block; margin-bottom: 0.25rem;">Título del Tema o Concepto:</label>
             <input type="text" id="newGuideTerm" class="form-input" placeholder="Ej. Ley de los Gases Ideales (PV = nRT)" required>
           </div>
 
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
             <div>
-              <label style="font-size: 0.78rem; font-weight: 700; color: #334155; display: block; margin-bottom: 0.25rem;">Unidad / Categoría:</label>
+              <label for="newGuideCatKey" style="font-size: 0.78rem; font-weight: 700; color: #334155; display: block; margin-bottom: 0.25rem;">Unidad / Categoría:</label>
               <select id="newGuideCatKey" class="select-control" style="width: 100%;">
                 <option value="materia">🧪 Materia y Medición</option>
                 <option value="atomo">⚛️ Estructura Atómica y Tabla</option>
@@ -3162,18 +3162,18 @@
               </select>
             </div>
             <div>
-              <label style="font-size: 0.78rem; font-weight: 700; color: #334155; display: block; margin-bottom: 0.25rem;">Fórmula Científica:</label>
+              <label for="newGuideFormula" style="font-size: 0.78rem; font-weight: 700; color: #334155; display: block; margin-bottom: 0.25rem;">Fórmula Científica:</label>
               <input type="text" id="newGuideFormula" class="form-input" placeholder="Ej. P · V = n · R · T" required>
             </div>
           </div>
 
           <div>
-            <label style="font-size: 0.78rem; font-weight: 700; color: #334155; display: block; margin-bottom: 0.25rem;">Explicación Simple del Concepto:</label>
+            <label for="newGuideDesc" style="font-size: 0.78rem; font-weight: 700; color: #334155; display: block; margin-bottom: 0.25rem;">Explicación Simple del Concepto:</label>
             <textarea id="newGuideDesc" class="form-input" rows="2" placeholder="Explicación pedagógica clara del concepto químico..." required></textarea>
           </div>
 
           <div>
-            <label style="font-size: 0.78rem; font-weight: 700; color: #334155; display: block; margin-bottom: 0.25rem;">Procedimiento de Laboratorio:</label>
+            <label for="newGuideProcedure" style="font-size: 0.78rem; font-weight: 700; color: #334155; display: block; margin-bottom: 0.25rem;">Procedimiento de Laboratorio:</label>
             <textarea id="newGuideProcedure" class="form-input" rows="2" placeholder="Cómo se aplica o verifica experimentalmente en el laboratorio..." required></textarea>
           </div>
         </div>
@@ -3211,7 +3211,7 @@
 
   <!-- ================= CUADRO DE MENSAJE CENTRADO (REEMPLAZA ALERTS) ================= -->
   <div class="custom-dialog-backdrop" id="customDialogBackdrop">
-    <div class="custom-dialog-card">
+    <div class="custom-dialog-card" role="dialog" aria-modal="true" aria-labelledby="customDialogTitle" aria-describedby="customDialogMessage" onkeydown="App.handleDialogKeydown(event)">
       <div class="custom-dialog-icon" id="customDialogIcon">ℹ️</div>
       <div class="custom-dialog-title" id="customDialogTitle">Aviso del Sistema</div>
       <div class="custom-dialog-message" id="customDialogMessage">Mensaje informativo</div>
@@ -3227,6 +3227,6 @@
   <script src="offline_storage.js?v=3.2"></script>
   <script src="reaction_engine.js?v=3.2"></script>
   <script src="pubchem_service.js?v=3.2"></script>
-  <script src="app.js?v=6.2"></script>
+  <script src="app.js?v=6.3"></script>
 </body>
 </html>

@@ -1668,12 +1668,33 @@ const App = {
     if (msgEl) msgEl.innerText = message;
     if (titleEl) titleEl.innerText = title;
     if (iconEl) iconEl.innerText = icon;
-    if (backdrop) backdrop.classList.add('open');
+    if (backdrop) {
+      if (!backdrop.classList.contains('open')) this.dialogReturnFocus = document.activeElement;
+      backdrop.classList.add('open');
+      const button = document.getElementById('customDialogBtn');
+      if (button && typeof button.focus === 'function') button.focus();
+    }
   },
 
   closeDialog() {
     const backdrop = document.getElementById('customDialogBackdrop');
     if (backdrop) backdrop.classList.remove('open');
+    const previous = this.dialogReturnFocus;
+    this.dialogReturnFocus = null;
+    const target = previous && previous.isConnected && previous.getClientRects().length
+      ? previous : document.querySelector('.nav-tab.active');
+    if (target && typeof target.focus === 'function') target.focus();
+  },
+
+  handleDialogKeydown(event) {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      this.closeDialog();
+    } else if (event.key === 'Tab') {
+      // Este aviso solo tiene un control: Aceptar.
+      event.preventDefault();
+      document.getElementById('customDialogBtn').focus();
+    }
   },
 
   // ================= GESTIÓN DE USUARIOS Y AUTENTICACIÓN =================
@@ -11850,11 +11871,11 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
       : null;
 
     const colorThemes = {
-      h2o: { border: '#0284c7', bg: '#f0f9ff', badgeBg: '#bae6fd', badgeBorder: '#38bdf8', formulaColor: '#0284c7' },
+      h2o: { border: '#0284c7', bg: '#f0f9ff', badgeBg: '#bae6fd', badgeBorder: '#38bdf8', formulaColor: '#0369a1' },
       nacl: { border: '#6366f1', bg: '#f8fafc', badgeBg: '#e0e7ff', badgeBorder: '#818cf8', formulaColor: '#4f46e5' },
       sucrose: { border: '#d97706', bg: '#fffbeb', badgeBg: '#fef3c7', badgeBorder: '#fbbf24', formulaColor: '#b45309' },
       sand: { border: '#b45309', bg: '#fffbeb', badgeBg: '#fde68a', badgeBorder: '#f59e0b', formulaColor: '#78350f' },
-      oil: { border: '#eab308', bg: '#fefce8', badgeBg: '#fef08a', badgeBorder: '#facc15', formulaColor: '#a16207' },
+      oil: { border: '#eab308', bg: '#fefce8', badgeBg: '#fef08a', badgeBorder: '#facc15', formulaColor: '#854d0e' },
       ethanol: { border: '#f97316', bg: '#fff7ed', badgeBg: '#ffedd5', badgeBorder: '#fb923c', formulaColor: '#c2410c' },
       vinegar: { border: '#84cc16', bg: '#f7fee7', badgeBg: '#ecfccb', badgeBorder: '#a3e635', formulaColor: '#4d7c0f' },
       nahco3: { border: '#10b981', bg: '#ecfdf5', badgeBg: '#d1fae5', badgeBorder: '#34d399', formulaColor: '#047857' },
@@ -11871,11 +11892,13 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
       }
 
       const theme = colorThemes[r.id] || { border: '#0284c7', bg: '#ffffff', badgeBg: '#f1f5f9', badgeBorder: '#cbd5e1', formulaColor: '#64748b' };
-      const card = document.createElement('div');
+      const card = document.createElement('button');
+      card.type = 'button';
       card.className = 'reagent-card';
+      card.setAttribute('aria-label', `Agregar ${r.name} al recipiente seleccionado`);
       card.style.borderLeft = `5px solid ${theme.border}`;
       card.style.background = theme.bg;
-      card.title = `Haga clic para verter ${r.name} en el recipiente seleccionado`;
+      card.title = `Agregar ${r.name} al recipiente seleccionado`;
       card.innerHTML = `
         <div class="reagent-icon-badge" style="background: ${theme.badgeBg}; border-color: ${theme.badgeBorder}; font-size: 1.15rem;">${r.sga.icon}</div>
         <div class="reagent-meta">
@@ -11938,9 +11961,11 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
         return;
       }
 
-      const item = document.createElement('div');
+      const item = document.createElement('button');
+      item.type = 'button';
       item.className = 'tool-rack-item';
-      item.title = `Haga clic para colocar ${inst.name} en la mesa`;
+      item.setAttribute('aria-label', `Colocar ${inst.name} en la mesa`);
+      item.title = `Colocar ${inst.name} en la mesa`;
       item.innerHTML = `
         <div class="tool-icon">${inst.icon}</div>
         <div class="tool-text">
@@ -12675,11 +12700,11 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
           <p>Determine la densidad de un sólido por desplazamiento de volumen.</p>
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
             <div style="background: #F8FAFC; border: 1px solid #E2E8F0; padding: 1rem; border-radius: 8px;">
-              <label>Masa del sólido (g):</label>
+              <label for="inpDensityMass">Masa del sólido (g):</label>
               <input type="number" id="inpDensityMass" class="form-control" value="54.0" step="0.1">
-              <label style="margin-top: 0.5rem;">Volumen Inicial de Agua (mL):</label>
+              <label for="inpDensityV1" style="margin-top: 0.5rem;">Volumen Inicial de Agua (mL):</label>
               <input type="number" id="inpDensityV1" class="form-control" value="50.0" step="0.5">
-              <label style="margin-top: 0.5rem;">Volumen Final Sumergido (mL):</label>
+              <label for="inpDensityV2" style="margin-top: 0.5rem;">Volumen Final Sumergido (mL):</label>
               <input type="number" id="inpDensityV2" class="form-control" value="70.0" step="0.5">
               <button class="btn btn-primary" style="margin-top: 1rem; width: 100%;" onclick="App.runDensityCalc()">📐 Calcular Densidad</button>
             </div>
@@ -12788,7 +12813,7 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
         <div class="curr-module-card">
           <h3>🏷️ Módulo 08: Funciones Inorgánicas (IUPAC, Stock, Tradicional)</h3>
           <table class="report-table" style="margin-top: 1rem;">
-            <thead><tr><th>Fórmula</th><th>Función</th><th>Tradicional</th><th>Stock</th><th>IUPAC</th></tr></thead>
+            <thead><tr><th scope="col">Fórmula</th><th scope="col">Función</th><th scope="col">Tradicional</th><th scope="col">Stock</th><th scope="col">IUPAC</th></tr></thead>
             <tbody>
               ${ChemEngine.nomenclatures.map(n => `
                 <tr><td><strong>${n.displayFormula || n.formula}</strong></td><td>${n.type}</td><td>${n.traditional}</td><td>${n.stock}</td><td>${n.iupac}</td></tr>
@@ -12818,9 +12843,9 @@ El salón ya aparece disponible en la ruleta horizontal con la lista de sus alum
           <h3>🧮 Módulo 10: Estequiometría Cuantitativa</h3>
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
             <div style="background: #F8FAFC; border: 1px solid #CBD5E1; padding: 1rem; border-radius: 8px;">
-              <label>Moles de H₂:</label>
+              <label for="inpStoichMolesA">Moles de H₂:</label>
               <input type="number" id="inpStoichMolesA" class="form-control" value="4.0" step="0.5">
-              <label style="margin-top: 0.5rem;">Moles de O₂:</label>
+              <label for="inpStoichMolesB" style="margin-top: 0.5rem;">Moles de O₂:</label>
               <input type="number" id="inpStoichMolesB" class="form-control" value="1.5" step="0.5">
               <button class="btn btn-primary" style="margin-top: 1rem; width: 100%;" onclick="App.runStoichiometryCalc()">📊 Calcular</button>
             </div>

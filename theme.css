@@ -389,3 +389,15 @@
   html[data-theme="dark"] :is(.btn-primary, .custom-dialog-btn) { background: #2563eb; color: #fff; }
   html[data-theme="dark"] :is(.btn-primary, .custom-dialog-btn):hover { background: #1d4ed8; }
 }
+
+/* RNF002: completar el contraste de superficies que conservaban tonos claros. */
+@media screen {
+  html[data-theme="dark"] .reagent-card { background: var(--bg-card) !important; }
+  html[data-theme="dark"] .reagent-icon-badge { background: var(--theme-surface-muted) !important; }
+  html[data-theme="dark"] .reagent-name { color: var(--text-main) !important; }
+  html[data-theme="dark"] .reagent-formula { color: var(--text-muted) !important; }
+  html[data-theme="dark"] #examBannerProblemBox {
+    background: var(--theme-warning-bg) !important;
+    color: var(--theme-warning-text) !important;
+  }
+}
